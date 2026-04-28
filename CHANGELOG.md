@@ -6,7 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-(no entries yet)
+### Added
+- Pages site supports zh/en language toggle and day/night theme toggle. Hero top-right `[ LANG / EN ]` and `[ THEME / DAY ]` buttons; persisted to `localStorage` (`si-chip-lang`, `si-chip-theme`); first-visit defaults from `navigator.language` and `prefers-color-scheme`. Body markdown bilingualized via `<div lang="en" markdown="1">` / `<div lang="zh" markdown="1">` pattern; chrome translations live in a JSON island inside `_layouts/default.html`.
+- `docs/assets/css/nier.css` extended (~+90 lines) with three new sections: i18n display rules + responsive table overflow, dark-mode palette overrides under `body[data-theme="night"]`, and toggle control styles.
+- `docs/assets/js/nier.js` extended (~12 → ~100 lines) with theme + language state machines (localStorage + system-preference detection + DOM event handlers); cursor blink behavior preserved.
+- `CONTRIBUTING.md` §10 documents the bilingualization contract, the JSON island convention, and the loosened sync contracts for `_install_body.md` / `_userguide_body.md`.
+
+### Fixed
+- The 8-column table in `docs/demo.md` (and any wide table site-wide) no longer overflows the NieR page chrome on the right edge. `.page-body table` is now `display: block; max-width: 100%; overflow-x: auto; white-space: nowrap;` at all viewport widths, so wide tables scroll horizontally inside the chrome rather than bursting out.
 
 ## [0.1.1] — 2026-04-28
 

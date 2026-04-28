@@ -150,3 +150,59 @@ treats `SKILL.md` (which has YAML front-matter) as a renderable page and
 serves it at `/skills/si-chip/SKILL/` (HTML-rendered, body-only) instead
 of the raw `.md` URL the installer expects. The tarball sidesteps this
 because Jekyll passes `.tar.gz` files through unmodified.
+
+## 10. Pages bilingualization (en/zh) and dark mode
+
+The GitHub Pages site at `https://yorha-agents.github.io/Si-Chip/` ships with three independent UX state machines:
+
+| State | Storage key | Default | Toggle UI |
+|---|---|---|---|
+| Language | `localStorage["si-chip-lang"]` ∈ {`en`, `zh`} | `navigator.language` (`zh*` → `zh`, else `en`) | Hero top-right `[ LANG / EN ]` button |
+| Theme | `localStorage["si-chip-theme"]` ∈ {`day`, `night`} | `prefers-color-scheme` (`dark` → `night`, else `day`) | Hero top-right `[ THEME / DAY ]` button |
+
+Both are applied by `docs/assets/js/nier.js` on `DOMContentLoaded` and persisted to `localStorage` on each toggle. The body's `data-lang` and `data-theme` attributes drive the CSS in `docs/assets/css/nier.css`:
+
+- `body[data-theme="night"]` overrides the `:root` palette tokens (`--bg`, `--fg`, `--accent`, etc.).
+- `body[data-lang="en"] [lang="zh"]:not(html):not([data-i18n]) { display: none; }` (and the inverse for zh) hides the inactive language block.
+
+### Bilingual content convention
+
+Each Pages markdown body contains two top-level kramdown blocks:
+
+```markdown
+<div lang="en" markdown="1">
+
+English content...
+
+</div>
+
+<div lang="zh" markdown="1">
+
+中文内容……
+
+</div>
+```
+
+Mermaid diagrams, code blocks, file paths, URLs, numeric data, and enum strings (`keep`, `relaxed`, `composer_2/default`, etc.) are kept VERBATIM and shared (placed OUTSIDE the lang blocks when feasible) — only descriptive prose, headings, and bullet labels are translated.
+
+### Sync contracts (revised by this change)
+
+| Source | Mirror | Old contract | New contract |
+|---|---|---|---|
+| `INSTALL.md` (root, English git README) | `docs/_install_body.md` (Pages, bilingual) | `tail -n +2 INSTALL.md == docs/_install_body.md` (byte-identical) | The English `<div lang="en">` block of `docs/_install_body.md` matches `tail -n +2 INSTALL.md` body content (semantic equivalent; structural diff allowed for the wrapping `<div>` tags) |
+| `USERGUIDE.md` (root, English) | `docs/_userguide_body.md` (Pages, bilingual) | `tail -n +2 USERGUIDE.md == docs/_userguide_body.md` | Same: en block of partial matches root tail (semantic equivalent) |
+
+### Adding a new translation key
+
+Hero/footer chrome translations live in the JSON island inside `docs/_layouts/default.html` under `<script type="application/json" id="si-chip-i18n">`. Both `en` and `zh` buckets MUST be symmetric (same key set). To add a key: edit the JSON island, then mark the relevant DOM element with `data-i18n="<key>"`.
+
+### Dark mode token overrides
+
+If you introduce a new color token in `docs/assets/css/nier.css`:
+1. Define the day-mode value in `:root`.
+2. Add the night-mode override under `body[data-theme="night"]`.
+3. If the new color is referenced by a hover state or animation, verify both modes in the browser (the toggle button at the hero top-right flips them live).
+
+### Out-of-scope reminders (carry over from §9)
+
+The bilingualization and theme toggles do NOT relax any spec §11.1 forever-out items. PRs introducing a marketplace, router-model training, MD-to-CLI converter, or generic IDE compat layer remain out of scope regardless of which language they are described in.

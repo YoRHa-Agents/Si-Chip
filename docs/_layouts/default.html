@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% if page.title %}{{ page.title }} &middot; {% endif %}{{ site.title }}</title>
 <meta name="description" content="{{ site.description }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&amp;family=Noto+Sans+JP:wght@300;400&amp;family=Saira+Stencil+One&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ '/assets/css/nier.css' | relative_url }}">
 </head>
-<body class="nier">
+<body class="nier" data-theme="day" data-lang="en">
 <div class="scanlines" aria-hidden="true"></div>
 {% include header.html %}
 <main class="content">
@@ -23,6 +24,48 @@
 </article>
 </main>
 {% include footer.html %}
+<script type="application/json" id="si-chip-i18n">
+{
+  "en": {
+    "nav.home":         "\u25B6 HOME",
+    "nav.install":      "\u25B6 INSTALL",
+    "nav.userguide":    "\u25B6 USER GUIDE",
+    "nav.architecture": "\u25B6 ARCHITECTURE",
+    "nav.demo":         "\u25B6 DEMO",
+    "nav.spec":         "\u25B6 SPEC (V0.1.0)",
+    "nav.source":       "\u25B6 SOURCE",
+    "hero.meta":        "// YORHA AGENTS / SI-CHIP / V0.1.1",
+    "hero.subtitle":    "Persistent BasicAbility optimization factory \u2014 frozen spec v0.1.0",
+    "footer.status":    "[ STATUS: ONLINE ]",
+    "footer.node":      "[ NODE: 0001 ]",
+    "footer.ver":       "[ VER: 0.1.1 ]",
+    "footer.op":        "[ OPERATOR: 6O ]",
+    "footer.motto":     "GLORY TO MANKIND.",
+    "footer.source":    "// SOURCE",
+    "footer.release":   "// RELEASE V0.1.1",
+    "footer.license":   "// APACHE-2.0"
+  },
+  "zh": {
+    "nav.home":         "▶ 首页",
+    "nav.install":      "▶ 安装",
+    "nav.userguide":    "▶ 用户指南",
+    "nav.architecture": "▶ 架构",
+    "nav.demo":         "▶ 演示",
+    "nav.spec":         "▶ 规范 (V0.1.0)",
+    "nav.source":       "▶ 源码",
+    "hero.meta":        "// 寄叶机构 / SI-CHIP / V0.1.1",
+    "hero.subtitle":    "持久化的 BasicAbility 优化工厂——基于冻结的 v0.1.0 规范",
+    "footer.status":    "[ 状态: 在线 ]",
+    "footer.node":      "[ 节点: 0001 ]",
+    "footer.ver":       "[ 版本: 0.1.1 ]",
+    "footer.op":        "[ 操作员: 6O ]",
+    "footer.motto":     "人类荣耀。",
+    "footer.source":    "// 源码",
+    "footer.release":   "// 发布 V0.1.1",
+    "footer.license":   "// APACHE-2.0"
+  }
+}
+</script>
 <script src="{{ '/assets/js/nier.js' | relative_url }}" defer></script>
 </body>
 </html>
