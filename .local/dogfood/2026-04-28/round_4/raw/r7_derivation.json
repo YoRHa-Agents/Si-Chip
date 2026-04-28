@@ -1,0 +1,59 @@
+{
+  "round_id": "round_4",
+  "method": "sum(routing_stage_tokens_total) / sum(body_invocation_tokens_total) across with-ability rows.",
+  "split_basis": {
+    "routing_stage_tokens_per_prompt": "SKILL.md metadata_tokens (from count_tokens.py against frontmatter)",
+    "body_invocation_tokens_per_prompt": "SKILL.md body_tokens + USER_PROMPT_FOOTPRINT (1500)",
+    "rationale": "Router-stage cost is the cost a routing model pays to read the metadata to decide whether to trigger. Body-invocation cost is what is paid AFTER routing \u2014 body content + user prompt context."
+  },
+  "per_case": {
+    "docs_boundary": {
+      "routing_stage_tokens_total": 1640,
+      "body_invocation_tokens_total": 70400,
+      "n_prompts": 20,
+      "ratio": 0.023295454545454546
+    },
+    "half_retire_review": {
+      "routing_stage_tokens_total": 1640,
+      "body_invocation_tokens_total": 70400,
+      "n_prompts": 20,
+      "ratio": 0.023295454545454546
+    },
+    "metrics_gap": {
+      "routing_stage_tokens_total": 1640,
+      "body_invocation_tokens_total": 70400,
+      "n_prompts": 20,
+      "ratio": 0.023295454545454546
+    },
+    "next_action_plan": {
+      "routing_stage_tokens_total": 1640,
+      "body_invocation_tokens_total": 70400,
+      "n_prompts": 20,
+      "ratio": 0.023295454545454546
+    },
+    "profile_self": {
+      "routing_stage_tokens_total": 1640,
+      "body_invocation_tokens_total": 70400,
+      "n_prompts": 20,
+      "ratio": 0.023295454545454546
+    },
+    "router_matrix": {
+      "routing_stage_tokens_total": 1640,
+      "body_invocation_tokens_total": 70400,
+      "n_prompts": 20,
+      "ratio": 0.023295454545454546
+    }
+  },
+  "sum_routing_stage_tokens": 9840,
+  "sum_body_invocation_tokens": 422400,
+  "ratio": 0.023295454545454546,
+  "v1_baseline_ceiling": 0.2,
+  "v1_baseline_pass": true,
+  "v2_tightened_ceiling": 0.12,
+  "v2_tightened_pass": true,
+  "v3_strict_ceiling": 0.08,
+  "v3_strict_pass": true,
+  "instrumentation_source": "evals/si-chip/runners/with_ability_runner.py (Round 3 Edit A; per-prompt routing_stage_tokens + body_invocation_tokens)",
+  "degenerate_path_taken": false,
+  "comment": "Round 4 R7 = sum(9840)/sum(422400) = 0.02330. Identical to Round 3 (deterministic; SKILL.md metadata_tokens and body_tokens unchanged \u2014 only frontmatter version string 0.1.2 -> 0.1.3)."
+}

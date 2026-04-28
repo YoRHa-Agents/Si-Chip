@@ -1,0 +1,143 @@
+# Si-Chip Next-Action Plan — round_4 -> round_5
+# Conforms to templates/next_action_plan.template.yaml (spec §8.1 step 4 / §8.2 evidence #5).
+# target_gate stays bound to v1_baseline ("relaxed") per master plan
+# (.local/.agent/active/v0.2.0-iteration-plan.yaml#round_5); promotion to
+# v2_tightened is held until Round 12 readiness check.
+round_id: round_5
+generated_at: '2026-04-28T18:50:00+00:00'
+basis_metrics_report: .local/dogfood/2026-04-28/round_4/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-28/round_4/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-28/round_4/iteration_delta_report.yaml
+target_gate: relaxed  # spec §5.4: relaxed -> v1_baseline
+
+actions:
+  - id: a1
+    title: Populate U1_description_readability via Flesch-Kincaid grade level helper
+    owner: Implement
+    applies_to_metric: U1_description_readability
+    primitive: implement
+    exit_criterion: 'U1_description_readability non-null in round_5 metrics_report.yaml AND in [0.0, 24.0] (FK grade range)'
+    notes: |
+      Round 4 closes D3 latency_path 1/7 -> 4/7. Round 5 opens D5 usage_cost
+      0/4 -> 2/4 by filling U1 + U2. U1 = Flesch-Kincaid grade level on the
+      SKILL.md `description` frontmatter field. Add a small helper (either
+      inside count_tokens.py with a new --readability flag or a sibling
+      script .agents/skills/si-chip/scripts/readability.py — master plan
+      writable_files lists count_tokens.py so the in-place option is
+      preferred).
+      
+      FK grade formula:
+        FK = 0.39*(words/sentences) + 11.8*(syllables/words) - 15.59
+      
+      Syllable counting: simple regex-based vowel-cluster counter (not
+      perfect for technical English but deterministic). Reproducibility
+      recorded in raw/u1_fk_derivation.json.
+      
+      Master plan risk_flag: SKILL.md `description` is short and
+      bilingual-naming-heavy ("BasicAbility", "router_floor", "half-retire").
+      The number may be unflattering — surfacing it is the value.
+
+  - id: a2
+    title: Populate U2_first_time_success_rate from per-prompt outcomes
+    owner: Implement
+    applies_to_metric: U2_first_time_success_rate
+    primitive: refine
+    exit_criterion: 'U2_first_time_success_rate non-null in round_5 metrics_report.yaml AND in [0.0, 1.0]'
+    notes: |
+      U2 = first-trigger success rate = mean across should_trigger prompts of
+      `(triggered AND ac_met)` on the FIRST eval iteration. Since the
+      simulator never retries (single-pass evaluation by construction), the
+      `triggered AND ac_met AND correct == True` flag for should_trigger
+      prompts is the U2 value directly. No new runner required (master plan
+      rationale).
+      
+      Derivation:
+      U2 = sum(o.correct for o in prompt_outcomes if o.expected == 'trigger')
+            / sum(1 for o in prompt_outcomes if o.expected == 'trigger')
+      
+      Per case: ~85% (the runner's ac_met probability is 85% conditional on
+      triggered, and triggered ~ 90% of should_trigger). Expected: ~0.76.
+      
+      Hoist via aggregate_eval.hoist_u2_first_time_success_rate (new
+      helper, Round 5 Edit C).
+
+  - id: a3
+    title: Verify L1_wall_clock_p50 + L3_step_count + L4_redundant_call_ratio have not regressed
+    owner: Verify
+    applies_to_metric: L1_wall_clock_p50
+    primitive: verify
+    exit_criterion: 'L1/L3/L4 in round_5 metrics_report.yaml within ±5% of round_4 (1.215 s, 20, 0.0)'
+    notes: |
+      Master plan acceptance criterion implicit in §8.3 monotonicity:
+      no MVP-8 / R4 / R6 / R7 row may regress > 1%; L1/L3/L4 are not in
+      MVP-8 but are now part of the 4/7 D3 coverage and should remain
+      stable across rounds (deterministic runner). Verify by re-running
+      with_ability_runner against the same cases with the same seed.
+
+  - id: a4
+    title: Carry forward Round 4 diagnose findings (T2_pass_k v2_tightened margin)
+    owner: Plan
+    applies_to_metric: T2_pass_k
+    primitive: plan
+    exit_criterion: 'T2_pass_k bottleneck (0.5478 vs v2_tightened ceiling 0.55) is captured as a candidate for the v2_tightened-readiness round (Round 12 per master plan); no new action required in Round 5.'
+    notes: |
+      Round 4 diagnose §5 (and Round 3 before it) surfaced T2_pass_k as the
+      #1 v2_tightened blocker (margin -0.0022). This is a CASE-LEVEL fix
+      (need slightly harder acceptance criteria or one more passing case);
+      not a Round 5 priority, but tracked. Round 12 master plan
+      v2_tightened readiness check will revisit.
+
+  - id: a5
+    title: Cross-reference D14 index_recall + D15 structure_recognition Nines signals
+    owner: Plan
+    applies_to_metric: U1_description_readability
+    primitive: plan
+    exit_criterion: 'Round 5 raw/u1_fk_derivation.json explicitly cites the Round 3 Nines self-eval signals D14 = 0.20 and D15 = 0.75 as upstream motivation for U1 priority.'
+    notes: |
+      Master plan round_5.rationale: "Nines analyze flagged D14
+      index_recall=0.2 and D15 structure_recognition=0.75 — both are
+      upstream signals that Si-Chip's description quality is the limiting
+      factor, reinforcing the U1 priority." Captured here so Round 5's
+      U1 derivation file documents the upstream provenance chain.
+
+expected_iteration_delta_axes:
+  - usage_cost     # via a1 (U1) + a2 (U2) — currently 0/4 D5 sub-metrics filled, target 2/4
+
+# Pre-commitment: round_5 must show movement on the usage_cost axis (per
+# spec §4.1 v1_baseline iteration_delta row, any axis >= +0.05). The
+# measurement-fill flavour is acceptable per the same alternative clause
+# Round 3 + 4 invoked: "iteration_delta_report.yaml usage_cost axis is now
+# non-zero (was 0.0 in Round 2-4)".
+
+deferred_from_round_4:
+  - id: a4_round_3_deferred
+    title: 'Populate L5/L6/L7 (D3 latency_path completion to 7/7)'
+    deferral_reason: |
+      D3 reaches 4/7 this round (Round 4); L5_detour_index, L6_replanning_rate,
+      L7_think_act_split require a real-LLM run (the simulated runner has no
+      detour / replanning notion). Master plan defers these to post-v0.2.0
+      (the LLM-backed runner upgrade) and does not enumerate them as
+      gate-blocking rows.
+    refer_to: 'evals/si-chip/runners/with_ability_runner.py docstring "DETERMINISTIC SIMULATED BASELINE" section + Round 4 risk_flag "router_floor cells remain simulated".'
+
+continuing_through_master_plan:
+  - 'Round 5: U1 description_readability + U2 first_time_success_rate (D5 fill 0/4 -> 2/4)'
+  - 'Round 6: U3 setup_steps_count + U4 time_to_first_success (D5 fill 2/4 -> 4/4)'
+  - 'Round 7: C5 context_rot_risk + C6 scope_overlap_score (D2 fill 4/6 -> 6/6)'
+  - 'Round 8: V1+V2+V3+V4 governance_risk (D7 fill 0/4 -> 4/4)'
+  - 'Round 9: R8 description_competition_index + 16-cell intermediate router-test profile (D6 fill 8/8 -> formal full coverage; templates bumped)'
+  - 'Round 10: G1 cross_model_pass_matrix (D4 fill 0/4 -> 1/4 plus golden_set seeded)'
+  - 'Round 11: spec internal reconciliation §3.1/§13.4 + §4.1/§13.4 (spec bump v0.1.0 -> v0.2.0-rc1)'
+  - 'Round 12: §6.4 reactivation detector + v2_tightened readiness verify (v0.2.0 ship gate)'
+
+provenance:
+  generator: 'Round 4 dogfood — L1 Stage Agent'
+  spec_version: v0.1.0
+  basis_round: round_4
+  cites:
+    - .local/dogfood/2026-04-28/round_4/raw/notes.md  # diagnose output (Step 3)
+    - .local/dogfood/2026-04-28/round_4/metrics_report.yaml
+    - .local/dogfood/2026-04-28/round_3/next_action_plan.yaml  # carry-forward audit (a5 deferral chain)
+    - .local/.agent/active/v0.2.0-iteration-plan.yaml  # master plan round_5 entry
+    - .local/research/spec_v0.1.0.md  # §4.1 thresholds, §4.2 promotion rule
+    - .local/dogfood/2026-04-28/round_3/raw/nines_self_eval_out/self_eval_report.txt  # D14 + D15 signals

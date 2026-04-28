@@ -29,7 +29,7 @@ curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
 | `--target` | `cursor` / `claude` / `both` | (interactive prompt) | when `--yes` |
 | `--scope` | `global` / `repo` | (interactive prompt) | when `--yes` |
 | `--repo-root` | path | `$PWD` | when `--scope repo --yes` |
-| `--version` | tag | `v0.1.2` | no |
+| `--version` | tag | `v0.1.3` | no |
 | `--source-url` | URL | `https://yorha-agents.github.io/Si-Chip` | no (mostly for testing) |
 | `--yes` / `-y` | flag | `false` | no |
 | `--dry-run` | flag | `false` | no |
@@ -242,7 +242,7 @@ curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
 | `--target` | `cursor` / `claude` / `both` | （交互式提示） | `--yes` 时必填 |
 | `--scope` | `global` / `repo` | （交互式提示） | `--yes` 时必填 |
 | `--repo-root` | 路径 | `$PWD` | `--scope repo --yes` 时必填 |
-| `--version` | 版本标签 | `v0.1.2` | 否 |
+| `--version` | 版本标签 | `v0.1.3` | 否 |
 | `--source-url` | URL | `https://yorha-agents.github.io/Si-Chip` | 否（主要用于测试） |
 | `--yes` / `-y` | 开关 | `false` | 否 |
 | `--dry-run` | 开关 | `false` | 否 |

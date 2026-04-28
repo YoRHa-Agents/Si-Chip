@@ -28,10 +28,13 @@ Output schema (per case)
       "pass_rate": <float>,
       "pass_k_4": <float>,
       "latency_p95_s": <float>,
+      "latency_p50_s": <float>,            # NEW IN ROUND 4 (D3/L1)
       "metadata_tokens": 0,
       "per_invocation_footprint": 1500,
       "trigger_F1": 0.0,
       "router_floor": "n/a (no_ability)",
+      "step_count": <int>,                 # NEW IN ROUND 4 (D3/L3)
+      "redundant_call_ratio": <float>,     # NEW IN ROUND 4 (D3/L4)
       "prompt_outcomes": [{...}, ...]
     }
 
@@ -81,10 +84,13 @@ REQUIRED_RESULT_KEYS: Tuple[str, ...] = (
     "pass_rate",
     "pass_k_4",
     "latency_p95_s",
+    "latency_p50_s",
     "metadata_tokens",
     "per_invocation_footprint",
     "trigger_F1",
     "router_floor",
+    "step_count",
+    "redundant_call_ratio",
 )
 
 CASE_KEYWORDS: Dict[str, List[str]] = {
@@ -147,6 +153,86 @@ def percentile_p95(values: List[float]) -> float:
     if idx >= len(ordered):
         idx = len(ordered) - 1
     return float(ordered[idx])
+
+
+def percentile_p50(values: List[float]) -> float:
+    """Return ``sorted(values)[int(0.50 * len(values))]`` clamped in-bounds.
+
+    Round 4 (S5 task spec Edit B): sibling to :func:`percentile_p95`.
+    Populates spec §3.1 D3/L1 ``wall_clock_p50`` for the no-ability
+    baseline. By construction ``percentile_p50(xs) <= percentile_p95(xs)``
+    for any non-empty ``xs`` — same invariant as the with-ability runner.
+
+    >>> percentile_p50([0.1, 0.2, 0.3, 0.4, 0.5])
+    0.3
+    >>> percentile_p50([1.0])
+    1.0
+    >>> percentile_p50([])
+    0.0
+    """
+
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    idx = int(0.50 * len(ordered))
+    if idx >= len(ordered):
+        idx = len(ordered) - 1
+    return float(ordered[idx])
+
+
+def step_count_from_outcomes(prompt_outcomes: List[Dict[str, Any]]) -> int:
+    """Return spec §3.1 D3/L3 ``step_count`` for a single case.
+
+    Round 4 (S5 task spec Edit B): each prompt evaluation is treated
+    as one execution step. No-ability semantics are identical to the
+    with-ability runner — the baseline must supply the same field so
+    the aggregator can compare the two.
+
+    >>> step_count_from_outcomes([{"prompt_id": "a"}, {"prompt_id": "b"}])
+    2
+    >>> step_count_from_outcomes([])
+    0
+    """
+
+    return int(len(prompt_outcomes))
+
+
+def redundant_call_ratio_from_outcomes(prompt_outcomes: List[Dict[str, Any]]) -> float:
+    """Return spec §3.1 D3/L4 ``redundant_call_ratio`` for a single case.
+
+    Defined as ``(total_calls - unique_call_names) / total_calls``,
+    clamped to ``[0.0, 1.0]``. The "tool name" of a simulated call is
+    its ``prompt_id``. Per Round 4 master plan risk_flag, the 6
+    simulated cases yield L4 = 0.0 because every prompt within a case
+    has a unique ``prompt_id``; the no-ability arm has the same
+    structural property.
+
+    >>> redundant_call_ratio_from_outcomes([{"prompt_id": "a"}, {"prompt_id": "a"}])
+    0.5
+    >>> redundant_call_ratio_from_outcomes([{"prompt_id": "a"}, {"prompt_id": "b"}])
+    0.0
+    >>> redundant_call_ratio_from_outcomes([])
+    0.0
+    """
+
+    total = len(prompt_outcomes)
+    if total <= 0:
+        return 0.0
+    names: List[str] = []
+    for entry in prompt_outcomes:
+        name = entry.get("prompt_id") if isinstance(entry, dict) else None
+        if isinstance(name, str) and name:
+            names.append(name)
+        else:
+            names.append(f"_anonymous_{len(names)}")
+    unique = len(set(names))
+    redundant = max(0, total - unique)
+    ratio = redundant / total
+    if ratio < 0.0:
+        return 0.0
+    if ratio > 1.0:
+        return 1.0
+    return float(ratio)
 
 
 def _validate_case(case: Any, source: Path) -> Dict[str, Any]:
@@ -249,15 +335,21 @@ def evaluate_case(case: Dict[str, Any], seed: int) -> Dict[str, Any]:
     pass_rate = correct / total if total else 0.0
     pass_k_4 = pass_rate ** 4
     latency_p95_s = percentile_p95(latencies)
+    latency_p50_s = percentile_p50(latencies)
+    case_step_count = step_count_from_outcomes(prompt_outcomes)
+    case_redundant_call_ratio = redundant_call_ratio_from_outcomes(prompt_outcomes)
 
     return {
         "pass_rate": pass_rate,
         "pass_k_4": pass_k_4,
         "latency_p95_s": latency_p95_s,
+        "latency_p50_s": latency_p50_s,
         "metadata_tokens": NO_ABILITY_METADATA_TOKENS,
         "per_invocation_footprint": NO_ABILITY_FOOTPRINT,
         "trigger_F1": 0.0,
         "router_floor": ROUTER_FLOOR_NO_ABILITY,
+        "step_count": case_step_count,
+        "redundant_call_ratio": case_redundant_call_ratio,
         "prompt_outcomes": prompt_outcomes,
         "_meta": {
             "case_id": case_id,
@@ -268,6 +360,15 @@ def evaluate_case(case: Dict[str, Any], seed: int) -> Dict[str, Any]:
             "n_should_not_trigger": len(should_not_trigger),
             "n_total": total,
             "n_correct": correct,
+            "step_count_basis": (
+                "L3_step_count = len(prompt_outcomes); each prompt eval is one "
+                "logical execution step in the simulated runner."
+            ),
+            "redundant_call_ratio_basis": (
+                "L4_redundant_call_ratio = (total_calls - unique_call_names) / "
+                "total_calls; tool name = prompt_id; degenerate 0.0 expected for "
+                "the simulated runner because every prompt_id in a case is unique."
+            ),
         },
     }
 
@@ -306,11 +407,16 @@ def run(cases_dir: Path, out_dir: Path, seed: int) -> Dict[str, Any]:
             "pass_rate": result["pass_rate"],
             "pass_k_4": result["pass_k_4"],
             "latency_p95_s": result["latency_p95_s"],
+            "latency_p50_s": result["latency_p50_s"],
             "trigger_F1": result["trigger_F1"],
+            "step_count": result["step_count"],
+            "redundant_call_ratio": result["redundant_call_ratio"],
         })
         LOGGER.info(
-            "wrote %s pass_rate=%.4f latency_p95=%.4f",
-            out_path, result["pass_rate"], result["latency_p95_s"],
+            "wrote %s pass_rate=%.4f latency_p50=%.4f latency_p95=%.4f step_count=%d redundant=%.4f",
+            out_path, result["pass_rate"],
+            result["latency_p50_s"], result["latency_p95_s"],
+            result["step_count"], result["redundant_call_ratio"],
         )
 
     summary = {
@@ -325,7 +431,15 @@ def run(cases_dir: Path, out_dir: Path, seed: int) -> Dict[str, Any]:
             "mean_pass_rate": sum(p["pass_rate"] for p in per_case) / len(per_case) if per_case else 0.0,
             "mean_pass_k_4": sum(p["pass_k_4"] for p in per_case) / len(per_case) if per_case else 0.0,
             "mean_latency_p95_s": sum(p["latency_p95_s"] for p in per_case) / len(per_case) if per_case else 0.0,
+            "mean_latency_p50_s": sum(p["latency_p50_s"] for p in per_case) / len(per_case) if per_case else 0.0,
             "mean_trigger_F1": sum(p["trigger_F1"] for p in per_case) / len(per_case) if per_case else 0.0,
+            "mean_step_count": (
+                sum(p["step_count"] for p in per_case) / len(per_case) if per_case else 0.0
+            ),
+            "mean_redundant_call_ratio": (
+                sum(p["redundant_call_ratio"] for p in per_case) / len(per_case)
+                if per_case else 0.0
+            ),
             "router_floor": ROUTER_FLOOR_NO_ABILITY,
         },
     }

@@ -66,6 +66,28 @@ REQUIRED_KEYS: Tuple[str, ...] = (
     "router_floor",
 )
 
+# Round 4 (S5 task spec Edit C) added per-row latency_p50_s, step_count
+# and redundant_call_ratio from the runners. They are OPTIONAL during
+# the read because Round 3 result.json snapshots predate them; the
+# aggregator falls back to ``None`` when the key is absent and records
+# the degenerate path in ``provenance.l_derivation`` instead of silently
+# zeroing.
+OPTIONAL_LATENCY_PATH_KEYS: Tuple[str, ...] = (
+    "latency_p50_s",
+    "step_count",
+    "redundant_call_ratio",
+)
+
+# Round 4 (S5 task spec Edit C): optional latency-path instrumentation.
+# When every ``with_rows`` row carries these keys, the aggregator hoists
+# spec §3.1 D3 L1 / L3 / L4 into the metrics_report. Missing keys are
+# the documented degenerate path (report field stays ``None`` per §3.2).
+OPTIONAL_L134_KEYS: Tuple[str, ...] = (
+    "latency_p50_s",
+    "step_count",
+    "redundant_call_ratio",
+)
+
 METRIC_KEYS: Dict[str, List[str]] = {
     "task_quality": [
         "T1_pass_rate",
@@ -266,6 +288,178 @@ def hoist_r6_routing_latency_p95(
     return chosen["latency_p95_ms"], derivation
 
 
+def hoist_l1_wall_clock_p50(
+    with_rows: List[Dict[str, Any]],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist L1 from with-ability per-case ``result.json`` rows.
+
+    Spec §3.1 D3/L1 ``wall_clock_p50`` (seconds): the mean of each
+    case's ``latency_p50_s`` across the 6 simulated cases (or whichever
+    case set the runner produced). The per-case p50 is emitted by
+    Round 4's runner edit (``percentile_p50`` helper).
+
+    The aggregator-level "mean of p50s" is the same aggregate as the
+    existing ``L2_wall_clock_p95`` hoist (``mean of p95s``), which
+    preserves the L1 ≤ L2 sanity invariant the master plan's
+    acceptance criterion requires.
+
+    Returns ``(value_s, derivation_dict)``. ``value_s`` is ``None``
+    when no row carries the Round 4 instrumentation (documented
+    degenerate path; aggregator MUST NOT silently substitute a
+    placeholder per workspace rule "No Silent Failures").
+
+    >>> rows = [{"latency_p50_s": 1.0}, {"latency_p50_s": 1.2}]
+    >>> v, _ = hoist_l1_wall_clock_p50(rows)
+    >>> round(v, 4)
+    1.1
+    """
+
+    values: List[float] = []
+    skipped_rows = 0
+    for r in with_rows:
+        val = r.get("latency_p50_s")
+        if val is None:
+            skipped_rows += 1
+            continue
+        try:
+            values.append(float(val))
+        except (TypeError, ValueError):
+            skipped_rows += 1
+
+    if not values:
+        return None, {
+            "error": "no rows carried L1 instrumentation",
+            "n_rows_total": len(with_rows),
+            "n_rows_skipped": skipped_rows,
+            "remediation": (
+                "rerun evals/si-chip/runners/with_ability_runner.py — Round 4 "
+                "Edit A added per-case latency_p50_s to result.json"
+            ),
+        }
+
+    value = statistics.fmean(values)
+    derivation = {
+        "method": "mean(latency_p50_s across with-ability rows)",
+        "n_rows_counted": len(values),
+        "n_rows_skipped": skipped_rows,
+        "n_rows_total": len(with_rows),
+        "per_row_values": values,
+    }
+    return float(value), derivation
+
+
+def hoist_l3_step_count(
+    with_rows: List[Dict[str, Any]],
+) -> Tuple[Optional[int], Dict[str, Any]]:
+    """Hoist L3 from with-ability per-case ``result.json`` rows.
+
+    Spec §3.1 D3/L3 ``step_count`` (integer >= 1): the mean of each
+    case's ``step_count`` rounded to the nearest integer. Each case
+    contributes one count because ``step_count`` is a per-invocation
+    metric in the simulator (each prompt is one execution step).
+
+    Rounded-mean is defensible for the deterministic simulator because
+    every case has exactly 20 prompts; the real-LLM upgrade path will
+    report integer steps per invocation and the aggregator rounding
+    will remain consistent.
+
+    >>> rows = [{"step_count": 20}, {"step_count": 20}]
+    >>> v, _ = hoist_l3_step_count(rows)
+    >>> v
+    20
+    """
+
+    values: List[int] = []
+    skipped_rows = 0
+    for r in with_rows:
+        val = r.get("step_count")
+        if val is None:
+            skipped_rows += 1
+            continue
+        try:
+            values.append(int(val))
+        except (TypeError, ValueError):
+            skipped_rows += 1
+
+    if not values:
+        return None, {
+            "error": "no rows carried L3 instrumentation",
+            "n_rows_total": len(with_rows),
+            "n_rows_skipped": skipped_rows,
+            "remediation": (
+                "rerun evals/si-chip/runners/with_ability_runner.py — Round 4 "
+                "Edit A added per-case step_count to result.json"
+            ),
+        }
+
+    mean_value = statistics.fmean(values)
+    rounded = int(round(mean_value))
+    derivation = {
+        "method": "round(mean(step_count across with-ability rows))",
+        "n_rows_counted": len(values),
+        "n_rows_skipped": skipped_rows,
+        "n_rows_total": len(with_rows),
+        "per_row_values": values,
+        "mean_value": mean_value,
+    }
+    return rounded, derivation
+
+
+def hoist_l4_redundant_call_ratio(
+    with_rows: List[Dict[str, Any]],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist L4 from with-ability per-case ``result.json`` rows.
+
+    Spec §3.1 D3/L4 ``redundant_call_ratio`` (float in [0.0, 1.0]):
+    the mean of each case's ``redundant_call_ratio``. Degenerate 0.0
+    expected for the deterministic simulator (prompt_ids are unique
+    within a case). This is a valid value and documented per the
+    Round 4 master plan risk_flag.
+
+    >>> rows = [{"redundant_call_ratio": 0.0}, {"redundant_call_ratio": 0.0}]
+    >>> v, _ = hoist_l4_redundant_call_ratio(rows)
+    >>> v
+    0.0
+    """
+
+    values: List[float] = []
+    skipped_rows = 0
+    for r in with_rows:
+        val = r.get("redundant_call_ratio")
+        if val is None:
+            skipped_rows += 1
+            continue
+        try:
+            values.append(float(val))
+        except (TypeError, ValueError):
+            skipped_rows += 1
+
+    if not values:
+        return None, {
+            "error": "no rows carried L4 instrumentation",
+            "n_rows_total": len(with_rows),
+            "n_rows_skipped": skipped_rows,
+            "remediation": (
+                "rerun evals/si-chip/runners/with_ability_runner.py — Round 4 "
+                "Edit A added per-case redundant_call_ratio to result.json"
+            ),
+        }
+
+    value = statistics.fmean(values)
+    if value < 0.0:
+        value = 0.0
+    if value > 1.0:
+        value = 1.0
+    derivation = {
+        "method": "mean(redundant_call_ratio across with-ability rows) clamped to [0,1]",
+        "n_rows_counted": len(values),
+        "n_rows_skipped": skipped_rows,
+        "n_rows_total": len(with_rows),
+        "per_row_values": values,
+    }
+    return float(value), derivation
+
+
 def hoist_r7_routing_token_overhead(
     with_rows: List[Dict[str, Any]],
 ) -> Tuple[Optional[float], Dict[str, Any]]:
@@ -352,9 +546,16 @@ def build_report(
       sum(body_invocation_tokens_total)`` across ``with_rows`` when the
       Round 3 Edit A instrumentation is present.
 
-    Both stay ``null`` when their data source is degenerate; the
-    aggregator MUST NOT silently substitute a placeholder
-    (workspace rule "No Silent Failures").
+    Round 4 (S5 task spec Edit C) hoists D3 L1 / L3 / L4:
+
+    * L1_wall_clock_p50 = ``mean(latency_p50_s across with-ability rows)``.
+    * L3_step_count = ``round(mean(step_count across with-ability rows))``.
+    * L4_redundant_call_ratio = ``mean(redundant_call_ratio across with-ability rows)``,
+      clamped to ``[0.0, 1.0]``.
+
+    All hoisted fields stay ``null`` when their data source is
+    degenerate; the aggregator MUST NOT silently substitute a
+    placeholder (workspace rule "No Silent Failures").
     """
 
     pass_with = _mean([float(r["pass_rate"]) for r in with_rows])
@@ -391,6 +592,21 @@ def build_report(
     r7_value, r7_derivation = hoist_r7_routing_token_overhead(with_rows)
     metrics["routing_cost"]["R7_routing_token_overhead"] = r7_value
 
+    # Round 4 (S5 task spec Edit C): hoist D3 L1 / L3 / L4.
+    l1_value, l1_derivation = hoist_l1_wall_clock_p50(with_rows)
+    metrics["latency_path"]["L1_wall_clock_p50"] = l1_value
+    l3_value, l3_derivation = hoist_l3_step_count(with_rows)
+    metrics["latency_path"]["L3_step_count"] = l3_value
+    l4_value, l4_derivation = hoist_l4_redundant_call_ratio(with_rows)
+    metrics["latency_path"]["L4_redundant_call_ratio"] = l4_value
+
+    if l1_value is not None and l1_value > latency_p95:
+        raise ValueError(
+            "L1 sanity invariant violated: "
+            f"L1_wall_clock_p50={l1_value:.6f} > L2_wall_clock_p95={latency_p95:.6f}; "
+            "refusing to silently emit a bad metric (workspace rule 'No Silent Failures')."
+        )
+
     devolaflow_version = _safe_devolaflow_version()
 
     report = {
@@ -411,6 +627,9 @@ def build_report(
             "metadata_tokens_source": "skill_md" if skill_md_meta_tokens is not None else "result.json mean",
             "r6_derivation": r6_derivation,
             "r7_derivation": r7_derivation,
+            "l1_derivation": l1_derivation,
+            "l3_derivation": l3_derivation,
+            "l4_derivation": l4_derivation,
         },
     }
     return report

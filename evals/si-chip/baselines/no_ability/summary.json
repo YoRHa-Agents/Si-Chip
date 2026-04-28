@@ -13,7 +13,10 @@
       "pass_rate": 0.5,
       "pass_k_4": 0.0625,
       "latency_p95_s": 0.88,
-      "trigger_F1": 0.0
+      "latency_p50_s": 0.8109999999999999,
+      "trigger_F1": 0.0,
+      "step_count": 20,
+      "redundant_call_ratio": 0.0
     },
     {
       "case_id": "half_retire_review",
@@ -22,7 +25,10 @@
       "pass_rate": 0.5,
       "pass_k_4": 0.0625,
       "latency_p95_s": 0.95,
-      "trigger_F1": 0.0
+      "latency_p50_s": 0.737,
+      "trigger_F1": 0.0,
+      "step_count": 20,
+      "redundant_call_ratio": 0.0
     },
     {
       "case_id": "metrics_gap",
@@ -31,7 +37,10 @@
       "pass_rate": 0.5,
       "pass_k_4": 0.0625,
       "latency_p95_s": 0.987,
-      "trigger_F1": 0.0
+      "latency_p50_s": 0.735,
+      "trigger_F1": 0.0,
+      "step_count": 20,
+      "redundant_call_ratio": 0.0
     },
     {
       "case_id": "next_action_plan",
@@ -40,7 +49,10 @@
       "pass_rate": 0.5,
       "pass_k_4": 0.0625,
       "latency_p95_s": 0.9470000000000001,
-      "trigger_F1": 0.0
+      "latency_p50_s": 0.764,
+      "trigger_F1": 0.0,
+      "step_count": 20,
+      "redundant_call_ratio": 0.0
     },
     {
       "case_id": "profile_self",
@@ -49,7 +61,10 @@
       "pass_rate": 0.5,
       "pass_k_4": 0.0625,
       "latency_p95_s": 0.982,
-      "trigger_F1": 0.0
+      "latency_p50_s": 0.8340000000000001,
+      "trigger_F1": 0.0,
+      "step_count": 20,
+      "redundant_call_ratio": 0.0
     },
     {
       "case_id": "router_matrix",
@@ -58,14 +73,20 @@
       "pass_rate": 0.5,
       "pass_k_4": 0.0625,
       "latency_p95_s": 0.988,
-      "trigger_F1": 0.0
+      "latency_p50_s": 0.69,
+      "trigger_F1": 0.0,
+      "step_count": 20,
+      "redundant_call_ratio": 0.0
     }
   ],
   "aggregates": {
     "mean_pass_rate": 0.5,
     "mean_pass_k_4": 0.0625,
     "mean_latency_p95_s": 0.9556666666666667,
+    "mean_latency_p50_s": 0.7618333333333333,
     "mean_trigger_F1": 0.0,
+    "mean_step_count": 20.0,
+    "mean_redundant_call_ratio": 0.0,
     "router_floor": "n/a (no_ability)"
   }
 }

@@ -1,0 +1,10 @@
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+INFO si_chip.aggregate_eval: with-ability runs: 6, no-ability runs: 6
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+WARNING si_chip.aggregate_eval: schema lacks 'basic_ability.metrics' mapping; skipping cross-check
+/tmp/metrics_report_round4_draft.yaml
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+INFO si_chip.aggregate_eval: with-ability runs: 6, no-ability runs: 6
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+WARNING si_chip.aggregate_eval: schema lacks 'basic_ability.metrics' mapping; skipping cross-check
+/tmp/metrics_report_round4_v2.yaml
