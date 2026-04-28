@@ -14,6 +14,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - `INSTALL.md` and `docs/_install_body.md` — promoted the new one-line install path to the top; the previous git-clone manual flow is now under `## Manual install`.
 - `README.md` — `## Quick Start` split into `## Quick Install` (one-liner) and `## Quick Start (after install or clone)` (the original 3-command verification block).
+- `install.sh` and `docs/install.sh` now download the Skill payload as a
+  single tarball at `https://yorha-agents.github.io/Si-Chip/skills/si-chip-<version>.tar.gz`
+  over HTTP(S). The previous per-file mirror at `docs/skills/si-chip/` was
+  removed because Jekyll renders YAML-front-matter `.md` files (SKILL.md
+  served as HTML at `/skills/si-chip/SKILL/`, raw .md URL = 404). Tarball
+  is byte-deterministic (`tar --sort=name --owner=0 --group=0 --numeric-owner
+  --mtime=... --format=ustar | gzip -n -9`); same source -> same SHA256.
+  `file://` source URLs still use per-file copy. CONTRIBUTING.md §9 updated
+  to a 3-tree + 1-tarball drift contract.
 
 ### Notes
 - The installer never targets Codex (spec §7.2: Codex is bridge-only and deferred). It also never offers a `--target marketplace` option (spec §11.1: forever-out).

@@ -131,6 +131,11 @@ Examples:
   # Uninstall from global Claude Code
   ./install.sh --target claude --scope global --uninstall --yes
 
+Payload delivery:
+  Over HTTP(S), the installer downloads a single tarball at
+  <source-url>/skills/si-chip-<version>.tar.gz and extracts it.
+  Over file://, it copies individual files from <source-url>/skills/si-chip/.
+
 Si-Chip is governed by the spec at:
   https://github.com/YoRHa-Agents/Si-Chip/blob/main/.local/research/spec_v0.1.0.md
 EOF
@@ -406,42 +411,80 @@ confirm_overwrite() {
 # Fetch / install / uninstall
 # ---------------------------------------------------------------------------
 
+tarball_basename() {
+  # tarball_basename -> echoes "si-chip-<version>.tar.gz" (strips leading v)
+  printf 'si-chip-%s.tar.gz\n' "${SI_CHIP_VERSION#v}"
+}
+
 fetch_one() {
-  # fetch_one <relpath> <dst-abs>
+  # fetch_one <relpath> <dst-abs>  (file:// path only)
   local rel="$1"
   local dst="$2"
   local src
-  if is_file_url; then
-    # Strip leading file://
-    local base="${SOURCE_URL#file://}"
-    src="${base}/skills/si-chip/${rel}"
-    if [[ ! -f "${src}" ]]; then
-      die "missing source file: ${src}"
-    fi
-    run mkdir -p "$(dirname "${dst}")"
-    run cp "${src}" "${dst}"
-  elif is_http_url; then
-    src="${SOURCE_URL%/}/skills/si-chip/${rel}"
-    run mkdir -p "$(dirname "${dst}")"
-    if [[ "${DRY_RUN}" -eq 1 ]]; then
-      log "[dry-run] curl -fsSL ${src} -o ${dst}"
-    else
-      if ! curl -fsSL "${src}" -o "${dst}"; then
-        die "failed to download ${src}"
-      fi
-    fi
-  else
-    die "unsupported --source-url scheme: ${SOURCE_URL} (expected http://, https://, or file://)"
+  # Strip leading file://
+  local base="${SOURCE_URL#file://}"
+  src="${base}/skills/si-chip/${rel}"
+  if [[ ! -f "${src}" ]]; then
+    die "missing source file: ${src}"
   fi
+  run mkdir -p "$(dirname "${dst}")"
+  run cp "${src}" "${dst}"
 }
 
-stage_payload() {
-  # stage_payload <staging-dir>
+stage_payload_file() {
+  # stage_payload_file <staging-dir>
+  # file:// path: copy each manifest entry from <source-url>/skills/si-chip/.
   local staging="$1"
   local rel
   for rel in "${MANIFEST[@]}"; do
     fetch_one "${rel}" "${staging}/${rel}"
   done
+}
+
+stage_payload_http() {
+  # stage_payload_http <staging-dir>
+  # HTTP(S) path: download the release tarball and extract into <staging-dir>.
+  local staging="$1"
+  local tarball_name tarball_url tarball_path
+  tarball_name="$(tarball_basename)"
+  tarball_url="${SOURCE_URL%/}/skills/${tarball_name}"
+  tarball_path="${TMPDIR_ROOT}/${tarball_name}"
+
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    log "[dry-run] curl -fsSL ${tarball_url} -o ${tarball_path}"
+    log "[dry-run] verify gzip magic of ${tarball_path}"
+    log "[dry-run] mkdir -p ${staging}"
+    log "[dry-run] tar -xzf ${tarball_path} -C ${staging}"
+    return 0
+  fi
+
+  if ! curl -fsSL "${tarball_url}" -o "${tarball_path}"; then
+    die "failed to download ${tarball_url}"
+  fi
+  if ! gzip -t "${tarball_path}" >/dev/null 2>&1; then
+    local diag="unknown"
+    if command -v file >/dev/null 2>&1; then
+      diag="$(file -b "${tarball_path}")"
+    fi
+    die "downloaded payload is not a valid gzip file (got: ${diag}) from ${tarball_url}"
+  fi
+  mkdir -p "${staging}"
+  if ! tar -xzf "${tarball_path}" -C "${staging}"; then
+    die "failed to extract ${tarball_name}"
+  fi
+}
+
+stage_payload() {
+  # stage_payload <staging-dir>
+  # Dispatches to the file:// copy loop or the HTTP(S) tarball download.
+  local staging="$1"
+  if is_file_url; then
+    stage_payload_file "${staging}"
+  elif is_http_url; then
+    stage_payload_http "${staging}"
+  else
+    die "unsupported --source-url scheme: ${SOURCE_URL} (expected http://, https://, or file://)"
+  fi
 }
 
 verify_install() {
