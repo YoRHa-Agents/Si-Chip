@@ -4,6 +4,21 @@ All notable changes to Si-Chip are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `install.sh` — one-line bash installer at `https://yorha-agents.github.io/Si-Chip/install.sh`. Supports `--target cursor|claude|both`, `--scope global|repo`, `--repo-root <path>`, `--version`, `--source-url`, `--yes`, `--dry-run`, `--force`, `--uninstall`, `--help`. Interactive when run in a TTY without `--yes`.
+- `docs/skills/si-chip/` — fourth Skill payload mirror (alongside `.agents/`, `.cursor/`, `.claude/`) so the installer can fetch the 9-file payload from the public Pages URL. Drift contract documented in `CONTRIBUTING.md` §9.
+- `docs/install.sh` — byte-identical copy of root `install.sh`, served by Pages.
+
+### Changed
+- `INSTALL.md` and `docs/_install_body.md` — promoted the new one-line install path to the top; the previous git-clone manual flow is now under `## Manual install`.
+- `README.md` — `## Quick Start` split into `## Quick Install` (one-liner) and `## Quick Start (after install or clone)` (the original 3-command verification block).
+
+### Notes
+- The installer never targets Codex (spec §7.2: Codex is bridge-only and deferred). It also never offers a `--target marketplace` option (spec §11.1: forever-out).
+- `DESIGN.md` is intentionally omitted from all three platform mirrors and the `docs/skills/si-chip/` Pages mirror.
+
 ## [0.1.0] — 2026-04-28
 
 Initial public release. Si-Chip is published as a persistent BasicAbility

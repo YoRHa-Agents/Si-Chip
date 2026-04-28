@@ -22,10 +22,20 @@ machine-readable evidence so the next round can compute deltas. Si-Chip ships
 as its own first user: the v0.1.0 release proves the loop on Si-Chip itself
 before the loop is offered to any other ability (spec v0.1.0 §1.1, §8.3).
 
-## Quick Start
+## Quick Install
 
 ```bash
-# 1. Validate the frozen spec invariants
+curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash
+```
+
+The interactive installer asks you which target (Cursor, Claude Code, or both) and which scope (global = `~/.cursor/skills/si-chip/`, or repo = `<repo>/.cursor/skills/si-chip/`).
+
+For non-interactive installs and the full flag reference, see [`INSTALL.md`](./INSTALL.md#quick-install-one-line).
+
+## Quick Start (after install or clone)
+
+```bash
+# 1. Validate the frozen spec invariants (run from the repo root)
 python tools/spec_validator.py --json
 
 # 2. Re-aggregate baseline metrics from the included simulated runs
@@ -42,10 +52,7 @@ python .agents/skills/si-chip/scripts/count_tokens.py \
   --budget-meta 100 --budget-body 5000 --json
 ```
 
-What just happened: step 1 ran the spec validator (8 invariants, default mode);
-step 2 reproduced the round-baseline metrics report from the simulated runs
-shipped under `evals/si-chip/baselines/`; step 3 confirmed the SKILL.md fits
-the spec §7.3 packaging budget on the canonical mirror.
+The first command exits 0 with `verdict: PASS` (8/8 spec invariants). The second produces a metrics_report.yaml with the MVP-8 metrics populated (T1=0.85, T2=0.55, T3=+0.35, ...). The third confirms the SKILL.md fits the v3_strict packaging budget (metadata=78, body=2020, pass=true).
 
 ## Headline Numbers (v0.1.0)
 

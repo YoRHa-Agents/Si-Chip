@@ -90,3 +90,34 @@ Please file issues at https://github.com/YoRHa-Agents/Si-Chip/issues with:
 
 By contributing you agree that your contributions are licensed under the
 project's Apache-2.0 LICENSE.
+
+## 9. Mirror Drift Contract
+
+Si-Chip ships the Skill payload in **four trees**, all of which MUST stay byte-identical for the 9 manifest files (SKILL.md + 5 references + 3 scripts):
+
+| Tree | Role |
+|---|---|
+| `.agents/skills/si-chip/` | **Source of truth** (canonical; `DESIGN.md` is internal-only and lives here only) |
+| `.cursor/skills/si-chip/` | Cursor mirror (consumed by Cursor's local skill discovery) |
+| `.claude/skills/si-chip/` | Claude Code mirror (consumed by Claude Code's local skill discovery) |
+| `docs/skills/si-chip/` | Pages-served mirror (consumed by the `install.sh` one-line installer; URL: `https://yorha-agents.github.io/Si-Chip/skills/si-chip/`) |
+
+Drift between any two trees on these 9 files is a CI failure. To verify locally:
+
+```bash
+for f in SKILL.md references/basic-ability-profile.md references/self-dogfood-protocol.md \
+         references/metrics-r6-summary.md references/router-test-r8-summary.md \
+         references/half-retirement-r9-summary.md scripts/profile_static.py \
+         scripts/count_tokens.py scripts/aggregate_eval.py; do
+  src=".agents/skills/si-chip/$f"
+  for dst in ".cursor/skills/si-chip/$f" ".claude/skills/si-chip/$f" "docs/skills/si-chip/$f"; do
+    diff -q "$src" "$dst" || echo "DRIFT: $src vs $dst"
+  done
+done
+```
+
+If you edit the canonical `.agents/skills/si-chip/...`, you MUST also update the three mirrors in the same commit (or in a follow-up commit before merge). The dogfood evidence file `.local/dogfood/<DATE>/round_<N>/raw/three_tree_drift_summary.json` (now four-tree) tracks this.
+
+`DESIGN.md` is intentionally NOT included in the mirrors — it documents internal architecture, not user-facing Skill content.
+
+The `install.sh` script at the repo root (and its identical copy at `docs/install.sh`) downloads from the `docs/skills/si-chip/` mirror via Pages. Local installs via `--source-url file://...` can point at any of the four trees.
