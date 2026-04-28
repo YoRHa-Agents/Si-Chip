@@ -1,31 +1,32 @@
 title: Si-Chip
-description: Persistent BasicAbility optimization factory — frozen spec v0.1.0
-remote_theme: pages-themes/cayman@v0.2.0
+description: Persistent BasicAbility optimization factory - frozen spec v0.1.0
+
+# Use the GitHub Pages built-in Cayman theme (no remote_theme, no plugin install).
+theme: jekyll-theme-cayman
+
 plugins:
-  - jekyll-remote-theme
   - jekyll-relative-links
+
 relative_links:
   enabled: true
   collections: true
-include:
-  - CONTRIBUTING.md
-  - CHANGELOG.md
 
 markdown: kramdown
 kramdown:
   syntax_highlighter: rouge
   parse_block_html: true
 
-# Jekyll defaults
 permalink: pretty
+
 exclude:
   - vendor
   - node_modules
   - .jekyll-cache
   - Gemfile
   - Gemfile.lock
+  - README.md
 
-# Site-level navigation (used by index.md)
+# Site-level navigation (used by index.md links)
 nav:
   - title: Home
     url: /

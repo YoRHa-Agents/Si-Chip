@@ -3,8 +3,7 @@ layout: default
 title: User Guide
 ---
 
-{% include_relative ../USERGUIDE.md %}
+{% capture root_userguide %}{% include_relative _userguide_body.md %}{% endcapture %}
+{{ root_userguide }}
 
-> If you are reading this on a freshly cloned local checkout and the include
-> renders empty, see the root [`USERGUIDE.md`](https://github.com/YoRHa-Agents/Si-Chip/blob/main/USERGUIDE.md)
-> on GitHub directly.
+> The canonical user guide also lives at the [repository root](https://github.com/YoRHa-Agents/Si-Chip/blob/main/USERGUIDE.md).
