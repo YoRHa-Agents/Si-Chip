@@ -3,7 +3,7 @@ layout: default
 title: Install
 ---
 
-{% include_relative ../INSTALL.md %}
+{% capture root_install %}{% include_relative _install_body.md %}{% endcapture %}
+{{ root_install }}
 
-> See the root [`INSTALL.md`](https://github.com/YoRHa-Agents/Si-Chip/blob/main/INSTALL.md)
-> for the canonical version.
+> The canonical install guide also lives at the [repository root](https://github.com/YoRHa-Agents/Si-Chip/blob/main/INSTALL.md).
