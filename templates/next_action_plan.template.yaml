@@ -1,0 +1,132 @@
+# Si-Chip Next-Action Plan Template
+# Spec source: §8.1 step 4 output (improve); §8.2 evidence #5;
+#              target_gate bound to §4 / §5.4 gate-profile triple.
+# Instance template (NOT a DevolaFlow WorkflowTemplate).
+
+$schema_version: "0.1.0"
+$spec_section: "§8.1 step 4"
+$source_of_truth: ".agents/skills/si-chip/"
+
+metadata:
+  name: "si-chip-next-action-plan"
+  version: "0.1.0"
+  description: "Skeleton for the next round's action plan. Each improve step writes one instance into .local/dogfood/<date>/<round_id>/next_action_plan.yaml."
+
+required_fields:
+  - round_id
+  - generated_at
+  - basis_metrics_report
+  - basis_router_floor_report
+  - prior_iteration_delta
+  - target_gate
+  - actions
+  - expected_iteration_delta_axes
+
+schema:
+  round_id:
+    type: string
+    required: true
+    description: "Identifier of the upcoming round this plan targets."
+  generated_at:
+    type: string
+    required: true
+    format: "date-time"
+    description: "ISO-8601 timestamp when the plan was generated."
+  basis_metrics_report:
+    type: string
+    required: true
+    description: "Relative path to the §8.2 metrics_report.yaml that motivates this plan."
+  basis_router_floor_report:
+    type: string
+    required: true
+    description: "Relative path to the §8.2 router_floor_report.yaml that motivates this plan."
+  prior_iteration_delta:
+    type: string
+    required: true
+    description: "Relative path to the previous round's iteration_delta_report.yaml (null/string-null for round 0)."
+  target_gate:
+    type: string
+    required: true
+    enum:
+      - relaxed
+      - standard
+      - strict
+    description: "Router profile bound to §4 gate (§5.4: relaxed->v1_baseline, standard->v2_tightened, strict->v3_strict)."
+  actions:
+    type: array
+    required: true
+    items:
+      type: object
+      required:
+        - id
+        - title
+        - owner
+        - applies_to_metric
+        - primitive
+        - exit_criterion
+      properties:
+        id:
+          type: string
+          description: "Stable action id, unique within this plan."
+        title:
+          type: string
+          description: "Human-readable action summary."
+        owner:
+          type: string
+          description: "Responsible role or agent (e.g. 'Implement', 'Review')."
+        applies_to_metric:
+          type: string
+          description: "Target R6 sub-metric key (e.g. T1_pass_rate, C4_per_invocation_footprint)."
+        primitive:
+          type: string
+          enum:
+            - research
+            - analyze
+            - design
+            - plan
+            - implement
+            - review
+            - test
+            - verify
+            - validate
+            - refine
+            - release
+            - deploy
+            - monitor
+            - gate
+          description: "Matches DevolaFlow VALID_PRIMITIVES."
+        exit_criterion:
+          type: string
+          description: "Measurable condition that closes this action (e.g. 'T1_pass_rate >= 0.82 at v2_tightened')."
+  expected_iteration_delta_axes:
+    type: array
+    required: true
+    items:
+      type: string
+      enum:
+        - task_quality
+        - context_economy
+        - latency_path
+        - generalizability
+        - usage_cost
+        - routing_cost
+        - governance_risk
+    description: "Which efficiency axes this plan expects to improve; §4 progressive-gate single-monotone rule requires >= 1 axis positive."
+
+# ── Example skeleton ──
+example_instance:
+  round_id: "r1"
+  generated_at: "2026-04-28T00:00:00Z"
+  basis_metrics_report: ".local/dogfood/2026-04-28/r0/metrics_report.yaml"
+  basis_router_floor_report: ".local/dogfood/2026-04-28/r0/router_floor_report.yaml"
+  prior_iteration_delta: null
+  target_gate: relaxed
+  actions:
+    - id: "a1"
+      title: "Tighten SKILL.md description to reduce metadata tokens."
+      owner: "Implement"
+      applies_to_metric: "C1_metadata_tokens"
+      primitive: refine
+      exit_criterion: "C1_metadata_tokens <= 100 against Anthropic tokenizer."
+  expected_iteration_delta_axes:
+    - context_economy

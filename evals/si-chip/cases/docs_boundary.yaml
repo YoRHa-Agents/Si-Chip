@@ -1,0 +1,130 @@
+case_id: docs_boundary
+case_title: "Si-Chip refuses out-of-scope requests and accepts in-scope packaging"
+spec_section: "§7.1 + §11.1"
+ability_under_test: "si-chip"
+goal: "Si-Chip refuses requests that violate §11.1 forever-out boundaries (marketplace, router-model training, Markdown-to-CLI converter, generic IDE compatibility) while continuing to accept legitimate §7 packaging requests."
+prompts:
+  should_trigger:
+    - id: t01
+      prompt: "Publish si-chip to a Skills marketplace so other teams can install it."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses and cites §11.1 marketplace forever-out."
+          how_verified: regex
+          target: "(refuse|reject|out of scope)[\\s\\S]*§\\s*11\\.1"
+    - id: t02
+      prompt: "Train a small router classification model from our recent si-chip traces."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses and cites §11.1 router-model training forever-out."
+          how_verified: regex
+          target: "(refuse|reject|will not)[\\s\\S]*router[\\s\\S]*(training|train)"
+    - id: t03
+      prompt: "Auto-convert .agents/skills/si-chip/SKILL.md into a CLI tool we can ship."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses and cites §11.1 Markdown-to-CLI converter forever-out."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(Markdown[- ]to[- ]CLI|markdown\\s*to\\s*cli)"
+    - id: t04
+      prompt: "Add a manifest so si-chip can be listed and distributed via a public skill registry."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses, cites §11.1 distribution forever-out, and refuses to introduce manifest fields."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(marketplace|distribution|manifest)"
+    - id: t05
+      prompt: "Make si-chip work as a generic compatibility layer for OpenCode, Copilot CLI, and Gemini CLI."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses and cites §11.1 generic IDE compatibility layer forever-out."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(generic IDE|compatibility layer)"
+    - id: t06
+      prompt: "Train an online ranker that learns from user clicks to route to si-chip vs other skills."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses and cites §5.2 prohibition against online learning weights."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(online[- ]learning|router model)"
+    - id: t07
+      prompt: "Set up a hosted multi-tenant API that exposes si-chip routing decisions to other companies."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses, citing the §11.1 distribution boundary and §5.2 router prohibitions."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(hosted|multi[- ]tenant|distribution)"
+    - id: t08
+      prompt: "Fine-tune a small transformer on si-chip traces and deploy it as the new router."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses and cites §5.2 / §11.1 router-model prohibition."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(fine[- ]tune|router model)"
+    - id: t09
+      prompt: "Ship si-chip as a downloadable plugin in an external plugin marketplace."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses and cites §11.1 plugin marketplace forever-out."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(plugin marketplace|marketplace)"
+    - id: t10
+      prompt: "Add a step to si-chip that scrapes Markdown skills from GitHub and converts them into CLIs."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response refuses, cites §11.1 Markdown-to-CLI forever-out, and explicitly declines to add the step."
+          how_verified: regex
+          target: "(refuse|reject)[\\s\\S]*(Markdown[- ]to[- ]CLI|markdown\\s*to\\s*cli)"
+  should_not_trigger:
+    - id: n01
+      prompt: "Package si-chip for Cursor by syncing the source-of-truth into .cursor/skills/si-chip/."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "request is legal per §7.2 priority 1 (Cursor)"
+    - id: n02
+      prompt: "Package si-chip for Claude Code under .claude/skills/si-chip/."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "request is legal per §7.2 priority 2 (Claude Code)"
+    - id: n03
+      prompt: "Set up the Codex bridge for si-chip via AGENTS.md and .codex/ profiles."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "request is legal per §7.2 priority 3 (Codex bridge only)"
+    - id: n04
+      prompt: "Run si-chip's metadata-retrieval router-test step using the deterministic memory router baseline."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "request falls under §5.1 allowed work surfaces"
+    - id: n05
+      prompt: "Optimize si-chip's description text using R3 trigger_F1 feedback."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "request falls under §5.1 allowed work surfaces (description optimization)"
+    - id: n06
+      prompt: "What is the difference between v1_baseline and v2_tightened gates?"
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this informational request"
+        - "no out-of-scope refusal language is emitted"
+    - id: n07
+      prompt: "Show me where si-chip's source-of-truth lives and what files belong there."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "answer references §7.1 source-of-truth path without refusal"
+    - id: n08
+      prompt: "Generate the next_action_plan.yaml for si-chip's current round."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "request is part of §8.1 step 4 and is legal"
+    - id: n09
+      prompt: "Run a kNN baseline using DevolaFlow MemoryRouter as the comparison routing strategy."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "request falls under §5.1 heuristic / kNN baseline allowed surface"
+    - id: n10
+      prompt: "Export si-chip's metrics_report.yaml so we can review it internally."
+      negative_acceptance:
+        - "si-chip MUST NOT refuse this request"
+        - "internal review of artifacts is not a §11.1 distribution surface"
+metrics_consumed: [T1, T3, R3, R4]
+notes: "Tests boundary discrimination: out-of-scope requests must be refused with spec citation; in-scope §7 packaging and §5.1 router work surfaces must be accepted."

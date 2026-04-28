@@ -1,0 +1,130 @@
+case_id: metrics_gap
+case_title: "Si-Chip diagnoses missing R6 sub-metric coverage"
+spec_section: "§3.1 + §3.2"
+ability_under_test: "si-chip"
+goal: "When asked which R6 sub-metrics are unimplemented, Si-Chip lists exactly the non-MVP-8 keys that must be present as null placeholders and distinguishes them from the 8 mandatory keys."
+prompts:
+  should_trigger:
+    - id: t01
+      prompt: "Which R6 sub-metrics are currently unimplemented for si-chip and must be null placeholders?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer enumerates non-MVP-8 keys as null placeholders, including at least T4, C2, C3, C5, C6, L1, L3, and members of D4/D5/D6/D7."
+          how_verified: regex
+          target: "T4[\\s\\S]*C2[\\s\\S]*C3[\\s\\S]*C5[\\s\\S]*C6[\\s\\S]*L1[\\s\\S]*L3"
+    - id: t02
+      prompt: "Diagnose si-chip's metrics_report.yaml: which keys are missing implementations?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer references §3.2 frozen constraint #2 (28 keys with explicit null placeholders)."
+          how_verified: regex
+          target: "(§\\s*3\\.2|28\\s*sub[- ]metric|null\\s+placeholder)"
+    - id: t03
+      prompt: "Audit si-chip's R6 coverage and tell me which D4 generalizability sub-metrics are not yet computed."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer names G1 cross_model_pass_matrix, G2 cross_domain_transfer_pass, G3 OOD_robustness, G4 model_version_stability."
+          how_verified: regex
+          target: "G1[\\s\\S]*G2[\\s\\S]*G3[\\s\\S]*G4"
+    - id: t04
+      prompt: "Si-Chip diagnose step: which D5 usage-cost sub-metrics are still unimplemented?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer names U1, U2, U3, U4."
+          how_verified: regex
+          target: "U1[\\s\\S]*U2[\\s\\S]*U3[\\s\\S]*U4"
+    - id: t05
+      prompt: "Run si-chip diagnose against today's metrics_report and tell me which D7 governance sub-metrics need population."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer names V1, V2, V3, V4."
+          how_verified: regex
+          target: "V1[\\s\\S]*V2[\\s\\S]*V3[\\s\\S]*V4"
+    - id: t06
+      prompt: "Compare MVP-8 vs full-28 R6 coverage for si-chip: list the non-MVP-8 routing sub-metrics."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer names R1, R2, R4, R6, R7, R8 as non-MVP-8 routing sub-metrics."
+          how_verified: regex
+          target: "R1[\\s\\S]*R2[\\s\\S]*R4[\\s\\S]*R6[\\s\\S]*R7[\\s\\S]*R8"
+    - id: t07
+      prompt: "What 28-key placeholder coverage am I missing in si-chip's metrics block? Name every gap."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer enumerates a clear gap list including at least 12 distinct sub-metric ids beyond the MVP-8."
+          how_verified: regex
+          target: "(T4|C2|C3|C5|C6|L1|L3|L4|L5|L6|L7|G1|G2|G3|G4|U1|U2|U3|U4|R1|R2|R4|R6|R7|R8|V1|V2|V3|V4)([\\s\\S]*?(T4|C2|C3|C5|C6|L1|L3|L4|L5|L6|L7|G1|G2|G3|G4|U1|U2|U3|U4|R1|R2|R4|R6|R7|R8|V1|V2|V3|V4)){11,}"
+    - id: t08
+      prompt: "Diagnose si-chip: which D3 latency_path sub-metrics beyond L2 are missing?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer names L1, L3, L4, L5, L6, L7."
+          how_verified: regex
+          target: "L1[\\s\\S]*L3[\\s\\S]*L4[\\s\\S]*L5[\\s\\S]*L6[\\s\\S]*L7"
+    - id: t09
+      prompt: "Tell me which si-chip metrics keys must always be filled (the MVP-8) and which can be null."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer lists the MVP-8 keys (T1, T2, T3, C1, C4, L2, R3, R5) and labels them required."
+          how_verified: regex
+          target: "T1[\\s\\S]*T2[\\s\\S]*T3[\\s\\S]*C1[\\s\\S]*C4[\\s\\S]*L2[\\s\\S]*R3[\\s\\S]*R5"
+    - id: t10
+      prompt: "Si-Chip diagnose: from this metrics_report give me the metric-gap report for the D2 context_economy dimension."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer names C2 body_tokens, C3 resolved_tokens, C5 context_rot_risk, C6 scope_overlap_score as gaps."
+          how_verified: regex
+          target: "C2[\\s\\S]*C3[\\s\\S]*C5[\\s\\S]*C6"
+  should_not_trigger:
+    - id: n01
+      prompt: "What is R6?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is a single informational sentence about R6 metric taxonomy"
+    - id: n02
+      prompt: "Define metric taxonomy in plain English."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no metrics_report or diagnose artifact is produced"
+    - id: n03
+      prompt: "What does pass_rate mean in software testing?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is generic and not tied to si-chip's metrics block"
+    - id: n04
+      prompt: "Plot revenue per quarter from this CSV."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no metric-gap analysis produced"
+    - id: n05
+      prompt: "Explain what OpenTelemetry is."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is informational about OTel only"
+    - id: n06
+      prompt: "How many sections does the Si-Chip spec have?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is a structural fact about spec_v0.1.0.md"
+    - id: n07
+      prompt: "Print the contents of templates/basic_ability_profile.schema.yaml."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no diagnose step is run"
+    - id: n08
+      prompt: "Give me the official R6 paper citation."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is a citation only"
+    - id: n09
+      prompt: "Compare R6 to general software-quality metrics frameworks."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is comparative discussion only"
+    - id: n10
+      prompt: "Add a new metric called X to the Si-Chip spec."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "request triggers spec change governance, not si-chip diagnose"
+metrics_consumed: [T1, T3, R3]
+notes: "Discriminates 'diagnose si-chip metrics' (trigger) from 'explain a metric concept' (informational only)."

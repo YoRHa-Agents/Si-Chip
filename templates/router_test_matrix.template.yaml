@@ -1,0 +1,130 @@
+# Si-Chip Router-Test Matrix Template
+# Spec source: §5.1 allowed work surfaces, §5.2 prohibitions,
+#              §5.3 harness table (MVP 8-cell + Full 96-cell),
+#              §5.4 router profile ↔ gate binding.
+# This file is DATA (not a WorkflowTemplate): it encodes the §5.3 table verbatim
+# so `spec_validator` and `router_test/harness.py` can consume it directly.
+
+$schema_version: "0.1.0"
+$spec_section: "§5"
+$source_of_truth: ".agents/skills/si-chip/"
+
+metadata:
+  name: "si-chip-router-test-matrix"
+  version: "0.1.0"
+  description: "Router-test harness matrix. v0.1.0 starts with the mvp profile; full is required when an ability is bound to v2_tightened or above."
+
+# Computed cell counts; spec_validator asserts these exactly.
+# mvp = 2 models * 2 thinking_depths * 2 scenario_packs = 8
+# full = 6 models * 4 thinking_depths * 4 scenario_packs = 96
+cell_counts:
+  mvp: 8
+  full: 96
+
+profiles:
+
+  mvp:
+    description: "v1_baseline entry matrix. 8 cells = 2 model x 2 thinking_depth x 2 scenario_pack (spec §5.3)."
+    cells: 8
+    models:
+      - composer_2
+      - sonnet_shallow
+    thinking_depths:
+      - fast
+      - default
+    scenario_packs:
+      - trigger_basic
+      - near_miss
+    dataset:
+      per_pack:
+        should_trigger: 10
+        should_not_trigger: 10
+      total_prompts_per_pack: 20
+    required_metrics:
+      - T1
+      - T2
+      - T3
+      - L1
+      - L2
+      - R1
+      - R2
+      - R3
+      - R4
+      - R5
+      - R6
+      - R7
+
+  full:
+    description: "v2_tightened+ matrix. 96 cells = 6 model x 4 thinking_depth x 4 scenario_pack (spec §5.3)."
+    cells: 96
+    models:
+      - composer_2
+      - haiku_4_5
+      - sonnet_4_6
+      - opus_4_7
+      - gpt_5_mini
+      - deterministic_memory_router
+    thinking_depths:
+      - fast
+      - default
+      - extended
+      - round_escalated
+    scenario_packs:
+      - trigger_basic
+      - near_miss
+      - multi_skill_competition
+      - execution_handoff
+    dataset:
+      per_pack:
+        min: 20
+        max: 50
+    required_metrics:
+      # inherits mvp.required_metrics
+      - T1
+      - T2
+      - T3
+      - L1
+      - L2
+      - R1
+      - R2
+      - R3
+      - R4
+      - R5
+      - R6
+      - R7
+      # adds full-only per spec §5.3 "+" column
+      - C4
+      - C5
+      - L3
+      - L4
+      - L5
+      - R8
+      - G1
+
+# ── §5.4 Router profile ↔ §4 Gate binding (Frozen) ─────────────
+# Only one combination may be active for a given ability at a time.
+profile_to_gate_binding:
+  relaxed: v1_baseline
+  standard: v2_tightened
+  strict: v3_strict
+
+# ── §5.2 Prohibitions (verbatim policy carried as data) ────────
+routing_paradigm_constraints:
+  spec_section: "§5.2"
+  prohibitions:
+    - "Do not train Router classification or ranking models of any scale."
+    - "Do not maintain private routing weights or online-learning parameters."
+    - "Do not outsource Router work into a marketplace, fine-tune, or external service."
+    - "Do not use language or fields that imply Si-Chip ships / provides a routing model externally."
+  allowed_work_surfaces_ref: "spec §5.1 (metadata retrieval, heuristic/kNN baseline, description optimization, thinking-depth escalation, fallback policy)"
+
+# Router_floor output contract: <model_id>/<thinking_depth>
+output_contract:
+  per_ability:
+    router_floor: "<model_id>/<thinking_depth>"
+    emitted_artifact: "router_floor_report.yaml"
+  fallback_order:
+    - deterministic_memory_router
+    - composer_2/fast
+    - sonnet/default
+    - opus/extended

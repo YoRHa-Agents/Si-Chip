@@ -1,0 +1,440 @@
+# Si-Chip BasicAbilityProfile Schema
+# Source of truth for §2 BasicAbility object, spec v0.1.0
+# This file enumerates every §2.1 field, every §2.2 stage enum value,
+# every §3.1 R6 7-dimension / 28 sub-metric key, and the §6.1 7-axis value_vector.
+# MVP-8 sub-metrics (T1, T2, T3, C1, C4, L2, R3, R5) are marked required: true.
+# All other 20 sub-metric keys are required: false with default: null
+# per spec §3.2 frozen constraint #2 (explicit null placeholder, key cannot be omitted).
+
+$schema_version: "0.1.0"
+$spec_section: "§2"
+$source_of_truth: ".agents/skills/si-chip/"
+
+$schema: "http://json-schema.org/draft-07/schema#"
+title: "BasicAbilityProfile"
+description: "Si-Chip first-class object. Every evaluation, improve, router-test, half-retire decision operates on an instance of this schema."
+type: "object"
+
+required:
+  - basic_ability
+
+properties:
+  basic_ability:
+    type: "object"
+    description: "Root object for a single BasicAbility."
+    required:
+      - id
+      - intent
+      - current_surface
+      - packaging
+      - lifecycle
+      - eval_state
+      - metrics
+      - value_vector
+      - router_floor
+      - decision
+    additionalProperties: false
+    properties:
+
+      # ── §2.1 identity ──────────────────────────────────────────
+      id:
+        type: "string"
+        description: "Ability name / slug, repo-unique."
+      intent:
+        type: "string"
+        description: "What this ability solves."
+
+      # ── §2.1 current_surface ───────────────────────────────────
+      current_surface:
+        type: "object"
+        required: [type, path, shape_hint]
+        additionalProperties: false
+        properties:
+          type:
+            type: "string"
+            enum: [markdown, script, cli, mcp, sdk, memory, mixed]
+          path:
+            type: "string"
+            description: "Repo-relative path."
+          shape_hint:
+            type: "string"
+            enum: [markdown_first, code_first, cli_first, registry_first, memory_first, mixed]
+
+      # ── §2.1 packaging ─────────────────────────────────────────
+      packaging:
+        type: "object"
+        required: [install_targets, source_of_truth, generated_targets]
+        additionalProperties: false
+        properties:
+          install_targets:
+            type: "object"
+            required: [cursor, claude_code, codex]
+            additionalProperties: false
+            properties:
+              cursor: { type: "boolean" }
+              claude_code: { type: "boolean" }
+              codex: { type: "boolean" }
+          source_of_truth:
+            type: "string"
+            description: "Canonical directory, e.g. .agents/skills/<name>/"
+          generated_targets:
+            type: "array"
+            items: { type: "string" }
+            description: "Synchronized platform targets derived from source_of_truth."
+
+      # ── §2.1 lifecycle + §2.2 stage enum ──────────────────────
+      lifecycle:
+        type: "object"
+        required: [stage, last_reviewed_at, next_review_at]
+        additionalProperties: false
+        properties:
+          stage:
+            type: "string"
+            description: "§2.2 Stage enum (Frozen)."
+            enum:
+              - exploratory
+              - evaluated
+              - productized
+              - routed
+              - governed
+              - half_retired
+              - retired
+          last_reviewed_at:
+            type: "string"
+            format: "date"
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          next_review_at:
+            type: "string"
+            format: "date"
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+
+      # ── §2.1 eval_state ───────────────────────────────────────
+      eval_state:
+        type: "object"
+        required:
+          - has_eval_set
+          - has_no_ability_baseline
+          - has_self_eval
+          - has_router_test
+          - has_iteration_delta
+        additionalProperties: false
+        properties:
+          has_eval_set: { type: "boolean" }
+          has_no_ability_baseline: { type: "boolean" }
+          has_self_eval: { type: "boolean" }
+          has_router_test: { type: "boolean" }
+          has_iteration_delta: { type: "boolean" }
+
+      # ── §3.1 R6 metrics: 7 dimensions / 28 sub-metrics ────────
+      # MVP-8 (T1, T2, T3, C1, C4, L2, R3, R5) are required: true.
+      # All other sub-metric keys are present as optional with default: null
+      # per §3.2 frozen constraint #2 (explicit null placeholder, key cannot be omitted).
+      metrics:
+        type: "object"
+        required:
+          - task_quality
+          - context_economy
+          - latency_path
+          - generalizability
+          - usage_cost
+          - routing_cost
+          - governance_risk
+        additionalProperties: false
+        properties:
+
+          # D1 Task Quality (4 sub-metrics; MVP-8: T1, T2, T3)
+          task_quality:
+            type: "object"
+            required: [T1_pass_rate, T2_pass_k, T3_baseline_delta]
+            additionalProperties: false
+            properties:
+              T1_pass_rate:
+                type: ["number", "null"]
+                required: true
+                description: "D1/T1 pass_rate — MVP-8."
+              T2_pass_k:
+                type: ["number", "null"]
+                required: true
+                description: "D1/T2 pass_k (k=4) — MVP-8."
+              T3_baseline_delta:
+                type: ["number", "null"]
+                required: true
+                description: "D1/T3 baseline_delta (with - without) — MVP-8."
+              T4_error_recovery_rate:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D1/T4 error_recovery_rate — optional, null placeholder."
+
+          # D2 Context Economy (6 sub-metrics; MVP-8: C1, C4)
+          context_economy:
+            type: "object"
+            required: [C1_metadata_tokens, C4_per_invocation_footprint]
+            additionalProperties: false
+            properties:
+              C1_metadata_tokens:
+                type: ["integer", "null"]
+                required: true
+                description: "D2/C1 metadata_tokens — MVP-8."
+              C2_body_tokens:
+                type: ["integer", "null"]
+                required: false
+                default: null
+                description: "D2/C2 body_tokens — optional, null placeholder."
+              C3_resolved_tokens:
+                type: ["integer", "null"]
+                required: false
+                default: null
+                description: "D2/C3 resolved_tokens — optional, null placeholder."
+              C4_per_invocation_footprint:
+                type: ["integer", "null"]
+                required: true
+                description: "D2/C4 per_invocation_footprint — MVP-8."
+              C5_context_rot_risk:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D2/C5 context_rot_risk — optional, null placeholder."
+              C6_scope_overlap_score:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D2/C6 scope_overlap_score — optional, null placeholder."
+
+          # D3 Latency & Path Efficiency (7 sub-metrics; MVP-8: L2)
+          latency_path:
+            type: "object"
+            required: [L2_wall_clock_p95]
+            additionalProperties: false
+            properties:
+              L1_wall_clock_p50:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D3/L1 wall_clock_p50 seconds — optional, null placeholder."
+              L2_wall_clock_p95:
+                type: ["number", "null"]
+                required: true
+                description: "D3/L2 wall_clock_p95 seconds — MVP-8."
+              L3_step_count:
+                type: ["integer", "null"]
+                required: false
+                default: null
+                description: "D3/L3 step_count — optional, null placeholder."
+              L4_redundant_call_ratio:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D3/L4 redundant_call_ratio — optional, null placeholder."
+              L5_detour_index:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D3/L5 detour_index — optional, null placeholder."
+              L6_replanning_rate:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D3/L6 replanning_rate — optional, null placeholder."
+              L7_think_act_split:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D3/L7 think_act_split — optional, null placeholder."
+
+          # D4 Generalizability (4 sub-metrics; MVP-8: none)
+          generalizability:
+            type: "object"
+            required: []
+            additionalProperties: false
+            properties:
+              G1_cross_model_pass_matrix:
+                type: ["object", "null"]
+                required: false
+                default: null
+                description: "D4/G1 cross_model_pass_matrix — optional, null placeholder."
+              G2_cross_domain_transfer_pass:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D4/G2 cross_domain_transfer_pass — optional, null placeholder."
+              G3_OOD_robustness:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D4/G3 OOD_robustness — optional, null placeholder."
+              G4_model_version_stability:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D4/G4 model_version_stability — optional, null placeholder."
+
+          # D5 Learning & Usage Cost (4 sub-metrics; MVP-8: none)
+          usage_cost:
+            type: "object"
+            required: []
+            additionalProperties: false
+            properties:
+              U1_description_readability:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D5/U1 description_readability — optional, null placeholder."
+              U2_first_time_success_rate:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D5/U2 first_time_success_rate — optional, null placeholder."
+              U3_setup_steps_count:
+                type: ["integer", "null"]
+                required: false
+                default: null
+                description: "D5/U3 setup_steps_count — optional, null placeholder."
+              U4_time_to_first_success:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D5/U4 time_to_first_success seconds — optional, null placeholder."
+
+          # D6 Routing Cost (8 sub-metrics; MVP-8: R3, R5)
+          routing_cost:
+            type: "object"
+            required: [R3_trigger_F1, R5_router_floor]
+            additionalProperties: false
+            properties:
+              R1_trigger_precision:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D6/R1 trigger_precision — optional, null placeholder."
+              R2_trigger_recall:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D6/R2 trigger_recall — optional, null placeholder."
+              R3_trigger_F1:
+                type: ["number", "null"]
+                required: true
+                description: "D6/R3 trigger_F1 — MVP-8."
+              R4_near_miss_FP_rate:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D6/R4 near_miss_FP_rate — optional, null placeholder."
+              R5_router_floor:
+                type: ["string", "null"]
+                required: true
+                description: "D6/R5 router_floor (<model_id>/<thinking_depth>) — MVP-8."
+              R6_routing_latency_p95:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D6/R6 routing_latency_p95 ms — optional, null placeholder."
+              R7_routing_token_overhead:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D6/R7 routing_token_overhead — optional, null placeholder."
+              R8_description_competition_index:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D6/R8 description_competition_index — optional, null placeholder."
+
+          # D7 Governance / Risk (4 sub-metrics; MVP-8: none)
+          governance_risk:
+            type: "object"
+            required: []
+            additionalProperties: false
+            properties:
+              V1_permission_scope:
+                type: ["string", "null"]
+                required: false
+                default: null
+                description: "D7/V1 permission_scope — optional, null placeholder."
+              V2_credential_surface:
+                type: ["string", "null"]
+                required: false
+                default: null
+                description: "D7/V2 credential_surface — optional, null placeholder."
+              V3_drift_signal:
+                type: ["number", "null"]
+                required: false
+                default: null
+                description: "D7/V3 drift_signal — optional, null placeholder."
+              V4_staleness_days:
+                type: ["integer", "null"]
+                required: false
+                default: null
+                description: "D7/V4 staleness_days — optional, null placeholder."
+
+      # ── §6.1 value_vector: exactly 7 axes ─────────────────────
+      value_vector:
+        type: "object"
+        description: "§6.1 frozen 7-axis value vector used by half-retire-review."
+        required:
+          - task_delta
+          - token_delta
+          - latency_delta
+          - context_delta
+          - path_efficiency_delta
+          - routing_delta
+          - governance_risk_delta
+        additionalProperties: false
+        properties:
+          task_delta:
+            type: ["number", "null"]
+            default: null
+            description: "pass_with - pass_without (R6 T3)."
+          token_delta:
+            type: ["number", "null"]
+            default: null
+            description: "(tokens_without - tokens_with) / tokens_without (R6 C4 + OTel)."
+          latency_delta:
+            type: ["number", "null"]
+            default: null
+            description: "(p95_without - p95_with) / p95_without (R6 L1/L2)."
+          context_delta:
+            type: ["number", "null"]
+            default: null
+            description: "(footprint_without - footprint_with) / footprint_without (R6 C1-C5)."
+          path_efficiency_delta:
+            type: ["number", "null"]
+            default: null
+            description: "(detour_without - detour_with) / detour_without (R6 L5)."
+          routing_delta:
+            type: ["number", "null"]
+            default: null
+            description: "trigger_F1_with - trigger_F1_without (R6 D6)."
+          governance_risk_delta:
+            type: ["number", "null"]
+            default: null
+            description: "risk_without - risk_with (R6 D7)."
+
+      # ── §2.1 router_floor ─────────────────────────────────────
+      router_floor:
+        type: ["string", "null"]
+        description: "<model_id>/<thinking_depth> bound by router-test per §5.3 / §5.4, or null."
+
+      # ── §2.1 decision ─────────────────────────────────────────
+      decision:
+        type: "object"
+        required: [action, rationale, risk_flags]
+        additionalProperties: false
+        properties:
+          action:
+            type: "string"
+            description: "Decision verb. §2.1 action enum is open ('...' present in spec); this schema pins the concrete vocabulary used in v0.1.0."
+            enum:
+              - keep
+              - half_retire
+              - retire
+              - disable
+              - optimize
+              - productize
+              - create_eval_set
+          rationale:
+            type: "string"
+          risk_flags:
+            type: "array"
+            items: { type: "string" }

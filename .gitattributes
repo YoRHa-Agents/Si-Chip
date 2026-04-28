@@ -1,0 +1,35 @@
+# Si-Chip .gitattributes — line-ending normalization, language detection, export-ignore.
+# Spec ref: ensures cross-platform consistency for the v0.1.0 ship.
+
+# Default: detect line endings, normalize on commit
+* text=auto eol=lf
+
+# Source files — explicit LF
+*.py    text eol=lf diff=python
+*.md    text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.json  text eol=lf
+*.toml  text eol=lf
+*.sh    text eol=lf
+
+# Linguist hints — keep language stats accurate on the GitHub repo page.
+# Treat the entire .local/research/ tree as documentation, not Python.
+.local/research/**          linguist-documentation
+.local/dogfood/**           linguist-generated
+templates/**.yaml           linguist-language=YAML
+.cursor/**                  linguist-vendored
+.claude/**                  linguist-vendored
+docs/**                     linguist-documentation
+
+# Binary files — never diff inline
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.svg   text eol=lf
+
+# Export-ignore — files that should NOT appear in `git archive` tarballs
+.gitignore       export-ignore
+.gitattributes   export-ignore
+.local/.agent/   export-ignore

@@ -1,0 +1,343 @@
+---
+name: si-chip-spec
+version: v0.1.0
+status: frozen
+effective_date: 2026-04-28
+source: .local/research/spec_v0.1.0.md
+alwaysApply: true
+compiled_into: AGENTS.md
+language: zh-CN
+---
+
+# Si-Chip Spec v0.1.0（Frozen Rule Layer）
+
+> 本规则为 Si-Chip 仓库 Agent 的强约束。`§3 / §4 / §5 / §6 / §7 / §8 / §11` 为 **Normative**，违反即视为越界。
+> 完整论证见 `.local/research/spec_v0.1.0.md`，本文件只承载冻结约束。
+
+---
+
+## 1. Identity（Informative）
+
+Si-Chip 是 **持久化的 Basic Ability 优化工厂 (persistent optimization factory)**。
+
+- 它优化的对象是 `BasicAbility`，不是某种文件形态的 Skill。
+- 它通过 `capture → profile → evaluate → diagnose → improve → router-test → half-retire-review → iterate → package/register` 的多轮循环，持续改善能力的功能、上下文、耗时、路径、路由与治理表面积。
+- 它必须 **先把自身做成可安装 Skill 并完成多轮自我 dogfood**，再向外提供能力。
+- 它的成功定义是 **每轮 dogfood 都能输出可机器读取的迭代证据**。
+
+它 **不是**：marketplace、router 模型训练器、Markdown-to-CLI 转换器、通用 IDE 兼容层、一次性研究产物。任何把 Si-Chip 推向上述方向的需求，**直接拒绝**（详见 §11）。
+
+---
+
+## 2. Core Object: BasicAbility
+
+`BasicAbility` 是 Si-Chip 的第一层对象。所有评估、改进、路由、半退役决策都以它为单位。冻结字段如下（详细 schema 见 `templates/basic_ability_profile.schema.yaml`）：
+
+```yaml
+basic_ability:
+  id: "<ability-name>"
+  intent: "<this ability solves what>"
+  current_surface:
+    type: markdown|script|cli|mcp|sdk|memory|mixed
+    path: "<repo-relative path>"
+    shape_hint: markdown_first|code_first|cli_first|registry_first|memory_first|mixed
+  packaging:
+    install_targets: { cursor: bool, claude_code: bool, codex: bool }
+    source_of_truth: ".agents/skills/<name>/"
+    generated_targets: ["<...>"]
+  lifecycle:
+    stage: exploratory|evaluated|productized|routed|governed|half_retired|retired
+    last_reviewed_at: "YYYY-MM-DD"
+    next_review_at: "YYYY-MM-DD"
+  eval_state:
+    has_eval_set: bool
+    has_no_ability_baseline: bool
+    has_self_eval: bool
+    has_router_test: bool
+    has_iteration_delta: bool
+  metrics:
+    task_quality: {}
+    context_economy: {}
+    latency_path: {}
+    generalizability: {}
+    usage_cost: {}
+    routing_cost: {}
+    governance_risk: {}
+  value_vector:
+    task_delta: float
+    token_delta: float
+    latency_delta: float
+    context_delta: float
+    path_efficiency_delta: float
+    routing_delta: float
+    governance_risk_delta: float
+  router_floor: "<model_id>/<thinking_depth>" | null
+  decision:
+    action: keep|half_retire|retire|disable|optimize|productize|create_eval_set|...
+    rationale: "<why>"
+    risk_flags: ["<...>"]
+```
+
+**Stage 枚举**（双向可迁移）：`exploratory → evaluated → productized → routed → governed`，旁支 `half_retired ↺` 与终态 `retired`。`half_retired` 可由 §6.4 触发器拉回 `evaluated`。
+
+---
+
+## 3. Metric Taxonomy（Normative）
+
+Si-Chip v0.1.0 是 **full-scope**：必须实现 R6 全部 7 维 / **28 子指标**，不是 MVP-8。数据源优先 OpenTelemetry GenAI semconv。
+
+| 维度 | 子指标 | MVP 8 |
+|---|---|:---:|
+| **D1 Task Quality** | T1 pass_rate / T2 pass_k / T3 baseline_delta / T4 error_recovery_rate | T1, T2, T3 |
+| **D2 Context Economy** | C1 metadata_tokens / C2 body_tokens / C3 resolved_tokens / C4 per_invocation_footprint / C5 context_rot_risk / C6 scope_overlap_score | C1, C4 |
+| **D3 Latency & Path** | L1 wall_clock_p50 / L2 wall_clock_p95 / L3 step_count / L4 redundant_call_ratio / L5 detour_index / L6 replanning_rate / L7 think_act_split | L1, L2 |
+| **D4 Generalizability** | G1 cross_model_pass_matrix / G2 cross_domain_transfer_pass / G3 OOD_robustness / G4 model_version_stability | — |
+| **D5 Learning & Usage Cost** | U1 description_readability / U2 first_time_success_rate / U3 setup_steps_count / U4 time_to_first_success | — |
+| **D6 Routing Cost** | R1 trigger_precision / R2 trigger_recall / R3 trigger_F1 / R4 near_miss_FP_rate / R5 router_floor / R6 routing_latency_p95 / R7 routing_token_overhead / R8 description_competition_index | R3, R5 |
+| **D7 Governance / Risk** | V1 permission_scope / V2 credential_surface / V3 drift_signal / V4 staleness_days | — |
+
+**冻结约束**：
+
+1. MVP 8（`T1 / T2 / T3 / C1 / C4 / L2 / R3 / R5`）必须 **每轮 dogfood 都产出**。
+2. 完整 28 项的 key 必须在 `BasicAbilityProfile.metrics` 中预留；未实现的以 `null` **显式占位**，禁止省略 key。
+3. 数据源优先 OTel GenAI（`gen_ai.client.operation.duration` / `gen_ai.client.token.usage` / `gen_ai.tool.name` / `mcp.method.name`）。
+4. 任何指标的阈值或公式变更 → 必须 bump spec version 并刷新本规则。
+
+---
+
+## 4. Progressive Gate Profiles（Normative）
+
+阈值采用 **三档渐进 gate**：`v1_baseline / v2_tightened / v3_strict`，每行从左到右严格单调。
+
+| 指标 | v1_baseline | v2_tightened | v3_strict |
+|---|---:|---:|---:|
+| `pass_rate` | ≥ 0.75 | ≥ 0.82 | ≥ 0.90 |
+| `pass_k` (k=4) | ≥ 0.40 | ≥ 0.55 | ≥ 0.65 |
+| `trigger_F1` | ≥ 0.80 | ≥ 0.85 | ≥ 0.90 |
+| `near_miss_FP_rate` | ≤ 0.15 | ≤ 0.10 | ≤ 0.05 |
+| `metadata_tokens` | ≤ 120 | ≤ 100 | ≤ 80 |
+| `per_invocation_footprint` | ≤ 9000 | ≤ 7000 | ≤ 5000 |
+| `wall_clock_p95` (s) | ≤ 45 | ≤ 30 | ≤ 20 |
+| `routing_latency_p95` (ms) | ≤ 2000 | ≤ 1200 | ≤ 800 |
+| `routing_token_overhead` | ≤ 0.20 | ≤ 0.12 | ≤ 0.08 |
+| `iteration_delta` (任一效率轴) | ≥ +0.05 | ≥ +0.10 | ≥ +0.15 |
+
+**Promotion Rule**（强制）：
+
+1. 新能力默认绑定 `v1_baseline`。
+2. 必须在当前 gate **连续两轮 dogfood 全部硬门槛通过**，方可升档至 N+1。
+3. 任一指标当前档失败一次 → 保持当前档；连续两轮失败 → 下调一档并触发 §6 half-retire review。
+4. 档位切换、单调性破坏、阈值微调必须落入 `iteration_delta_report.template.yaml` 与 `BasicAbilityProfile.lifecycle`。
+
+> 不允许凭场景"灵感"发明一次性阈值；所有判定必须绑定 v1/v2/v3 之一。
+
+---
+
+## 5. Router Paradigm（Normative）
+
+**Si-Chip 不训练 Router 模型。** Router 工作的目标是 **寻找让模型自身完成 Router 的更有效范式**。
+
+**允许的 Router 工作面**：
+
+1. **Metadata 检索**：对 `BasicAbility.description` / 标签 / 触发样例的静态/语义检索。
+2. **启发式 / kNN baseline**：复用 DevolaFlow `memory_router/router.py::MemoryRouter` 与 `cache.py::MemoryCase`。
+3. **Description 优化**：参考 Anthropic skill-creator `improve_description.py` 与 `R3 trigger_F1` / `R4 near_miss_FP_rate`。
+4. **Thinking-depth escalation**：调用 `task_adaptive_selector.select_context(task_type, round_num=N)` + `apply_round_escalation`，禁止自实现档位。
+5. **Fallback policy**：失败按 `deterministic_memory_router → composer_2/fast → sonnet/default → opus/extended` 顺序升档，接 `gate/convergence.py` 防止无限重试。
+
+**严格禁止**：
+
+- 训练任意规模的 Router 分类 / 排序模型。
+- 维护私有路由权重或在线学习参数。
+- 把 Router 工作转包成 marketplace、模型微调或外部服务。
+- 任何使 "Si-Chip 对外提供路由模型" 的语言或字段。
+
+**Router-Test Harness**：
+
+| 项 | MVP（v1_baseline 起步） | Full（v2_tightened+ 必备） |
+|---|---|---|
+| Cells | 8 (`2 model × 2 thinking_depth × 2 scenario_pack`) | 96 (`6 × 4 × 4`) |
+| Models | `composer_2`, `sonnet_shallow` | `composer_2`, `haiku_4_5`, `sonnet_4_6`, `opus_4_7`, `gpt_5_mini`, `deterministic_memory_router` |
+| Thinking depths | `fast`, `default` | + `extended`, `round_escalated` |
+| Scenario packs | `trigger_basic`, `near_miss` | + `multi_skill_competition`, `execution_handoff` |
+| Dataset | 每 pack 20 prompts (10 should + 10 should-not) | 每 pack 20–50 prompts |
+| 必测指标 | `T1/T2/T3, L1/L2, R1/R2/R3, R4, R5, R6/R7` | + `C4, C5, L3, L4, L5, R8, G1` |
+
+输出：每个能力一个 `router_floor` (= `model_id × thinking_depth`)。Router profile ↔ Gate 绑定：`relaxed ↔ v1_baseline`，`standard ↔ v2_tightened`，`strict ↔ v3_strict`，同一时刻仅允许一个组合。
+
+---
+
+## 6. Half-Retirement（Normative）
+
+生命周期三态：`keep` / `half_retire` / `retire`。**`half_retire` 必须由 eval-metric 触发**，禁止仅凭主观或 "base model 已覆盖" 即下线。
+
+**Value Vector（7 维 Frozen）**：
+
+| 维度 | 公式 | 数据源 |
+|---|---|---|
+| `task_delta` | `pass_with - pass_without` | T3 |
+| `token_delta` | `(tokens_without − tokens_with) / tokens_without` | C4 + OTel |
+| `latency_delta` | `(p95_without − p95_with) / p95_without` | L1/L2 |
+| `context_delta` | `(footprint_without − footprint_with) / footprint_without` | C1–C5 |
+| `path_efficiency_delta` | `(detour_without − detour_with) / detour_without` | L5 |
+| `routing_delta` | `trigger_F1_with − trigger_F1_without` | D6 |
+| `governance_risk_delta` | `risk_without − risk_with` | D7 |
+
+**三态触发规则（Frozen）**：
+
+| 决策 | 触发条件 |
+|---|---|
+| `keep` | `task_delta >= +0.10` 或当前 gate 全部硬门槛通过 |
+| `half_retire` | `task_delta` 近零 (`-0.02 ≤ task_delta ≤ +0.10`) **且** `token_delta / latency_delta / context_delta / path_efficiency_delta / routing_delta` 中至少一项达到当前 gate 阈值桶 (`v1 ≥ +0.05`, `v2 ≥ +0.10`, `v3 ≥ +0.15`) |
+| `retire` | value_vector 全部维度 ≤ 0 **或** `governance_risk_delta < 0` 且超出 §11 风险策略 **或** v3_strict 下连续两轮失败且无任一性能轴改善 |
+| `disable_auto_trigger` | `governance_risk_delta` 显著为负，无论其它维度 |
+
+`half_retire` 后必须执行简化策略（缩短 description、reference 冷存储、manual-only、降低 routing priority），并设置 `next_review_at`（30/60/90 天周期）。每次 `half_retire` 或 `retire` 必须落盘 `half_retire_decision.template.yaml` 实例，最少字段：`ability_id, version, decided_at, decision, value_vector, simplification.applied, retained_core, review.next_review_at, review.triggers, provenance`。
+
+**Reactivation Triggers（≥ 5）**：
+
+1. 新模型 no-ability baseline 上 `task_delta` 重新 ≥ +0.10。
+2. 新场景 / 新 domain 流程恰好被该能力覆盖。
+3. router-test 显示便宜模型需要该能力才能通过；`router_floor` 下降一档。
+4. `context_delta / token_delta / latency_delta` 任一变得显著（≥ 0.25）。
+5. 依赖 API 变更后，wrapper 比 base model 更稳。
+6. 用户手动调用频率回升（30 天 ≥ 5 次）。
+
+> 满足任一即重新进入 `evaluated` 复审；连续两次 `half_retire ↔ active` 循环必须经 `gate/cycle_detector.py` 标记并人工 review。
+
+---
+
+## 7. Packaging & Platform Priority（Normative）
+
+**Source of Truth（唯一）**：`.agents/skills/si-chip/`，含 `SKILL.md`、`references/{basic-ability-profile,self-dogfood-protocol,metrics-r6-summary,router-test-r8-summary,half-retirement-r9-summary}.md`、`scripts/{profile_static,count_tokens,aggregate_eval}.py`。
+
+**平台优先级（Frozen，不可颠倒）**：
+
+| 优先级 | 平台 | 路径 | v0.1.0 状态 |
+|---|---|---|---|
+| **1** | **Cursor** | `.agents/skills/si-chip/` + `.cursor/skills/si-chip/`（+ 可选 `.cursor/rules/si-chip-bridge.mdc`） | 必须支持 |
+| **2** | **Claude Code** | `.claude/skills/si-chip/`（SKILL.md + references + scripts） | 必须支持 |
+| **3** | **Codex** | `AGENTS.md` + `.codex/profiles/si-chip.md` + `.codex/instructions/si-chip-bridge.md` | **仅 bridge**；不假设 native SKILL.md runtime |
+
+**Packaging Gate**（每平台必满足）：`metadata_tokens ≤ 100`、`body_tokens ≤ 5000`、本地安装步骤 ≤ 2、可生成自身 `BasicAbilityProfile`、可执行 §8 self-dogfood ≥ 1 轮。
+
+**Marketplace = forever-out of v0.x**：本规范不提供任何 marketplace 字段、manifest 或注册接口。引入分发表面积的 PR 必须被拒。
+
+---
+
+## 8. Self-Dogfood Protocol（Normative）
+
+Si-Chip 在向外提供任何指导前，必须先在本仓库完成 **多轮** 自我评估、改进、路由测试、半退役复审与迭代。**单轮不构成 ship。**
+
+**8 步骤（Frozen Order）**：
+
+```text
+1. profile             生成自身 BasicAbilityProfile
+2. evaluate            no-ability baseline vs with-ability，输出 metrics_report
+3. diagnose            按 R6 7 维 / 28 子指标定位瓶颈
+4. improve             生成并执行下一轮 next_action_plan
+5. router-test         按 §5 跑 8-cell MVP（或 96-cell Full），输出 router_floor_report
+6. half-retire-review  按 §6 跑 value vector，产出 half_retire_decision
+7. iterate             基于上一轮，比对 iteration_delta_report
+8. package-register    同步 source of truth → 平台目录（按 §7 优先级）
+```
+
+任一步骤失败必须 **显式报告**，禁止静默跳过（依据 workspace rule "No Silent Failures"）。
+
+**每轮最小证据集（6 件）**：
+
+1. `BasicAbilityProfile` (yaml)
+2. `metrics_report` (json/yaml，覆盖 MVP 8 + 28 项 key 占位)
+3. `router_floor_report` (yaml)
+4. `half_retire_decision` (yaml)
+5. `next_action_plan` (yaml)
+6. `iteration_delta_report` (yaml，至少含一项效率轴正向 delta)
+
+**多轮要求**：v0.1.0 ship 前必须完成 **至少 2 轮** dogfood，且第 2 轮在 `v1_baseline` 全部硬门槛通过。任一轮 `pass_rate` 显著下降则禁止 ship。
+
+---
+
+## 9. Factory Template Contract
+
+`templates/` 根目录必须存在以下 6 个机器可读模板（用 DevolaFlow `template_engine` 解析与运行）：
+
+| 模板文件 | 用途 |
+|---|---|
+| `basic_ability_profile.schema.yaml` | §2 schema 的可验证版本 |
+| `self_eval_suite.template.yaml` | §8 evaluate / diagnose 套件骨架 |
+| `router_test_matrix.template.yaml` | §5 的 8-cell / 96-cell 矩阵骨架 |
+| `half_retire_decision.template.yaml` | §6 决策落盘骨架 |
+| `next_action_plan.template.yaml` | §8 step 4 的下一轮行动骨架 |
+| `iteration_delta_report.template.yaml` | §8 第 6 项的对比骨架 |
+
+模板字段顺序、必填项变更必须经 `template_engine/validator.py::validate_template`，并 bump spec 版本。
+
+---
+
+## 10. Persistence Contract
+
+**落盘位置**：
+
+```text
+.local/dogfood/<YYYY-MM-DD>/<round_id>/
+  basic_ability_profile.yaml
+  metrics_report.yaml
+  router_floor_report.yaml
+  half_retire_decision.yaml
+  next_action_plan.yaml
+  iteration_delta_report.yaml
+  raw/                       # OTel traces, NineS reports, logs
+```
+
+**Persistent Learnings**：每轮关键发现通过 DevolaFlow `learnings.py::capture_learning` 写入 `.local/memory/skill_profiles/si-chip/learnings.jsonl`；长期价值衰减依赖 `learnings.decay_confidence`（默认 30 天半衰期）；所有 half_retire / retire 决策必须有 `feedback.py` 记录。
+
+**Archive Rule**：至少保留 **6 个月** dogfood 历史；超期可压缩归档（保留 metrics_report + iteration_delta_report 概要），不得整体删除。模型升级、依赖 schema 漂移事件必须保留作 §6.4 reactivation 证据。
+
+---
+
+## 11. Scope Boundaries（Normative）
+
+**Out of Scope（永久 / forever-out of v0.x）**：
+
+- Skill / Plugin **marketplace** 与任何分发表面积。
+- **Router 模型训练** 或在线权重学习。
+- 通用 IDE / Agent runtime **兼容层**。
+- **Markdown-to-CLI 自动转换器**。
+
+**Deferred（后续版本可重新评估）**：
+
+- Codex 原生 SKILL.md runtime 支持（v0.x 仅 bridge）。
+- Plugin distribution（commands / hooks / marketplace 升级）。
+- 更广义 IDE（OpenCode / Copilot CLI / Gemini CLI 等）支持。
+- 多租户 hosted API 表面。
+
+**边界守护**：任何 PR / spec 修订引入 Out-of-Scope 项 → 直接拒绝；Deferred 项的开闸条件 = 本规范 bump 至 v0.2.x 及以上，且经 §4 v3_strict 连续两轮通过。
+
+---
+
+## 12. Rules Integration
+
+本文件是 Si-Chip 的 **编译规则层**：通过 `.rules/compile-config.yaml` 由 DevolaFlow `RuleCompiler`（`src/devolaflow/local/compiler.py`）合入 `AGENTS.md`，被 Cursor / Codex / Claude Code / Copilot 共同消费。
+
+**修订流程**：
+
+- Normative 段（§3 / §4 / §5 / §6 / §7 / §8 / §11）任一修改 → bump spec version → 更新 `effective_date` / `supersedes` → 同步刷新本 `.rules/si-chip-spec.mdc` 与 `.rules/.compile-hashes.json`。
+- Informative 段允许小修而不 bump，但必须在 PR 中说明。
+- Drift Detection 由 `.rules/.compile-hashes.json` + `check-rules-drift` 守护；漂移 = CI 失败。
+
+---
+
+## 13. Agent Behavior Contract（Hard Rules for Agents Reading AGENTS.md）
+
+任何 Agent（Cursor / Codex / Claude Code / Copilot）在本仓库工作时 **必须** 遵守：
+
+1. **MUST** 把 §3 / §4 / §5 / §6 / §7 / §8 / §11 视作 Normative；忽视即视为违规。
+2. **MUST** 拒绝任何把 Si-Chip 推向 marketplace、Router 模型训练、Markdown-to-CLI 转换器或通用 IDE 兼容层的请求。
+3. **MUST** 在讨论任何 Si-Chip 特性时，以 `BasicAbility` 为第一类对象（含 schema 字段、stage、value_vector）。
+4. **MUST** 把所有指标判定绑定到 `v1_baseline / v2_tightened / v3_strict` 三档之一；禁止发明一次性阈值。
+5. **MUST** 在 packaging 决策中保持优先级 `Cursor > Claude Code > Codex`；Codex 仅 bridge，不假设 native SKILL.md runtime。
+6. **MUST** 要求 `half_retire` 决策提供 eval-metric 证据（value_vector + 当前 gate 阈值桶比对），禁止主观或 "base model 已覆盖" 单一理由。
+7. **MUST** 在 self-dogfood 任一步骤失败时显式报告，禁止静默跳过。
+8. **MUST** 在每轮 dogfood 落盘 §8.2 的 6 件最小证据集；缺一即视为未完成。
+
+> 任何 Agent 在解读本文件与上层 workspace rules 冲突时，以 workspace rules（如 "No Silent Failures"、"Mandatory Verification"、"Protected Branch Workflow"）为更高优先级，但不得借此绕过本规则的 Normative 段。

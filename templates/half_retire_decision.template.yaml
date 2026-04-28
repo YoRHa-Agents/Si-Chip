@@ -1,0 +1,211 @@
+# Si-Chip Half-Retirement Decision Template
+# Spec source: §6.1 (7-axis value vector), §6.2 (4 trigger rules),
+#              §6.3 (decision artifact minimum field list), §6.4 (>=5 reactivation triggers).
+# Instance template (NOT a DevolaFlow WorkflowTemplate): consumed by
+# stage/half_retire_review.py to persist one decision per half_retire/retire event.
+
+$schema_version: "0.1.0"
+$spec_section: "§6"
+$source_of_truth: ".agents/skills/si-chip/"
+
+metadata:
+  name: "si-chip-half-retire-decision"
+  version: "0.1.0"
+  description: "Per §6.3 this YAML is the mandatory artifact for every half_retire or retire decision."
+
+# ── Decision enum (spec §6.2, four trigger rules) ──────────────
+decision_enum:
+  - keep
+  - half_retire
+  - retire
+  - disable_auto_trigger
+
+# ── Minimum required fields (spec §6.3) ────────────────────────
+required_fields:
+  - ability_id
+  - version
+  - decided_at
+  - decision
+  - value_vector
+  - simplification.applied
+  - retained_core
+  - review.next_review_at
+  - review.triggers
+  - provenance
+
+# ── Instance schema ────────────────────────────────────────────
+schema:
+  ability_id:
+    type: string
+    required: true
+    description: "BasicAbility.id this decision applies to."
+  version:
+    type: string
+    required: true
+    description: "Ability version being reviewed (semver or iso round id)."
+  decided_at:
+    type: string
+    required: true
+    format: "date-time"
+    description: "ISO-8601 timestamp of the decision event."
+  decision:
+    type: string
+    required: true
+    enum:
+      - keep
+      - half_retire
+      - retire
+      - disable_auto_trigger
+    description: "One of the four §6.2 outcomes."
+  value_vector:
+    type: object
+    required: true
+    description: "§6.1 7-axis value vector. Every axis present with explicit null default if not measured."
+    axes_count_expected: 7
+    properties:
+      task_delta:
+        type: ["number", "null"]
+        default: null
+        formula: "pass_with - pass_without"
+        source: "R6 T3"
+      token_delta:
+        type: ["number", "null"]
+        default: null
+        formula: "(tokens_without - tokens_with) / tokens_without"
+        source: "R6 C4 + OTel"
+      latency_delta:
+        type: ["number", "null"]
+        default: null
+        formula: "(p95_without - p95_with) / p95_without"
+        source: "R6 L1/L2"
+      context_delta:
+        type: ["number", "null"]
+        default: null
+        formula: "(footprint_without - footprint_with) / footprint_without"
+        source: "R6 C1-C5"
+      path_efficiency_delta:
+        type: ["number", "null"]
+        default: null
+        formula: "(detour_without - detour_with) / detour_without"
+        source: "R6 L5"
+      routing_delta:
+        type: ["number", "null"]
+        default: null
+        formula: "trigger_F1_with - trigger_F1_without"
+        source: "R6 D6"
+      governance_risk_delta:
+        type: ["number", "null"]
+        default: null
+        formula: "risk_without - risk_with"
+        source: "R6 D7"
+  simplification:
+    type: object
+    required: true
+    properties:
+      applied:
+        type: array
+        required: true
+        items: { type: string }
+        description: "§6 simplification actions performed (shorter description, cold-store references, manual-only, lower routing priority)."
+      bound_gate:
+        type: string
+        enum: [v1_baseline, v2_tightened, v3_strict]
+        description: "Gate profile active at decision time; determines §6.2 threshold bucket."
+  retained_core:
+    type: array
+    required: true
+    items: { type: string }
+    description: "Sub-capabilities kept active after simplification (empty for retire)."
+  review:
+    type: object
+    required: true
+    properties:
+      next_review_at:
+        type: string
+        required: true
+        format: "date"
+        description: "§6 review cadence: 30 / 60 / 90 days based on simplification depth."
+      triggers:
+        type: array
+        required: true
+        items: { type: string }
+        description: "Enumerated reactivation triggers to watch (subset of reactivation_triggers below)."
+  provenance:
+    type: object
+    required: true
+    properties:
+      round_id:
+        type: string
+        required: true
+      metrics_report_path:
+        type: string
+        required: true
+      router_floor_report_path:
+        type: string
+        required: true
+      decided_by:
+        type: string
+        required: true
+        description: "Agent or role that executed §6.2 rule evaluation."
+
+# ── §6.2 Triggering rules (verbatim thresholds + bucket mapping) ──
+triggering_rules:
+  spec_section: "§6.2"
+  rules:
+    - decision: keep
+      condition: "task_delta >= +0.10 OR all hard gates at current §4 profile pass."
+    - decision: half_retire
+      condition: "task_delta near zero (-0.02 <= task_delta <= +0.10) AND at least one of {token_delta, latency_delta, context_delta, path_efficiency_delta, routing_delta} meets current gate bucket (v1 >= +0.05, v2 >= +0.10, v3 >= +0.15)."
+      bucket_thresholds:
+        v1_baseline: 0.05
+        v2_tightened: 0.10
+        v3_strict: 0.15
+    - decision: retire
+      condition: "All value_vector axes <= 0 OR governance_risk_delta < 0 and exceeds §11 risk policy OR two consecutive failures at v3_strict with no performance-axis improvement."
+    - decision: disable_auto_trigger
+      condition: "governance_risk_delta is materially negative, regardless of other axes."
+
+# ── §6.4 Reactivation triggers (6 total, all six must appear) ──
+reactivation_triggers:
+  spec_section: "§6.4"
+  count: 6
+  triggers:
+    - id: "new_model_no_ability_baseline_gap"
+      description: "On a newly available model, task_delta without the ability rises back to >= +0.10."
+    - id: "new_scenario_or_domain_match"
+      description: "A new scenario or domain flow is exactly covered by this ability."
+    - id: "router_test_requires_ability_for_cheap_model"
+      description: "router-test shows a cheap model needs this ability to pass; router_floor drops one tier."
+    - id: "efficiency_axis_becomes_significant"
+      description: "context_delta / token_delta / latency_delta on any axis becomes significant (>= 0.25)."
+    - id: "upstream_api_change_wrapper_stabilizes"
+      description: "After a dependency API change, the wrapper remains more stable than the base model."
+    - id: "manual_invocation_rebound"
+      description: "User manual invocations rebound (>= 5 in rolling 30 days)."
+
+# ── Example skeleton consumers may fill (§10 persistence contract) ──
+example_instance:
+  ability_id: "si-chip"
+  version: "0.1.0"
+  decided_at: "2026-04-28T00:00:00Z"
+  decision: keep
+  value_vector:
+    task_delta: null
+    token_delta: null
+    latency_delta: null
+    context_delta: null
+    path_efficiency_delta: null
+    routing_delta: null
+    governance_risk_delta: null
+  simplification:
+    applied: []
+    bound_gate: v1_baseline
+  retained_core: []
+  review:
+    next_review_at: "2026-05-28"
+    triggers: []
+  provenance:
+    round_id: "r0"
+    metrics_report_path: ".local/dogfood/2026-04-28/r0/metrics_report.yaml"
+    router_floor_report_path: ".local/dogfood/2026-04-28/r0/router_floor_report.yaml"
+    decided_by: "si-chip.self_eval"

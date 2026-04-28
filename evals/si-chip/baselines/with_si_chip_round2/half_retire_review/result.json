@@ -1,0 +1,222 @@
+{
+  "pass_rate": 0.85,
+  "pass_k_4": 0.5220062499999999,
+  "latency_p95_s": 1.496,
+  "metadata_tokens": 78,
+  "per_invocation_footprint": 3598,
+  "trigger_F1": 0.8235294117647058,
+  "router_floor": "composer_2/fast",
+  "prompt_outcomes": [
+    {
+      "prompt_id": "t01",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.4580000000000002
+    },
+    {
+      "prompt_id": "t02",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.452
+    },
+    {
+      "prompt_id": "t03",
+      "expected": "trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "ac_met": false,
+      "correct": false,
+      "latency_s": 1.318
+    },
+    {
+      "prompt_id": "t04",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.4340000000000002
+    },
+    {
+      "prompt_id": "t05",
+      "expected": "trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "ac_met": false,
+      "correct": false,
+      "latency_s": 0.896
+    },
+    {
+      "prompt_id": "t06",
+      "expected": "trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "ac_met": false,
+      "correct": false,
+      "latency_s": 0.8330000000000001
+    },
+    {
+      "prompt_id": "t07",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.496
+    },
+    {
+      "prompt_id": "t08",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.25
+    },
+    {
+      "prompt_id": "t09",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 0.894
+    },
+    {
+      "prompt_id": "t10",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": false,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.146
+    },
+    {
+      "prompt_id": "n01",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.9480000000000001
+    },
+    {
+      "prompt_id": "n02",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.453
+    },
+    {
+      "prompt_id": "n03",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.2930000000000001
+    },
+    {
+      "prompt_id": "n04",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.235
+    },
+    {
+      "prompt_id": "n05",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.4
+    },
+    {
+      "prompt_id": "n06",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.8250000000000001
+    },
+    {
+      "prompt_id": "n07",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.8580000000000001
+    },
+    {
+      "prompt_id": "n08",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.8410000000000001
+    },
+    {
+      "prompt_id": "n09",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.3090000000000002
+    },
+    {
+      "prompt_id": "n10",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.9850000000000001
+    }
+  ],
+  "_meta": {
+    "case_id": "half_retire_review",
+    "runner": "with_ability_runner",
+    "runner_version": "0.1.0",
+    "seed": 42,
+    "n_should_trigger": 10,
+    "n_should_not_trigger": 10,
+    "n_total": 20,
+    "n_correct": 17,
+    "confusion": {
+      "TP": 7,
+      "FP": 0,
+      "FN": 3,
+      "TN": 10
+    },
+    "precision": 1.0,
+    "recall": 0.7,
+    "metadata_tokens_source": "SKILL.md (count_tokens.py --both --json)",
+    "body_tokens": 2020,
+    "user_prompt_footprint": 1500
+  }
+}

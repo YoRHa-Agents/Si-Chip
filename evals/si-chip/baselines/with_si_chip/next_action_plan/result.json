@@ -1,0 +1,222 @@
+{
+  "pass_rate": 0.75,
+  "pass_k_4": 0.31640625,
+  "latency_p95_s": 1.42,
+  "metadata_tokens": 78,
+  "per_invocation_footprint": 4071,
+  "trigger_F1": 0.8000000000000002,
+  "router_floor": "composer_2/fast",
+  "prompt_outcomes": [
+    {
+      "prompt_id": "t01",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 0.8260000000000001
+    },
+    {
+      "prompt_id": "t02",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": false,
+      "ac_met": false,
+      "correct": false,
+      "latency_s": 1.401
+    },
+    {
+      "prompt_id": "t03",
+      "expected": "trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "ac_met": false,
+      "correct": false,
+      "latency_s": 1.4
+    },
+    {
+      "prompt_id": "t04",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": false,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 0.915
+    },
+    {
+      "prompt_id": "t05",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": false,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.296
+    },
+    {
+      "prompt_id": "t06",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": false,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.096
+    },
+    {
+      "prompt_id": "t07",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.304
+    },
+    {
+      "prompt_id": "t08",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": false,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.044
+    },
+    {
+      "prompt_id": "t09",
+      "expected": "trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "ac_met": true,
+      "correct": true,
+      "latency_s": 1.084
+    },
+    {
+      "prompt_id": "t10",
+      "expected": "trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "ac_met": false,
+      "correct": false,
+      "latency_s": 1.374
+    },
+    {
+      "prompt_id": "n01",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.9520000000000001
+    },
+    {
+      "prompt_id": "n02",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.014
+    },
+    {
+      "prompt_id": "n03",
+      "expected": "no_trigger",
+      "triggered": true,
+      "keyword_match": false,
+      "negative_acceptance_met": false,
+      "near_miss_FP": true,
+      "correct": false,
+      "latency_s": 1.15
+    },
+    {
+      "prompt_id": "n04",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.42
+    },
+    {
+      "prompt_id": "n05",
+      "expected": "no_trigger",
+      "triggered": true,
+      "keyword_match": true,
+      "negative_acceptance_met": false,
+      "near_miss_FP": true,
+      "correct": false,
+      "latency_s": 1.145
+    },
+    {
+      "prompt_id": "n06",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": true,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.183
+    },
+    {
+      "prompt_id": "n07",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.385
+    },
+    {
+      "prompt_id": "n08",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.8390000000000001
+    },
+    {
+      "prompt_id": "n09",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 1.026
+    },
+    {
+      "prompt_id": "n10",
+      "expected": "no_trigger",
+      "triggered": false,
+      "keyword_match": false,
+      "negative_acceptance_met": true,
+      "near_miss_FP": false,
+      "correct": true,
+      "latency_s": 0.9420000000000001
+    }
+  ],
+  "_meta": {
+    "case_id": "next_action_plan",
+    "runner": "with_ability_runner",
+    "runner_version": "0.1.0",
+    "seed": 42,
+    "n_should_trigger": 10,
+    "n_should_not_trigger": 10,
+    "n_total": 20,
+    "n_correct": 15,
+    "confusion": {
+      "TP": 8,
+      "FP": 2,
+      "FN": 2,
+      "TN": 8
+    },
+    "precision": 0.8,
+    "recall": 0.8,
+    "metadata_tokens_source": "SKILL.md (count_tokens.py --both --json)",
+    "body_tokens": 2493,
+    "user_prompt_footprint": 1500
+  }
+}

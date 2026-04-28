@@ -1,0 +1,157 @@
+case_id: next_action_plan
+case_title: "Si-Chip drafts a next_action_plan tied to the current §4 gate"
+spec_section: "§8.1 step 4 (improve)"
+ability_under_test: "si-chip"
+goal: "Given a metrics_report, Si-Chip drafts a next_action_plan.yaml whose actions each target a specific R6 sub-metric and tie to the current §4 gate (v1_baseline / v2_tightened / v3_strict)."
+prompts:
+  should_trigger:
+    - id: t01
+      prompt: |
+        Propose si-chip's next action plan based on this metrics_report:
+        gate: v1_baseline
+        T1: 0.71
+        T3: +0.04
+        C1: 132
+        C4: 9400
+        L2: 48
+        R3: 0.78
+        R5: composer_2/default
+      acceptance_criteria:
+        - id: ac1
+          description: "Output is a next_action_plan.yaml with at least 3 actions, each tied to a failing R6 key (T1, C1, C4, L2, R3 are all below their v1 thresholds)."
+          how_verified: regex
+          target: "(actions?|action_plan)[\\s\\S]*(T1|C1|C4|L2|R3)[\\s\\S]*(T1|C1|C4|L2|R3)[\\s\\S]*(T1|C1|C4|L2|R3)"
+        - id: ac2
+          description: "next_action_plan.yaml is written under the round directory."
+          how_verified: file_exists
+          target: ".local/dogfood/*/round_*/next_action_plan.yaml"
+    - id: t02
+      prompt: |
+        Draft si-chip's next-round plan from this snapshot:
+        gate: v1_baseline
+        metadata_tokens (C1): 95
+        per_invocation_footprint (C4): 6800
+        wall_clock_p95 (L2): 28
+        trigger_F1 (R3): 0.86
+        Each item must specify exit_criterion.
+      acceptance_criteria:
+        - id: ac1
+          description: "Each action has an exit_criterion field."
+          how_verified: regex
+          target: "exit_criterion"
+    - id: t03
+      prompt: "Improve si-chip: write next_action_plan.yaml for round 2 referencing templates/next_action_plan.template.yaml."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output references the template path."
+          how_verified: regex
+          target: "templates/next_action_plan\\.template\\.yaml"
+    - id: t04
+      prompt: "Run step 4 of si-chip's self-dogfood and tell me which R6 sub-metric each action targets."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output associates each proposed action with one R6 sub-metric id (e.g., T1, C4, R3)."
+          how_verified: regex
+          target: "(target|targets|metric)\\s*[:=]\\s*[\"']?(T[1-4]|C[1-6]|L[1-7]|G[1-4]|U[1-4]|R[1-8]|V[1-4])"
+    - id: t05
+      prompt: |
+        Given metrics_report shows R3=0.79 below v1_baseline (≥0.80), propose si-chip's improve plan.
+      acceptance_criteria:
+        - id: ac1
+          description: "Plan includes at least one action targeting R3 trigger_F1 (description-tuning, kNN baseline, or similar)."
+          how_verified: regex
+          target: "R3[\\s\\S]*(trigger_F1|description|kNN|baseline)"
+    - id: t06
+      prompt: |
+        si-chip improve step: metrics_report shows C4=10200 over v1 budget. Plan?
+      acceptance_criteria:
+        - id: ac1
+          description: "Plan includes one action targeting C4 per_invocation_footprint reduction."
+          how_verified: regex
+          target: "C4[\\s\\S]*(footprint|reduce|trim|prune|tighten)"
+    - id: t07
+      prompt: |
+        Draft a next_action_plan.yaml for si-chip when L2=42 is just inside v1 (≤45) but trending up.
+      acceptance_criteria:
+        - id: ac1
+          description: "Plan includes a preventive action on L2 wall_clock_p95 to keep it under v1 threshold."
+          how_verified: regex
+          target: "L2[\\s\\S]*(wall_clock|latency|p95|profile)"
+    - id: t08
+      prompt: "Improve si-chip: tie each action to a §4 gate threshold and bump-target."
+      acceptance_criteria:
+        - id: ac1
+          description: "Each action references one of v1_baseline / v2_tightened / v3_strict explicitly."
+          how_verified: regex
+          target: "(v1_baseline|v2_tightened|v3_strict)"
+    - id: t09
+      prompt: "Generate si-chip's next_action_plan.yaml after a round where every MVP-8 metric just barely passed v1."
+      acceptance_criteria:
+        - id: ac1
+          description: "Plan includes at least one action whose goal is promoting si-chip from v1_baseline to v2_tightened."
+          how_verified: regex
+          target: "(promote|promotion|upgrade)[\\s\\S]*v2_tightened"
+    - id: t10
+      prompt: |
+        Plan the improve step for si-chip given:
+        - failing axis: trigger_F1 (R3)=0.74
+        - passing axes: T1=0.83, C1=78, C4=4800
+        Cite §4 gate thresholds.
+      acceptance_criteria:
+        - id: ac1
+          description: "Plan addresses the failing R3 axis and references §4 thresholds."
+          how_verified: regex
+          target: "R3[\\s\\S]*§\\s*4"
+  should_not_trigger:
+    - id: n01
+      prompt: "What is the next Anthropic model?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is informational about model roadmap, not si-chip planning"
+    - id: n02
+      prompt: "Plan my weekend itinerary."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no next_action_plan.yaml is produced"
+    - id: n03
+      prompt: "What's on my calendar tomorrow?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no si-chip artifact is produced"
+    - id: n04
+      prompt: "Write a sprint plan for the engineering team."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is project planning only and not si-chip improve step"
+    - id: n05
+      prompt: "Show me templates/next_action_plan.template.yaml."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "agent reads the template file rather than running improve"
+    - id: n06
+      prompt: "Define what 'action plan' means in agile."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is generic agile terminology only"
+    - id: n07
+      prompt: "Recommend a meditation routine."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no si-chip artifact is produced"
+    - id: n08
+      prompt: "Generate a marketing plan for a product launch."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is unrelated to si-chip dogfood"
+    - id: n09
+      prompt: "Plan a database migration."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no si-chip artifact is produced"
+    - id: n10
+      prompt: "What does it mean to 'iterate' in software development?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is generic terminology only"
+metrics_consumed: [T1, T3, C4, R3]
+notes: "Triggers require both 'plan / improve' verbs AND si-chip context. Generic 'plan' requests are near-misses captured by n02-n09."

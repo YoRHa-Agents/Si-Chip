@@ -1,0 +1,162 @@
+# Si-Chip Iteration-Delta Report Template
+# Spec source: §8.2 evidence #6; §4 progressive-gate single-monotone rule.
+# Instance template (NOT a DevolaFlow WorkflowTemplate).
+# Compares current round to the prior round and records whether at least one efficiency
+# axis improved (§4.1 iteration_delta row: v1 >= +0.05, v2 >= +0.10, v3 >= +0.15).
+
+$schema_version: "0.1.0"
+$spec_section: "§8.2 evidence #6"
+$source_of_truth: ".agents/skills/si-chip/"
+
+metadata:
+  name: "si-chip-iteration-delta-report"
+  version: "0.1.0"
+  description: "Round-over-round delta for MVP-8 metrics plus positive-axis verdict."
+
+# Guard-rail the single-monotone rule from §4.1 (threshold rows must remain monotone
+# across v1_baseline -> v2_tightened -> v3_strict). Any instance must run this check
+# before declaring verdict.pass_v1_baseline = true.
+monotonicity_check_required: true
+
+required_fields:
+  - round_id
+  - prior_round_id
+  - computed_at
+  - deltas
+  - axis_status
+  - verdict
+
+schema:
+  round_id:
+    type: string
+    required: true
+    description: "Current round id."
+  prior_round_id:
+    type: ["string", "null"]
+    required: true
+    description: "Prior round id or null if this is round 0."
+  computed_at:
+    type: string
+    required: true
+    format: "date-time"
+  deltas:
+    type: object
+    required: true
+    description: "Per-dimension MVP-8 deltas (current - prior)."
+    properties:
+      task_quality:
+        type: array
+        required: true
+        items: { type: string }
+        description: "Metric keys reported for D1."
+        expected:
+          - T1
+          - T2
+          - T3
+      context_economy:
+        type: array
+        required: true
+        items: { type: string }
+        description: "Metric keys reported for D2."
+        expected:
+          - C1
+          - C4
+      latency_path:
+        type: array
+        required: true
+        items: { type: string }
+        description: "Metric keys reported for D3."
+        expected:
+          - L2
+      routing_cost:
+        type: array
+        required: true
+        items: { type: string }
+        description: "Metric keys reported for D6."
+        expected:
+          - R3
+  axis_status:
+    type: object
+    required: true
+    description: "Map of efficiency axis -> {positive_axis, delta}. §4.1 requires >= 1 axis positive at current gate bucket."
+    properties:
+      task_quality:
+        type: object
+        properties:
+          positive_axis: { type: boolean }
+          delta: { type: number }
+      context_economy:
+        type: object
+        properties:
+          positive_axis: { type: boolean }
+          delta: { type: number }
+      latency_path:
+        type: object
+        properties:
+          positive_axis: { type: boolean }
+          delta: { type: number }
+      generalizability:
+        type: object
+        properties:
+          positive_axis: { type: boolean }
+          delta: { type: number }
+      usage_cost:
+        type: object
+        properties:
+          positive_axis: { type: boolean }
+          delta: { type: number }
+      routing_cost:
+        type: object
+        properties:
+          positive_axis: { type: boolean }
+          delta: { type: number }
+      governance_risk:
+        type: object
+        properties:
+          positive_axis: { type: boolean }
+          delta: { type: number }
+  verdict:
+    type: object
+    required: true
+    properties:
+      pass_v1_baseline:
+        type: boolean
+        required: true
+        description: "True only when §4.1 v1_baseline hard gates all pass AND at least one axis shows delta >= +0.05."
+      blockers:
+        type: array
+        required: true
+        items: { type: string }
+        description: "List of metric-or-policy blockers preventing promotion; empty when pass=true."
+
+# Thresholds pinned from spec §4.1 (source of truth); duplicated here as a sanity gate
+# for implementations that read only this template.
+gate_thresholds_ref:
+  v1_baseline:
+    iteration_delta_any_efficiency_axis: 0.05
+  v2_tightened:
+    iteration_delta_any_efficiency_axis: 0.10
+  v3_strict:
+    iteration_delta_any_efficiency_axis: 0.15
+
+# Example skeleton.
+example_instance:
+  round_id: "r1"
+  prior_round_id: "r0"
+  computed_at: "2026-04-28T00:00:00Z"
+  deltas:
+    task_quality: [T1, T2, T3]
+    context_economy: [C1, C4]
+    latency_path: [L2]
+    routing_cost: [R3]
+  axis_status:
+    task_quality: { positive_axis: false, delta: 0.0 }
+    context_economy: { positive_axis: true, delta: 0.06 }
+    latency_path: { positive_axis: false, delta: 0.0 }
+    generalizability: { positive_axis: false, delta: 0.0 }
+    usage_cost: { positive_axis: false, delta: 0.0 }
+    routing_cost: { positive_axis: false, delta: 0.0 }
+    governance_risk: { positive_axis: false, delta: 0.0 }
+  verdict:
+    pass_v1_baseline: true
+    blockers: []

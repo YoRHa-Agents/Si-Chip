@@ -1,0 +1,31 @@
+# Si-Chip Round 1 metrics_report validation log
+# Computed at: 2026-04-28T09:53:19.973815+00:00
+# Source: .local/dogfood/2026-04-28/round_1/metrics_report.yaml (copied from evals/si-chip/reports/round_baseline_metrics_report.yaml)
+
+== R6 sub-metric coverage per dimension ==
+  task_quality: 4 keys / 3 populated / missing=[] extra=[]
+  context_economy: 6 keys / 2 populated / missing=[] extra=[]
+  latency_path: 7 keys / 1 populated / missing=[] extra=[]
+  generalizability: 4 keys / 0 populated / missing=[] extra=[]
+  usage_cost: 4 keys / 0 populated / missing=[] extra=[]
+  routing_cost: 8 keys / 2 populated / missing=[] extra=[]
+  governance_risk: 4 keys / 0 populated / missing=[] extra=[]
+
+== Total R6 sub-metric keys present: 37 (spec sec3.1 table = 37; sec3.2 frozen #2 minimum = 28+) ==
+
+== MVP-8 populated values ==
+  task_quality.T1_pass_rate = 0.85 populated=True
+  task_quality.T2_pass_k = 0.5477708333333333 populated=True
+  task_quality.T3_baseline_delta = 0.35 populated=True
+  context_economy.C1_metadata_tokens = 78 populated=True
+  context_economy.C4_per_invocation_footprint = 4071.0 populated=True
+  latency_path.L2_wall_clock_p95 = 1.4693333333333334 populated=True
+  routing_cost.R3_trigger_F1 = 0.8933952528379773 populated=True
+  routing_cost.R5_router_floor = 'composer_2/fast' populated=True
+
+== Verdict ==
+R6 schema coverage = 37 keys (>= 28 required) -> PASS
+MVP-8 fully populated -> PASS
+Schema issues -> none
+
+Overall: PASS

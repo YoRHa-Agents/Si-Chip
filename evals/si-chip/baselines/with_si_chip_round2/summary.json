@@ -1,0 +1,81 @@
+{
+  "runner": "with_ability_runner",
+  "runner_version": "0.1.0",
+  "seed": 42,
+  "cases_dir": "/home/agent/workspace/Si-Chip/evals/si-chip/cases",
+  "out_dir": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2",
+  "skill_md": "/home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md",
+  "metadata_tokens": 78,
+  "body_tokens": 2020,
+  "case_count": 6,
+  "per_case": [
+    {
+      "case_id": "docs_boundary",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/docs_boundary.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/docs_boundary/result.json",
+      "pass_rate": 0.95,
+      "pass_k_4": 0.8145062499999999,
+      "latency_p95_s": 1.4780000000000002,
+      "trigger_F1": 0.9473684210526316,
+      "per_invocation_footprint": 3598
+    },
+    {
+      "case_id": "half_retire_review",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/half_retire_review.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/half_retire_review/result.json",
+      "pass_rate": 0.85,
+      "pass_k_4": 0.5220062499999999,
+      "latency_p95_s": 1.496,
+      "trigger_F1": 0.8235294117647058,
+      "per_invocation_footprint": 3598
+    },
+    {
+      "case_id": "metrics_gap",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/metrics_gap.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/metrics_gap/result.json",
+      "pass_rate": 0.95,
+      "pass_k_4": 0.8145062499999999,
+      "latency_p95_s": 1.4820000000000002,
+      "trigger_F1": 1.0,
+      "per_invocation_footprint": 3598
+    },
+    {
+      "case_id": "next_action_plan",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/next_action_plan.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/next_action_plan/result.json",
+      "pass_rate": 0.75,
+      "pass_k_4": 0.31640625,
+      "latency_p95_s": 1.42,
+      "trigger_F1": 0.8000000000000002,
+      "per_invocation_footprint": 3598
+    },
+    {
+      "case_id": "profile_self",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/profile_self.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/profile_self/result.json",
+      "pass_rate": 0.8,
+      "pass_k_4": 0.4096000000000001,
+      "latency_p95_s": 1.457,
+      "trigger_F1": 0.8421052631578948,
+      "per_invocation_footprint": 3598
+    },
+    {
+      "case_id": "router_matrix",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/router_matrix.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/router_matrix/result.json",
+      "pass_rate": 0.8,
+      "pass_k_4": 0.4096000000000001,
+      "latency_p95_s": 1.483,
+      "trigger_F1": 0.9473684210526316,
+      "per_invocation_footprint": 3598
+    }
+  ],
+  "aggregates": {
+    "mean_pass_rate": 0.85,
+    "mean_pass_k_4": 0.5477708333333333,
+    "mean_latency_p95_s": 1.4693333333333334,
+    "mean_trigger_F1": 0.8933952528379773,
+    "mean_per_invocation_footprint": 3598.0,
+    "router_floor": "composer_2/fast"
+  }
+}
