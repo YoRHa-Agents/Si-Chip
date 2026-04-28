@@ -8,6 +8,8 @@ title: Demo
 This page walks through the actual evidence Si-Chip produced when it
 self-shipped v0.1.0 on 2026-04-28.
 
+// CHAPTER 01 //
+
 ## 1. Two consecutive `v1_baseline` passes
 
 | Round | pass_rate | trigger_F1 | metadata_tokens | per_invocation_footprint | wall_clock_p95 (s) | half_retire | router_floor |
@@ -17,6 +19,8 @@ self-shipped v0.1.0 on 2026-04-28.
 
 Round 2 also populated `R4_near_miss_FP_rate = 0.05`, slimming SKILL.md body
 tokens from 2493 to 2020 (-18.97 %).
+
+// CHAPTER 02 //
 
 ## 2. The 7-axis value vector (Round 2)
 
@@ -31,6 +35,8 @@ tokens from 2493 to 2020 (-18.97 %).
 | `governance_risk_delta` | 0.0 | unchanged |
 
 Decision rule (spec section 6.2): `task_delta = +0.35 >= +0.10` → **keep**.
+
+// CHAPTER 03 //
 
 ## 3. The 8-cell MVP router-test sweep
 
@@ -51,6 +57,8 @@ Decision rule (spec section 6.2): `task_delta = +0.35 >= +0.10` → **keep**.
 > existing model x thinking-depth combinations to find the cheapest cell that
 > meets the gate.
 
+// CHAPTER 04 //
+
 ## 4. Cross-platform sync (drift = 0)
 
 | Tree | Files | SHA-of-SKILL.md | Drift |
@@ -60,6 +68,8 @@ Decision rule (spec section 6.2): `task_delta = +0.35 >= +0.10` → **keep**.
 | Mirror `.claude/skills/si-chip/` | 9 | identical | DRIFT_ZERO |
 
 Three-tree summary verdict: **ALL_TREES_DRIFT_ZERO**.
+
+// CHAPTER 05 //
 
 ## 5. The 8 spec invariants
 
@@ -80,6 +90,8 @@ verdict: PASS
 The `--strict-prose-count` mode intentionally fails on `R6_KEYS` and
 `THRESHOLD_TABLE` to flag the section 13.4 prose-vs-table discrepancy that a future
 spec bump should reconcile.
+
+// CHAPTER 06 //
 
 ## 6. Reproduce the numbers locally
 
@@ -103,6 +115,8 @@ python .agents/skills/si-chip/scripts/count_tokens.py \
   --file .agents/skills/si-chip/SKILL.md --both \
   --budget-meta 100 --budget-body 5000 --json
 ```
+
+// CHAPTER 07 //
 
 ## 7. What ships next (deferred from v0.1.0)
 

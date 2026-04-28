@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if page.title %}{{ page.title }} &middot; {% endif %}{{ site.title }}</title>
+<meta name="description" content="{{ site.description }}">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&amp;family=Noto+Sans+JP:wght@300;400&amp;family=Saira+Stencil+One&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ '/assets/css/nier.css' | relative_url }}">
+</head>
+<body class="nier">
+<div class="scanlines" aria-hidden="true"></div>
+{% include header.html %}
+<main class="content">
+<article class="page">
+<div class="page-meta">// PAGE &mdash; {{ page.title | default: site.title | upcase }}</div>
+<h1 class="page-title">{{ page.title | default: site.title }}</h1>
+<div class="page-divider">&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;&#9473;</div>
+<div class="page-body">
+{{ content }}
+</div>
+</article>
+</main>
+{% include footer.html %}
+<script src="{{ '/assets/js/nier.js' | relative_url }}" defer></script>
+</body>
+</html>
