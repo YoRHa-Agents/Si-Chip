@@ -435,5 +435,248 @@ class BuildReportL1L3L4Integration(unittest.TestCase):
                              msg=f"{dim} sub-metric keys diverged from schema after Round 4")
 
 
+# ─────────────────────────── Round 5 tests ───────────────────────────
+# Workspace rule "Mandatory Verification": Round 5 (S5 task spec Edit B)
+# added `hoist_u1_description_readability` and
+# `hoist_u2_first_time_success_rate`, plus `build_report` now populates
+# D5/U1 + D5/U2. These tests cover correctness, degenerate paths, and
+# the spec §3.2 frozen 28-key invariant.
+
+
+import tempfile  # noqa: E402
+
+
+def _row_with_outcomes(
+    expected_correct_pairs=None,
+    **kwargs,
+) -> dict:
+    """Build an eval row with a deterministic ``prompt_outcomes`` list.
+
+    ``expected_correct_pairs`` is a list of ``(expected, correct)`` tuples
+    — the helper turns them into minimal prompt_outcomes dicts so the
+    U2 hoist has something to work on.
+    """
+
+    row = _row(**kwargs)
+    if expected_correct_pairs is None:
+        # Default: 10 should_trigger (9 correct / 1 wrong) + 10 should_not (all correct)
+        expected_correct_pairs = (
+            [("trigger", True)] * 9
+            + [("trigger", False)] * 1
+            + [("no_trigger", True)] * 10
+        )
+    row["prompt_outcomes"] = [
+        {
+            "prompt_id": f"p{idx:02d}",
+            "expected": expected,
+            "correct": correct,
+        }
+        for idx, (expected, correct) in enumerate(expected_correct_pairs, start=1)
+    ]
+    return row
+
+
+class HoistU1Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_u1_description_readability`."""
+
+    def test_none_path_returns_none(self) -> None:
+        v, d = ae.hoist_u1_description_readability(None)
+        self.assertIsNone(v)
+        self.assertIn("error", d)
+
+    def test_real_skill_md_returns_in_range(self) -> None:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            "---\n"
+            "name: demo\n"
+            "description: A simple demo skill. Use it when testing.\n"
+            "---\n"
+            "body\n",
+            encoding="utf-8",
+        )
+        v, d = ae.hoist_u1_description_readability(path)
+        self.assertIsNotNone(v)
+        self.assertGreaterEqual(v, 0.0)
+        self.assertLessEqual(v, 24.0)
+        self.assertIn("method", d)
+        self.assertIn("words", d)
+        self.assertGreater(d["words"], 0)
+
+    def test_skill_md_without_description_returns_none(self) -> None:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            "---\nname: demo\n---\nbody\n",
+            encoding="utf-8",
+        )
+        v, d = ae.hoist_u1_description_readability(path)
+        self.assertIsNone(v)
+        self.assertIn("error", d)
+
+    def test_missing_file_raises(self) -> None:
+        with self.assertRaises(FileNotFoundError):
+            ae.hoist_u1_description_readability(Path("/does/not/exist/SKILL.md"))
+
+    def test_deterministic_across_calls(self) -> None:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            "---\nname: x\ndescription: Persistent BasicAbility.\n---\nbody\n",
+            encoding="utf-8",
+        )
+        v1, _ = ae.hoist_u1_description_readability(path)
+        v2, _ = ae.hoist_u1_description_readability(path)
+        self.assertEqual(v1, v2)
+
+
+class HoistU2Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_u2_first_time_success_rate`."""
+
+    def test_default_rows_yield_ninety_percent(self) -> None:
+        rows = [_row_with_outcomes()]
+        v, d = ae.hoist_u2_first_time_success_rate(rows)
+        self.assertIsNotNone(v)
+        self.assertAlmostEqual(v, 0.9, places=6)
+        self.assertEqual(d["total_should_trigger"], 10)
+        self.assertEqual(d["total_first_time_success"], 9)
+
+    def test_six_identical_cases_preserve_rate(self) -> None:
+        rows = [_row_with_outcomes() for _ in range(6)]
+        v, d = ae.hoist_u2_first_time_success_rate(rows)
+        self.assertAlmostEqual(v, 0.9, places=6)
+        self.assertEqual(d["total_should_trigger"], 60)
+        self.assertEqual(d["total_first_time_success"], 54)
+
+    def test_all_correct_yields_one(self) -> None:
+        rows = [_row_with_outcomes([("trigger", True)] * 10)]
+        v, _ = ae.hoist_u2_first_time_success_rate(rows)
+        self.assertEqual(v, 1.0)
+
+    def test_all_wrong_yields_zero(self) -> None:
+        rows = [_row_with_outcomes([("trigger", False)] * 10)]
+        v, _ = ae.hoist_u2_first_time_success_rate(rows)
+        self.assertEqual(v, 0.0)
+
+    def test_no_prompt_outcomes_returns_none(self) -> None:
+        rows = [_row()]  # _row() does NOT carry prompt_outcomes
+        v, d = ae.hoist_u2_first_time_success_rate(rows)
+        self.assertIsNone(v)
+        self.assertIn("error", d)
+        self.assertIn("remediation", d)
+
+    def test_only_no_trigger_outcomes_returns_none(self) -> None:
+        rows = [_row_with_outcomes([("no_trigger", True)] * 5)]
+        v, d = ae.hoist_u2_first_time_success_rate(rows)
+        self.assertIsNone(v)
+        self.assertEqual(d["error"], "no should_trigger prompt_outcomes in with-ability rows")
+
+    def test_range_stays_in_unit_interval(self) -> None:
+        for pairs in (
+            [("trigger", True)] * 10,
+            [("trigger", True)] * 5 + [("trigger", False)] * 5,
+            [("trigger", False)] * 10,
+        ):
+            with self.subTest(pairs=pairs):
+                v, _ = ae.hoist_u2_first_time_success_rate([_row_with_outcomes(pairs)])
+                self.assertGreaterEqual(v, 0.0)
+                self.assertLessEqual(v, 1.0)
+
+
+class BuildReportU1U2Integration(unittest.TestCase):
+    """End-to-end smoke: build_report surfaces D5 U1/U2 in metrics_report."""
+
+    def _make_skill_md(self, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            f"---\nname: si-chip\ndescription: {description}\n---\nbody\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_full_instrumentation_populates_u1_and_u2(self) -> None:
+        skill_md = self._make_skill_md(
+            "Persistent BasicAbility optimization factory."
+        )
+        with_rows = [_row_with_outcomes() for _ in range(6)]
+        without_rows = [_row(pass_rate=0.5, trigger_F1=0.0) for _ in range(6)]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+        )
+        uc = report["metrics"]["usage_cost"]
+        self.assertIsNotNone(uc["U1_description_readability"])
+        self.assertGreaterEqual(uc["U1_description_readability"], 0.0)
+        self.assertLessEqual(uc["U1_description_readability"], 24.0)
+        self.assertIsNotNone(uc["U2_first_time_success_rate"])
+        self.assertAlmostEqual(uc["U2_first_time_success_rate"], 0.9, places=6)
+        # U3/U4 stay null: Round 6 work.
+        self.assertIsNone(uc["U3_setup_steps_count"])
+        self.assertIsNone(uc["U4_time_to_first_success"])
+        # Provenance carries the derivation records.
+        self.assertIn("u1_derivation", report["provenance"])
+        self.assertIn("u2_derivation", report["provenance"])
+
+    def test_missing_skill_md_keeps_u1_null(self) -> None:
+        with_rows = [_row_with_outcomes() for _ in range(3)]
+        without_rows = [_row(pass_rate=0.5, trigger_F1=0.0) for _ in range(3)]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=None,
+        )
+        uc = report["metrics"]["usage_cost"]
+        self.assertIsNone(uc["U1_description_readability"])
+        # U2 still works because it comes from prompt_outcomes.
+        self.assertIsNotNone(uc["U2_first_time_success_rate"])
+
+    def test_missing_prompt_outcomes_keeps_u2_null(self) -> None:
+        skill_md = self._make_skill_md("A simple description.")
+        with_rows = [_row() for _ in range(3)]
+        without_rows = [_row(pass_rate=0.5, trigger_F1=0.0) for _ in range(3)]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+        )
+        uc = report["metrics"]["usage_cost"]
+        self.assertIsNotNone(uc["U1_description_readability"])
+        self.assertIsNone(uc["U2_first_time_success_rate"])
+
+    def test_round_5_keeps_28_key_invariant(self) -> None:
+        """Round 5 must not drop the spec §3.2 frozen 28-key invariant."""
+
+        skill_md = self._make_skill_md("Demo.")
+        with_rows = [_row_with_outcomes()]
+        without_rows = [_row()]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+        )
+        metrics = report["metrics"]
+        for dim, keys in ae.METRIC_KEYS.items():
+            self.assertEqual(set(metrics[dim].keys()), set(keys),
+                             msg=f"{dim} sub-metric keys diverged from schema after Round 5")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

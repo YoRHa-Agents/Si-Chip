@@ -54,7 +54,7 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.aggregate_eval")
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.1.1"
 
 REQUIRED_KEYS: Tuple[str, ...] = (
     "pass_rate",
@@ -460,6 +460,171 @@ def hoist_l4_redundant_call_ratio(
     return float(value), derivation
 
 
+# ─────────────── Round 5 D5 usage_cost hoists (U1 + U2) ───────────────
+#
+# Spec §3.1 D5:
+#   U1_description_readability = Flesch-Kincaid grade level of the SKILL.md
+#     `description` frontmatter field (computed by
+#     count_tokens.skill_md_description_fk_grade). Range [0.0, 24.0].
+#   U2_first_time_success_rate = share of should_trigger prompts where
+#     the FIRST eval attempt produces a correct outcome. In the
+#     deterministic simulator there is no retry, so `correct == True`
+#     for a prompt with `expected == "trigger"` IS the first-time success
+#     signal. Range [0.0, 1.0].
+#
+# Both hoists are degenerate-path-safe: if the runner result.json does
+# not carry the underlying evidence (missing SKILL.md path, missing
+# prompt_outcomes), the hoist returns (None, {"error": ...}) — the
+# aggregator surfaces the explicit-null per spec §3.2 frozen constraint
+# #2 and the workspace "No Silent Failures" rule.
+
+
+def hoist_u1_description_readability(
+    skill_md_path: Optional[Path],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist U1 from the SKILL.md frontmatter ``description`` field.
+
+    Spec §3.1 D5/U1 ``description_readability`` (float in [0.0, 24.0]):
+    the Flesch-Kincaid grade level of the description string. Computed
+    via :func:`count_tokens.skill_md_description_fk_grade` which uses a
+    deterministic vowel-group syllable heuristic (no external text-
+    analysis library is pulled in — reproducibility across rebuilds is
+    the contract).
+
+    Returns ``(grade, derivation_dict)``. ``grade`` is ``None`` when
+    ``skill_md_path`` is ``None`` or when the description field is
+    absent / unparseable (documented degenerate path). The path MUST
+    exist when passed — missing files raise ``FileNotFoundError`` per
+    the helper's contract (workspace rule "No Silent Failures").
+
+    See ``test_aggregate_eval.py::HoistU1Tests`` for direct unit
+    tests (end-to-end correctness, degenerate paths, determinism).
+    """
+
+    if skill_md_path is None:
+        return None, {
+            "error": "no --skill-md provided",
+            "remediation": "pass --skill-md to aggregate_eval.py",
+        }
+
+    from count_tokens import skill_md_description_fk_grade  # local import
+
+    grade, details = skill_md_description_fk_grade(skill_md_path)
+    derivation: Dict[str, Any] = {
+        "method": (
+            "Flesch-Kincaid grade level of SKILL.md description frontmatter "
+            "field; formula = 0.39*(words/sentences) + 11.8*(syllables/words) "
+            "- 15.59; helper = count_tokens.skill_md_description_fk_grade"
+        ),
+        "skill_md_path": str(skill_md_path),
+    }
+    if details is not None:
+        derivation.update(details)
+    if grade is None:
+        derivation.setdefault("error", "no description extractable")
+        derivation["remediation"] = (
+            "ensure the SKILL.md frontmatter contains a non-empty 'description:' key"
+        )
+        return None, derivation
+    return float(grade), derivation
+
+
+def hoist_u2_first_time_success_rate(
+    with_rows: List[Dict[str, Any]],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist U2 from per-prompt outcomes in with-ability runner rows.
+
+    Spec §3.1 D5/U2 ``first_time_success_rate`` (float in [0.0, 1.0]):
+    the rate at which the FIRST trigger attempt produces a correct
+    outcome on the should_trigger prompts. The deterministic simulator
+    does NOT retry prompts, so each prompt's ``correct`` bool is the
+    first-time success signal by construction.
+
+    Denominator = count of prompts with ``expected == "trigger"``
+    across all with-ability rows.
+    Numerator   = count of those prompts with ``correct == True``.
+
+    Returns ``(rate, derivation_dict)`` where ``rate`` is ``None`` when
+    no row carries ``prompt_outcomes`` (or no such row has any
+    ``expected == "trigger"`` entry) — this is the documented
+    degenerate path and is recorded, not zero-substituted (workspace
+    rule "No Silent Failures").
+
+    >>> rows = [{"prompt_outcomes": [
+    ...     {"expected": "trigger", "correct": True},
+    ...     {"expected": "trigger", "correct": False},
+    ...     {"expected": "no_trigger", "correct": True},
+    ... ]}]
+    >>> v, d = hoist_u2_first_time_success_rate(rows)
+    >>> round(v, 4)
+    0.5
+    >>> d["total_should_trigger"]
+    2
+    """
+
+    total_should_trigger = 0
+    total_first_time_success = 0
+    n_rows_with_outcomes = 0
+    n_rows_skipped = 0
+    per_row_counts: List[Dict[str, int]] = []
+
+    for r in with_rows:
+        outcomes = r.get("prompt_outcomes")
+        if not isinstance(outcomes, list) or not outcomes:
+            n_rows_skipped += 1
+            continue
+        n_rows_with_outcomes += 1
+        row_should_trigger = 0
+        row_success = 0
+        for o in outcomes:
+            if not isinstance(o, dict):
+                continue
+            if o.get("expected") != "trigger":
+                continue
+            row_should_trigger += 1
+            if bool(o.get("correct")):
+                row_success += 1
+        case_id = r.get("_meta", {}).get("case_id") if isinstance(r.get("_meta"), dict) else None
+        per_row_counts.append(
+            {
+                "case_id": case_id,
+                "should_trigger": row_should_trigger,
+                "first_time_success": row_success,
+            }
+        )
+        total_should_trigger += row_should_trigger
+        total_first_time_success += row_success
+
+    if total_should_trigger == 0:
+        return None, {
+            "error": "no should_trigger prompt_outcomes in with-ability rows",
+            "n_rows_total": len(with_rows),
+            "n_rows_with_outcomes": n_rows_with_outcomes,
+            "n_rows_skipped": n_rows_skipped,
+            "remediation": (
+                "rerun evals/si-chip/runners/with_ability_runner.py against "
+                "evals/si-chip/cases/; result.json must carry prompt_outcomes "
+                "with per-prompt 'expected' and 'correct' fields."
+            ),
+        }
+
+    rate = total_first_time_success / total_should_trigger
+    derivation = {
+        "method": (
+            "sum(correct for o in prompt_outcomes if o.expected == 'trigger') / "
+            "sum(1 for o in prompt_outcomes if o.expected == 'trigger') across "
+            "with-ability rows"
+        ),
+        "total_should_trigger": total_should_trigger,
+        "total_first_time_success": total_first_time_success,
+        "n_rows_total": len(with_rows),
+        "n_rows_with_outcomes": n_rows_with_outcomes,
+        "n_rows_skipped": n_rows_skipped,
+        "per_row_counts": per_row_counts,
+    }
+    return float(rate), derivation
+
+
 def hoist_r7_routing_token_overhead(
     with_rows: List[Dict[str, Any]],
 ) -> Tuple[Optional[float], Dict[str, Any]]:
@@ -532,6 +697,7 @@ def build_report(
     skill_md_meta_tokens: Optional[int],
     *,
     router_floor_report: Optional[Dict[str, Any]] = None,
+    skill_md_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Compute the metrics_report dict from collected rows.
 
@@ -552,6 +718,15 @@ def build_report(
     * L3_step_count = ``round(mean(step_count across with-ability rows))``.
     * L4_redundant_call_ratio = ``mean(redundant_call_ratio across with-ability rows)``,
       clamped to ``[0.0, 1.0]``.
+
+    Round 5 (S5 task spec Edit B) hoists D5 U1 / U2:
+
+    * U1_description_readability = Flesch-Kincaid grade level of the
+      SKILL.md ``description`` frontmatter field (requires
+      ``skill_md_path``). Range [0.0, 24.0].
+    * U2_first_time_success_rate = share of should_trigger prompts
+      whose first attempt is correct (from ``prompt_outcomes``).
+      Range [0.0, 1.0].
 
     All hoisted fields stay ``null`` when their data source is
     degenerate; the aggregator MUST NOT silently substitute a
@@ -607,6 +782,12 @@ def build_report(
             "refusing to silently emit a bad metric (workspace rule 'No Silent Failures')."
         )
 
+    # Round 5 (S5 task spec Edit B): hoist D5 U1 / U2.
+    u1_value, u1_derivation = hoist_u1_description_readability(skill_md_path)
+    metrics["usage_cost"]["U1_description_readability"] = u1_value
+    u2_value, u2_derivation = hoist_u2_first_time_success_rate(with_rows)
+    metrics["usage_cost"]["U2_first_time_success_rate"] = u2_value
+
     devolaflow_version = _safe_devolaflow_version()
 
     report = {
@@ -630,6 +811,8 @@ def build_report(
             "l1_derivation": l1_derivation,
             "l3_derivation": l3_derivation,
             "l4_derivation": l4_derivation,
+            "u1_derivation": u1_derivation,
+            "u2_derivation": u2_derivation,
         },
     }
     return report
@@ -747,6 +930,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         baseline_dir,
         skill_md_meta,
         router_floor_report=router_floor_report,
+        skill_md_path=skill_md,
     )
 
     template_metrics = _load_template_metrics(Path(args.templates_dir).resolve())
