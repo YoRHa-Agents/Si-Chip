@@ -678,5 +678,261 @@ class BuildReportU1U2Integration(unittest.TestCase):
                              msg=f"{dim} sub-metric keys diverged from schema after Round 5")
 
 
+# ─────────────────────────── Round 6 tests ───────────────────────────
+# Workspace rule "Mandatory Verification": Round 6 (S5 task spec Edit C)
+# added `hoist_u3_setup_steps_count` and `hoist_u4_time_to_first_success`,
+# plus `build_report` now accepts an `install_telemetry` payload and
+# populates D5/U3 + D5/U4. These tests cover correctness, degenerate
+# paths, and the spec §3.2 frozen 28-key invariant after Round 6.
+
+
+def _install_telemetry_payload(
+    u3: Optional[int] = 1,
+    u4: Optional[float] = 0.42,
+    dry_run: bool = True,
+) -> dict:
+    """Build a minimal install_telemetry payload in the shape the aggregator expects."""
+
+    return {
+        "install_script_path": "/tmp/install.sh",
+        "u3_setup_steps_count": u3,
+        "u4_time_to_first_success_s": u4,
+        "dry_run": dry_run,
+        "derivation": {
+            "u3_method": "count_setup_steps via self-reported header",
+            "u4_method": "wall_clock seconds from bash to first OK line",
+            "u4_timeout_s": 60.0,
+            "script_version": "0.1.0",
+        },
+    }
+
+
+class HoistU3Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_u3_setup_steps_count`."""
+
+    def test_happy_path_single_step(self) -> None:
+        v, d = ae.hoist_u3_setup_steps_count(_install_telemetry_payload(u3=1))
+        self.assertEqual(v, 1)
+        self.assertIn("method", d)
+        self.assertIn("telemetry_derivation", d)
+
+    def test_happy_path_zero_steps(self) -> None:
+        v, _ = ae.hoist_u3_setup_steps_count(_install_telemetry_payload(u3=0))
+        self.assertEqual(v, 0)
+
+    def test_happy_path_two_steps(self) -> None:
+        v, _ = ae.hoist_u3_setup_steps_count(_install_telemetry_payload(u3=2))
+        self.assertEqual(v, 2)
+
+    def test_none_payload_returns_none(self) -> None:
+        v, d = ae.hoist_u3_setup_steps_count(None)
+        self.assertIsNone(v)
+        self.assertEqual(d["error"], "no install_telemetry provided")
+
+    def test_missing_u3_key_returns_none(self) -> None:
+        payload = _install_telemetry_payload()
+        del payload["u3_setup_steps_count"]
+        v, d = ae.hoist_u3_setup_steps_count(payload)
+        self.assertIsNone(v)
+        self.assertIn("missing u3_setup_steps_count", d["error"])
+        self.assertIn("remediation", d)
+
+    def test_u3_none_returns_none(self) -> None:
+        v, d = ae.hoist_u3_setup_steps_count(_install_telemetry_payload(u3=None))
+        self.assertIsNone(v)
+        self.assertIn("missing u3_setup_steps_count", d["error"])
+
+    def test_u3_negative_returns_none(self) -> None:
+        v, d = ae.hoist_u3_setup_steps_count(_install_telemetry_payload(u3=-1))
+        self.assertIsNone(v)
+        self.assertIn(">= 0", d["error"])
+
+    def test_u3_non_int_returns_none(self) -> None:
+        payload = _install_telemetry_payload()
+        payload["u3_setup_steps_count"] = "not an int"
+        v, d = ae.hoist_u3_setup_steps_count(payload)
+        self.assertIsNone(v)
+        self.assertIn("not an int", d["error"])
+
+    def test_non_dict_payload_returns_none(self) -> None:
+        v, d = ae.hoist_u3_setup_steps_count("not a dict")  # type: ignore[arg-type]
+        self.assertIsNone(v)
+        self.assertIn("not a dict", d["error"])
+
+
+class HoistU4Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_u4_time_to_first_success`."""
+
+    def test_happy_path_dry_run(self) -> None:
+        v, d = ae.hoist_u4_time_to_first_success(_install_telemetry_payload(u4=0.42))
+        self.assertAlmostEqual(v, 0.42, places=3)
+        self.assertTrue(d["dry_run"])
+
+    def test_happy_path_non_dry_run(self) -> None:
+        payload = _install_telemetry_payload(u4=2.5, dry_run=False)
+        v, d = ae.hoist_u4_time_to_first_success(payload)
+        self.assertAlmostEqual(v, 2.5, places=3)
+        self.assertFalse(d["dry_run"])
+
+    def test_v1_baseline_sanity_ceiling(self) -> None:
+        """U4 must be <= 60 s for the sanity ceiling per master plan."""
+
+        v, _ = ae.hoist_u4_time_to_first_success(_install_telemetry_payload(u4=0.42))
+        self.assertLessEqual(v, 60.0)
+
+    def test_none_payload_returns_none(self) -> None:
+        v, d = ae.hoist_u4_time_to_first_success(None)
+        self.assertIsNone(v)
+        self.assertIn("no install_telemetry", d["error"])
+
+    def test_u4_null_returns_none(self) -> None:
+        """U4=None in telemetry (offline/failure path) stays None — not 0.0."""
+
+        v, d = ae.hoist_u4_time_to_first_success(_install_telemetry_payload(u4=None))
+        self.assertIsNone(v)
+        self.assertIn("missing u4_time_to_first_success_s", d["error"])
+
+    def test_u4_negative_returns_none(self) -> None:
+        v, d = ae.hoist_u4_time_to_first_success(_install_telemetry_payload(u4=-1.0))
+        self.assertIsNone(v)
+        self.assertIn(">= 0", d["error"])
+
+    def test_u4_non_float_returns_none(self) -> None:
+        payload = _install_telemetry_payload()
+        payload["u4_time_to_first_success_s"] = "not a number"
+        v, d = ae.hoist_u4_time_to_first_success(payload)
+        self.assertIsNone(v)
+        self.assertIn("not a float", d["error"])
+
+    def test_non_dict_payload_returns_none(self) -> None:
+        v, d = ae.hoist_u4_time_to_first_success(42)  # type: ignore[arg-type]
+        self.assertIsNone(v)
+        self.assertIn("not a dict", d["error"])
+
+
+class BuildReportU3U4Integration(unittest.TestCase):
+    """End-to-end smoke: build_report surfaces D5 U3/U4 in metrics_report."""
+
+    def _make_skill_md(self, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            f"---\nname: si-chip\ndescription: {description}\n---\nbody\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_full_instrumentation_populates_u3_and_u4(self) -> None:
+        skill_md = self._make_skill_md("Persistent BasicAbility optimization factory.")
+        with_rows = [_row_with_outcomes() for _ in range(6)]
+        without_rows = [_row(pass_rate=0.5, trigger_F1=0.0) for _ in range(6)]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(u3=1, u4=0.42),
+        )
+        uc = report["metrics"]["usage_cost"]
+        self.assertEqual(uc["U3_setup_steps_count"], 1)
+        self.assertAlmostEqual(uc["U4_time_to_first_success"], 0.42, places=3)
+        # U1/U2 still populated.
+        self.assertIsNotNone(uc["U1_description_readability"])
+        self.assertIsNotNone(uc["U2_first_time_success_rate"])
+        # Derivations recorded.
+        self.assertIn("u3_derivation", report["provenance"])
+        self.assertIn("u4_derivation", report["provenance"])
+
+    def test_missing_install_telemetry_keeps_u3_u4_null(self) -> None:
+        """Round 5 path (no --install-telemetry supplied) keeps U3+U4 null."""
+
+        skill_md = self._make_skill_md("Demo.")
+        with_rows = [_row_with_outcomes()]
+        without_rows = [_row()]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=None,
+        )
+        uc = report["metrics"]["usage_cost"]
+        self.assertIsNone(uc["U3_setup_steps_count"])
+        self.assertIsNone(uc["U4_time_to_first_success"])
+
+    def test_partial_telemetry_u4_null_preserved(self) -> None:
+        """U4=null (installer failed/timed out) preserves null, not 0.0."""
+
+        skill_md = self._make_skill_md("Demo.")
+        with_rows = [_row_with_outcomes()]
+        without_rows = [_row()]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(u3=1, u4=None),
+        )
+        uc = report["metrics"]["usage_cost"]
+        self.assertEqual(uc["U3_setup_steps_count"], 1)
+        self.assertIsNone(uc["U4_time_to_first_success"])
+
+    def test_round_6_keeps_28_key_invariant(self) -> None:
+        """Round 6 must not drop the spec §3.2 frozen 28-key invariant."""
+
+        skill_md = self._make_skill_md("Demo.")
+        with_rows = [_row_with_outcomes()]
+        without_rows = [_row()]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+        )
+        metrics = report["metrics"]
+        for dim, keys in ae.METRIC_KEYS.items():
+            self.assertEqual(set(metrics[dim].keys()), set(keys),
+                             msg=f"{dim} sub-metric keys diverged from schema after Round 6")
+
+    def test_round_6_full_d5_coverage_populated(self) -> None:
+        """With U1+U2+U3+U4 all populated, D5 reaches 4/4 sub-metric coverage."""
+
+        skill_md = self._make_skill_md("Demo.")
+        with_rows = [_row_with_outcomes()]
+        without_rows = [_row()]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(u3=1, u4=0.42),
+        )
+        uc = report["metrics"]["usage_cost"]
+        measured = [k for k, v in uc.items() if v is not None]
+        # All 4 D5 sub-metrics measured simultaneously in Round 6 path.
+        self.assertEqual(set(measured), {
+            "U1_description_readability",
+            "U2_first_time_success_rate",
+            "U3_setup_steps_count",
+            "U4_time_to_first_success",
+        })
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

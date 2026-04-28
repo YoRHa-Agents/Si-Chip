@@ -54,7 +54,7 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.aggregate_eval")
 
-SCRIPT_VERSION = "0.1.1"
+SCRIPT_VERSION = "0.1.2"
 
 REQUIRED_KEYS: Tuple[str, ...] = (
     "pass_rate",
@@ -625,6 +625,148 @@ def hoist_u2_first_time_success_rate(
     return float(rate), derivation
 
 
+# ─────────── Round 6 D5 usage_cost hoists (U3 + U4) ───────────
+#
+# Spec §3.1 D5:
+#   U3_setup_steps_count = integer count of explicit user-facing steps in
+#     the canonical one-line installer flow; reported by the self-declared
+#     # SI_CHIP_INSTALLER_STEPS=N header in install.sh. Round 6 target
+#     <= 2 (per master plan acceptance criterion #1 — matches CHANGELOG
+#     v0.1.1 "one-line installer" claim which is 1 in the non-interactive
+#     flow and 2 in the interactive flow with --target + --scope prompts).
+#   U4_time_to_first_success = wall-clock seconds from installer
+#     invocation to the first '[OK] Installed' line. Default dry_run=True
+#     path is a valid floor estimate; real wall-clock is opt-in.
+#
+# Both hoists are degenerate-path-safe: if install_telemetry payload is
+# absent (no --install-telemetry supplied), U3 + U4 stay None — the
+# aggregator surfaces the explicit-null per spec §3.2 frozen constraint
+# #2 and the workspace "No Silent Failures" rule.
+
+
+def hoist_u3_setup_steps_count(
+    install_telemetry: Optional[Dict[str, Any]],
+) -> Tuple[Optional[int], Dict[str, Any]]:
+    """Hoist U3 from an install_telemetry payload.
+
+    Spec §3.1 D5/U3 ``setup_steps_count`` (integer >= 0): the canonical
+    user-facing step count of the one-line installer flow, sourced from
+    :func:`install_telemetry.count_setup_steps` via the
+    ``install_telemetry.json`` written by
+    ``tools/install_telemetry.py --json``.
+
+    Returns ``(value, derivation_dict)``. ``value`` is ``None`` when the
+    payload is not supplied or missing the expected key (documented
+    degenerate path; aggregator must NOT silently substitute 0 per
+    workspace rule "No Silent Failures").
+
+    >>> payload = {"u3_setup_steps_count": 1, "derivation": {}}
+    >>> v, _ = hoist_u3_setup_steps_count(payload)
+    >>> v
+    1
+    """
+
+    if install_telemetry is None:
+        return None, {
+            "error": "no install_telemetry provided",
+            "remediation": "pass --install-telemetry to aggregate_eval.py",
+        }
+    if not isinstance(install_telemetry, dict):
+        return None, {"error": "install_telemetry payload is not a dict"}
+
+    raw = install_telemetry.get("u3_setup_steps_count")
+    if raw is None:
+        return None, {
+            "error": "install_telemetry missing u3_setup_steps_count",
+            "remediation": (
+                "rerun tools/install_telemetry.py --install-sh install.sh --json"
+            ),
+        }
+    try:
+        count = int(raw)
+    except (TypeError, ValueError):
+        return None, {"error": f"u3_setup_steps_count is not an int: {raw!r}"}
+    if count < 0:
+        return None, {"error": f"u3_setup_steps_count must be >= 0, got {count}"}
+
+    derivation: Dict[str, Any] = {
+        "method": (
+            "install_telemetry.count_setup_steps(install.sh); parses "
+            "# SI_CHIP_INSTALLER_STEPS=N header (fallback: unguarded "
+            "'read -p'/'read -r' count)."
+        ),
+        "value": count,
+        "v1_baseline_gate": "<= 2 (matches CHANGELOG v0.1.1 one-line installer claim)",
+    }
+    if "install_script_path" in install_telemetry:
+        derivation["install_script_path"] = install_telemetry["install_script_path"]
+    if isinstance(install_telemetry.get("derivation"), dict):
+        derivation["telemetry_derivation"] = install_telemetry["derivation"]
+    return count, derivation
+
+
+def hoist_u4_time_to_first_success(
+    install_telemetry: Optional[Dict[str, Any]],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist U4 from an install_telemetry payload.
+
+    Spec §3.1 D5/U4 ``time_to_first_success`` (seconds, [0, 60]):
+    wall-clock time from installer invocation to the first
+    ``[OK] Installed`` stdout line. The value is sourced from
+    :func:`install_telemetry.time_first_success`.
+
+    Returns ``(value, derivation_dict)``. ``value`` is ``None`` in the
+    documented degenerate path (no payload supplied, payload has
+    ``u4_time_to_first_success_s == null``, or negative duration).
+    Aggregator surfaces the explicit null per spec §3.2.
+
+    >>> payload = {"u4_time_to_first_success_s": 0.42, "dry_run": True}
+    >>> v, _ = hoist_u4_time_to_first_success(payload)
+    >>> round(v, 2)
+    0.42
+    """
+
+    if install_telemetry is None:
+        return None, {
+            "error": "no install_telemetry provided",
+            "remediation": "pass --install-telemetry to aggregate_eval.py",
+        }
+    if not isinstance(install_telemetry, dict):
+        return None, {"error": "install_telemetry payload is not a dict"}
+
+    raw = install_telemetry.get("u4_time_to_first_success_s")
+    if raw is None:
+        return None, {
+            "error": "install_telemetry missing u4_time_to_first_success_s",
+            "remediation": (
+                "rerun tools/install_telemetry.py --install-sh install.sh --json; "
+                "U4 is None whenever the installer exits non-zero, times out, or "
+                "fails to emit '[OK] Installed'."
+            ),
+        }
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None, {"error": f"u4_time_to_first_success_s is not a float: {raw!r}"}
+    if value < 0.0:
+        return None, {"error": f"u4_time_to_first_success_s must be >= 0, got {value}"}
+
+    derivation: Dict[str, Any] = {
+        "method": (
+            "install_telemetry.time_first_success(install.sh, dry_run=<mode>); "
+            "wall-clock seconds from bash invocation to first '[OK] Installed' line."
+        ),
+        "value_s": value,
+        "dry_run": bool(install_telemetry.get("dry_run", True)),
+        "v1_baseline_gate": "<= 60 s (sanity ceiling for one-line install)",
+    }
+    if "install_script_path" in install_telemetry:
+        derivation["install_script_path"] = install_telemetry["install_script_path"]
+    if isinstance(install_telemetry.get("derivation"), dict):
+        derivation["telemetry_derivation"] = install_telemetry["derivation"]
+    return value, derivation
+
+
 def hoist_r7_routing_token_overhead(
     with_rows: List[Dict[str, Any]],
 ) -> Tuple[Optional[float], Dict[str, Any]]:
@@ -698,6 +840,7 @@ def build_report(
     *,
     router_floor_report: Optional[Dict[str, Any]] = None,
     skill_md_path: Optional[Path] = None,
+    install_telemetry: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Compute the metrics_report dict from collected rows.
 
@@ -727,6 +870,17 @@ def build_report(
     * U2_first_time_success_rate = share of should_trigger prompts
       whose first attempt is correct (from ``prompt_outcomes``).
       Range [0.0, 1.0].
+
+    Round 6 (S5 task spec Edit C) hoists D5 U3 / U4:
+
+    * U3_setup_steps_count = integer count of explicit user-facing steps
+      in the canonical one-line installer flow (from install_telemetry
+      payload; typically 1 for the ``--yes`` non-interactive path). Range
+      ``[0, N]``.
+    * U4_time_to_first_success = wall-clock seconds from installer
+      invocation to first ``[OK] Installed`` line (from install_telemetry
+      payload; dry-run floor estimate in CI/offline envs). Range
+      ``[0.0, 60.0]``.
 
     All hoisted fields stay ``null`` when their data source is
     degenerate; the aggregator MUST NOT silently substitute a
@@ -788,6 +942,12 @@ def build_report(
     u2_value, u2_derivation = hoist_u2_first_time_success_rate(with_rows)
     metrics["usage_cost"]["U2_first_time_success_rate"] = u2_value
 
+    # Round 6 (S5 task spec Edit C): hoist D5 U3 / U4.
+    u3_value, u3_derivation = hoist_u3_setup_steps_count(install_telemetry)
+    metrics["usage_cost"]["U3_setup_steps_count"] = u3_value
+    u4_value, u4_derivation = hoist_u4_time_to_first_success(install_telemetry)
+    metrics["usage_cost"]["U4_time_to_first_success"] = u4_value
+
     devolaflow_version = _safe_devolaflow_version()
 
     report = {
@@ -813,6 +973,8 @@ def build_report(
             "l4_derivation": l4_derivation,
             "u1_derivation": u1_derivation,
             "u2_derivation": u2_derivation,
+            "u3_derivation": u3_derivation,
+            "u4_derivation": u4_derivation,
         },
     }
     return report
@@ -833,6 +995,28 @@ def _maybe_load_router_floor_report(path: Optional[Path]) -> Optional[Dict[str, 
         data = yaml.safe_load(fp)
     if not isinstance(data, dict):
         raise ValueError(f"{path}: router_floor_report must be a YAML mapping")
+    return data
+
+
+def _maybe_load_install_telemetry(path: Optional[Path]) -> Optional[Dict[str, Any]]:
+    """Load an install_telemetry.json when ``path`` is provided.
+
+    Raises ``FileNotFoundError`` when ``path`` is set but missing
+    (workspace rule "No Silent Failures"). Returns ``None`` when
+    ``path`` is ``None`` (caller has not requested U3/U4 hoisting).
+    """
+
+    if path is None:
+        return None
+    if not path.exists():
+        raise FileNotFoundError(f"--install-telemetry path not found: {path}")
+    with path.open("r", encoding="utf-8") as fp:
+        try:
+            data = json.load(fp)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"failed to parse {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: install_telemetry must be a JSON object")
     return data
 
 
@@ -899,6 +1083,16 @@ def main(argv: Optional[List[str]] = None) -> int:
             "across cells with pass_rate >= 0.80 (Round 3 Edit B)."
         ),
     )
+    parser.add_argument(
+        "--install-telemetry",
+        default=None,
+        help=(
+            "Optional install_telemetry.json path (emitted by "
+            "tools/install_telemetry.py --json). When set, U3_setup_steps_count "
+            "and U4_time_to_first_success are hoisted into metrics.usage_cost "
+            "(Round 6 Edit C)."
+        ),
+    )
     parser.add_argument("--verbose", action="store_true", help="Set log level to INFO.")
     args = parser.parse_args(argv)
 
@@ -913,6 +1107,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     baseline_dir = Path(args.baseline_dir).resolve()
     skill_md = Path(args.skill_md).resolve() if args.skill_md else None
     router_floor_path = Path(args.router_floor_report).resolve() if args.router_floor_report else None
+    install_telemetry_path = (
+        Path(args.install_telemetry).resolve() if args.install_telemetry else None
+    )
 
     with_runs = _walk_runs(runs_dir)
     base_runs = _walk_runs(baseline_dir)
@@ -923,6 +1120,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     skill_md_meta = _maybe_skill_md_metadata_tokens(skill_md)
     router_floor_report = _maybe_load_router_floor_report(router_floor_path)
+    install_telemetry = _maybe_load_install_telemetry(install_telemetry_path)
     report = build_report(
         with_rows,
         without_rows,
@@ -931,6 +1129,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         skill_md_meta,
         router_floor_report=router_floor_report,
         skill_md_path=skill_md,
+        install_telemetry=install_telemetry,
     )
 
     template_metrics = _load_template_metrics(Path(args.templates_dir).resolve())

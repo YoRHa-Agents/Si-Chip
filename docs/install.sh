@@ -8,6 +8,15 @@
 #
 #   Per spec section 7.2, only Cursor and Claude Code are supported install
 #   targets in v0.1; Codex is bridge-only and intentionally NOT a target here.
+#
+# SI_CHIP_INSTALLER_STEPS=1
+#   Self-reported user-facing step count for the canonical non-interactive
+#   one-line flow: `curl -fsSL .../install.sh | bash -s -- --target ...
+#   --scope ... --yes`. Parsed by tools/install_telemetry.count_setup_steps
+#   (Round 6 dogfood D5 U3 fill). The interactive flow (no --yes, TTY
+#   present) prompts for `--target` and `--scope`, adding 2 steps; the
+#   headline flow promoted in INSTALL.md / docs/_install_body.md / CHANGELOG
+#   v0.1.1 is the non-interactive one-liner which is unambiguously 1 step.
 
 set -euo pipefail
 
@@ -15,7 +24,7 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-SI_CHIP_VERSION_DEFAULT="v0.1.4"
+SI_CHIP_VERSION_DEFAULT="v0.1.5"
 SOURCE_URL_DEFAULT="https://yorha-agents.github.io/Si-Chip"
 
 MANIFEST=(

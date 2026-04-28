@@ -1,0 +1,172 @@
+# Round 6 Eval Pipeline Run Log
+# round_id: round_6 / project_version: 0.1.5 / spec_version: v0.1.0
+# computed_at: 2026-04-28T19:30:00+00:00
+
+## Step A: Unit test verification (workspace rule "Mandatory Verification")
+
+install_telemetry: 20 unit tests total (ALL NEW in Round 6 because
+  tools/install_telemetry.py + tools/test_install_telemetry.py did not
+  exist before this round).
+  - 10 CountSetupStepsTests: happy path header (0/1/2 steps), fallback
+    prompt-count, commented-read ignored, no-prompts = 0, missing file
+    raises, negative header rejected (ValueError), header precedence
+    over fallback, real repo install.sh advertises U3 == 1
+  - 7 TimeFirstSuccessTests: happy path positive duration, rc != 0 -> None,
+    no success line -> None, TimeoutExpired -> None, bash missing -> None,
+    missing install.sh raises, real dry-run smoke (opt-in via env var)
+  - 3 BuildTelemetryPayloadTests: shape / key presence, failure path
+    preserves u4=None, JSON round-trip
+  Verdict: all 20 tests PASS (1 skipped — the opt-in real dry-run smoke).
+
+aggregate_eval: 65 unit tests total (43 pre-existing from Rounds 3-5 +
+  17 NEW in Round 6 for U3/U4 hoisting) + doctests PASS.
+  - 5 HoistR6Tests (Round 3) — PASS
+  - 4 HoistR7Tests (Round 3) — PASS
+  - 3 BuildReportR6R7Integration (Round 3) — PASS
+  - 4 HoistL1Tests (Round 4) — PASS
+  - 3 HoistL3Tests (Round 4) — PASS
+  - 4 HoistL4Tests (Round 4) — PASS
+  - 4 BuildReportL1L3L4Integration (Round 4) — PASS
+  - 5 HoistU1Tests (Round 5) — PASS
+  - 7 HoistU2Tests (Round 5) — PASS
+  - 4 BuildReportU1U2Integration (Round 5) — PASS
+  - 9 HoistU3Tests (Round 6 NEW) — PASS
+  - 8 HoistU4Tests (Round 6 NEW) — PASS
+  - 5 BuildReportU3U4Integration (Round 6 NEW, including
+    test_round_6_full_d5_coverage_populated which verifies all 4 D5
+    sub-metrics populate simultaneously when install_telemetry provided)
+  Verdict: all 65 tests PASS.
+
+count_tokens: 32 unit tests + 23 doctests PASS (carried from Round 5;
+  unchanged; count_tokens.py did not need Round 6 edits).
+
+doctests: python3 -m doctest on tools/install_telemetry.py exits 0;
+  python3 -m doctest on aggregate_eval.py exits 0 (including the new
+  U3/U4 hoist doctests).
+
+## Step B: aggregate_eval.py against Round 4 with-ability baselines (Round 6 fill)
+
+Command:
+python3 .agents/skills/si-chip/scripts/aggregate_eval.py \\
+  --runs-dir evals/si-chip/baselines/with_si_chip_round4 \\
+  --baseline-dir evals/si-chip/baselines/no_ability \\
+  --skill-md .agents/skills/si-chip/SKILL.md \\
+  --router-floor-report .local/dogfood/2026-04-28/round_5/router_floor_report.yaml \\
+  --install-telemetry .local/dogfood/2026-04-28/round_6/raw/install_telemetry.json \\
+  --templates-dir templates \\
+  --out .local/dogfood/2026-04-28/round_6/raw/aggregator_raw_output.yaml \\
+  --verbose
+
+Output:
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+INFO si_chip.aggregate_eval: with-ability runs: 6, no-ability runs: 6
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+WARNING si_chip.aggregate_eval: schema lacks 'basic_ability.metrics' mapping; skipping cross-check
+/home/agent/workspace/Si-Chip/.local/dogfood/2026-04-28/round_6/raw/aggregator_raw_output.yaml
+
+Aggregator emitted U3 = 1 + U4 = 0.007293148897588253 s for the first
+time. All other measured cells carried from Round 5 (deterministic
+runner; SKILL.md body unchanged; baselines unchanged).
+
+## Step C: install_telemetry.py CLI run
+
+Command:
+python3 tools/install_telemetry.py --install-sh install.sh --json
+
+OUTPUT:
+{"install_script_path": "/home/agent/workspace/Si-Chip/install.sh",
+ "u3_setup_steps_count": 1,
+ "u4_time_to_first_success_s": 0.007293148897588253,
+ "dry_run": true,
+ "derivation": {"u3_method": "count_setup_steps via self-reported # SI_CHIP_INSTALLER_STEPS=N header (fallback: count unguarded 'read -p'/'read -r' prompts)",
+                "u4_method": "wall_clock seconds from bash install.sh invocation to first '[OK] Installed' stdout line (dry_run=True short-circuits network + destructive writes — floor estimate).",
+                "u4_timeout_s": 60.0,
+                "script_version": "0.1.0"}}
+Exit code: 0.
+
+Saved to: .local/dogfood/2026-04-28/round_6/raw/install_telemetry.json
+
+## Step D: install.sh --dry-run regression test (no flag regressions)
+
+Command:
+bash install.sh --dry-run --yes --target cursor --scope repo \\
+  --repo-root /tmp/si_chip_round6_dry
+
+Saved to: .local/dogfood/2026-04-28/round_6/raw/install_dry_run.log
+
+Key stdout excerpts:
+// SI-CHIP INSTALLER / v0.1.5         # version bump verified in banner
+// YORHA AGENTS / GLORY TO MANKIND
+=> Installing Si-Chip (cursor) to /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+[dry-run] stage payload to /tmp/si_chip_round6_dry/.cursor/skills/si-chip.new
+[dry-run] rm -rf /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+[dry-run] mv /tmp/si_chip_round6_dry/.cursor/skills/si-chip.new /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+[dry-run] curl -fsSL https://yorha-agents.github.io/Si-Chip/skills/si-chip-0.1.5.tar.gz ...
+[dry-run] verify gzip magic of /tmp/tmp.Lv4ZrACX0d/si-chip-0.1.5.tar.gz
+[dry-run] mkdir -p /tmp/si_chip_round6_dry/.cursor/skills/si-chip.new
+[dry-run] tar -xzf /tmp/tmp.Lv4ZrACX0d/si-chip-0.1.5.tar.gz -C ...
+[dry-run] verify /tmp/si_chip_round6_dry/.cursor/skills/si-chip (skipped)
+
+[OK] Installed Si-Chip v0.1.5 to /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+     SKILL.md (1) + references (5) + scripts (3) = 9 files
+     Verify: python3 /tmp/si_chip_round6_dry/.cursor/skills/si-chip/scripts/count_tokens.py ...
+
+Done. Si-Chip v0.1.5 installation complete.
+
+Exit code: 0.
+
+All existing flags preserved: --target, --scope, --repo-root,
+--version, --source-url, --yes/-y, --dry-run, --force, --uninstall,
+--help/-h, --version-info — confirmed via parse_args inspection and
+this real dry-run smoke. No flag removed or behavior-changed.
+
+## Step E: spec_validator verification (workspace rule "Mandatory Verification")
+
+Command:
+python3 tools/spec_validator.py --json > .local/dogfood/2026-04-28/round_6/raw/spec_validator.json
+Exit code: 0.
+verdict: PASS (8/8 invariants pass in default mode).
+
+Strict-prose-count mode still flags the known §3.1/§4.1 vs §13.4
+discrepancies (R6_KEYS expected 37 vs prose 28; THRESHOLD_TABLE
+expected 30 cells vs prose 21). Reconciliation deferred to Round 11
+spec bump per master plan. This is expected behavior, not a regression.
+
+## Step F: SKILL.md mirror drift check (spec §7.2 — drift = CI failure)
+
+.agents/skills/si-chip/SKILL.md frontmatter version: 0.1.4 -> 0.1.5
+.cursor/skills/si-chip/SKILL.md mirrored: 0.1.4 -> 0.1.5
+.claude/skills/si-chip/SKILL.md mirrored: 0.1.4 -> 0.1.5
+Body byte-identical across all 3 trees.
+diff .agents/skills/si-chip/SKILL.md .cursor/skills/si-chip/SKILL.md -> empty
+diff .agents/skills/si-chip/SKILL.md .claude/skills/si-chip/SKILL.md -> empty
+Mirror drift = 0.
+
+install.sh and docs/install.sh are byte-identical:
+diff install.sh docs/install.sh -> empty (both carry # SI_CHIP_INSTALLER_STEPS=1
+header + SI_CHIP_VERSION_DEFAULT=v0.1.5).
+
+## Step G: Tarball build
+
+docs/skills/si-chip-0.1.5.tar.gz generated deterministically via
+  tar --sort=name --owner=0 --group=0 --numeric-owner -cf - \\
+      SKILL.md references/ scripts/ | gzip -n > ...
+  (run from .agents/skills/si-chip/ as cwd)
+
+SHA-256: bdf01f0520fc670880f4c1c5ae16dcff1d8f5378b0f23e60ec6f3e3cc5125fd5
+Reproducibility verified: running the exact same command a second time
+  produces a tarball with the same SHA-256 hash (byte-identical output).
+
+Size: 30428 bytes. Contents:
+  SKILL.md
+  references/basic-ability-profile.md
+  references/self-dogfood-protocol.md
+  references/metrics-r6-summary.md
+  references/router-test-r8-summary.md
+  references/half-retirement-r9-summary.md
+  scripts/profile_static.py
+  scripts/count_tokens.py
+  scripts/aggregate_eval.py
+
+9 files total (1 SKILL.md + 5 references + 3 scripts), matches the
+canonical layout preserved across v0.1.0/v0.1.1/v0.1.2/v0.1.3/v0.1.4.
