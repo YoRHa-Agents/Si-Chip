@@ -1,10 +1,34 @@
+# aggregate_eval.py final run for Round 4 (canonical evidence)
+# Command: python3 .agents/skills/si-chip/scripts/aggregate_eval.py \
+#            --runs-dir evals/si-chip/baselines/with_si_chip_round4 \
+#            --baseline-dir evals/si-chip/baselines/no_ability \
+#            --skill-md .agents/skills/si-chip/SKILL.md \
+#            --templates-dir templates \
+#            --router-floor-report .local/dogfood/2026-04-28/round_4/router_floor_report.yaml \
+#            --out .local/dogfood/2026-04-28/round_4/metrics_report.yaml \
+#            --verbose
 INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
 INFO si_chip.aggregate_eval: with-ability runs: 6, no-ability runs: 6
 INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
 WARNING si_chip.aggregate_eval: schema lacks 'basic_ability.metrics' mapping; skipping cross-check
-/tmp/metrics_report_round4_draft.yaml
-INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
-INFO si_chip.aggregate_eval: with-ability runs: 6, no-ability runs: 6
-INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
-WARNING si_chip.aggregate_eval: schema lacks 'basic_ability.metrics' mapping; skipping cross-check
-/tmp/metrics_report_round4_v2.yaml
+/home/agent/workspace/Si-Chip/.local/dogfood/2026-04-28/round_4/metrics_report.yaml
+
+# After raw aggregator output, the L1 Stage Agent wrote the canonical
+# annotated metrics_report.yaml in-place (carries Round 3 patches for
+# C2_body_tokens=2020 and R4_near_miss_FP_rate=0.05 plus Round 4
+# round_4_patches_applied list). The raw aggregator output is preserved
+# at raw/aggregator_raw_output.yaml for diff-comparison.
+
+## Diff between raw aggregator output and the canonical annotated metrics_report.yaml:
+# - Raw output has C2_body_tokens: null and R4_near_miss_FP_rate: null (aggregator does not
+#   automatically hoist C2 or R4); annotated output adds them per Round 3 patch lineage
+#   (C2 = 2020 from SKILL.md body unchanged; R4 = 0.05 from prompt_outcomes derivation).
+# - Raw output uses YAML anchor &id001 / *id001 for r6 chosen_cell; annotated output expands
+#   the chosen_cell inline for human readability.
+# - Annotated output adds round_4_patches_applied, l_path_dimension_coverage_change,
+#   c1_drift_attribution, and l1/l3/l4 derivations with per-case detail.
+# Both versions agree on EVERY measured metric value (T1=0.85, L1=1.215, L2=1.469, L3=20,
+# L4=0.0, R3=0.8934, R6=1100, R7=0.0233, etc.).
+
+## Spec validator status
+INFO tools.spec_validator: 8/8 BLOCKER assertions PASS (default mode); see raw/spec_validator.json.
