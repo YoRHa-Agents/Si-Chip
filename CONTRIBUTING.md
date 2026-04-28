@@ -93,31 +93,60 @@ project's Apache-2.0 LICENSE.
 
 ## 9. Mirror Drift Contract
 
-Si-Chip ships the Skill payload in **four trees**, all of which MUST stay byte-identical for the 9 manifest files (SKILL.md + 5 references + 3 scripts):
+Si-Chip ships the Skill payload in **three platform trees** (each consumed
+by a specific local skill discovery system) plus **one derived release
+tarball** (consumed by the `install.sh` one-line installer):
 
 | Tree | Role |
 |---|---|
 | `.agents/skills/si-chip/` | **Source of truth** (canonical; `DESIGN.md` is internal-only and lives here only) |
 | `.cursor/skills/si-chip/` | Cursor mirror (consumed by Cursor's local skill discovery) |
 | `.claude/skills/si-chip/` | Claude Code mirror (consumed by Claude Code's local skill discovery) |
-| `docs/skills/si-chip/` | Pages-served mirror (consumed by the `install.sh` one-line installer; URL: `https://yorha-agents.github.io/Si-Chip/skills/si-chip/`) |
+| `docs/skills/si-chip-<version>.tar.gz` | Pages-served release tarball (consumed by `install.sh`; URL: `https://yorha-agents.github.io/Si-Chip/skills/si-chip-<version>.tar.gz`) |
 
-Drift between any two trees on these 9 files is a CI failure. To verify locally:
+The 9-file payload (SKILL.md + 5 references + 3 scripts) MUST be byte-
+identical across the three platform trees. The tarball, when extracted,
+MUST yield the same 9 files byte-identical to the source-of-truth.
+`DESIGN.md` is intentionally NOT in any mirror or in the tarball.
+
+To verify locally:
 
 ```bash
+# Three-tree drift check
 for f in SKILL.md references/basic-ability-profile.md references/self-dogfood-protocol.md \
          references/metrics-r6-summary.md references/router-test-r8-summary.md \
          references/half-retirement-r9-summary.md scripts/profile_static.py \
          scripts/count_tokens.py scripts/aggregate_eval.py; do
   src=".agents/skills/si-chip/$f"
-  for dst in ".cursor/skills/si-chip/$f" ".claude/skills/si-chip/$f" "docs/skills/si-chip/$f"; do
+  for dst in ".cursor/skills/si-chip/$f" ".claude/skills/si-chip/$f"; do
     diff -q "$src" "$dst" || echo "DRIFT: $src vs $dst"
   done
 done
+
+# Tarball-vs-source check
+TMP=$(mktemp -d)
+tar -xzf docs/skills/si-chip-0.1.0.tar.gz -C "$TMP"
+diff -r .agents/skills/si-chip "$TMP" | grep -v DESIGN.md
+# Expect ONLY: "Only in .agents/skills/si-chip: DESIGN.md"
+rm -rf "$TMP"
 ```
 
-If you edit the canonical `.agents/skills/si-chip/...`, you MUST also update the three mirrors in the same commit (or in a follow-up commit before merge). The dogfood evidence file `.local/dogfood/<DATE>/round_<N>/raw/three_tree_drift_summary.json` (now four-tree) tracks this.
+Re-build the tarball whenever the source-of-truth changes:
 
-`DESIGN.md` is intentionally NOT included in the mirrors — it documents internal architecture, not user-facing Skill content.
+```bash
+tar --owner=0 --group=0 --numeric-owner --sort=name \
+    --mtime='2026-04-28 00:00:00 UTC' --format=ustar \
+    -C .agents/skills/si-chip -cf - SKILL.md references scripts \
+  | gzip -n -9 > docs/skills/si-chip-0.1.0.tar.gz
+```
 
-The `install.sh` script at the repo root (and its identical copy at `docs/install.sh`) downloads from the `docs/skills/si-chip/` mirror via Pages. Local installs via `--source-url file://...` can point at any of the four trees.
+The deterministic options (`--owner=0 --group=0 --numeric-owner --sort=name`,
+fixed `--mtime`, `--format=ustar`, `gzip -n`) make the tarball reproducible:
+the same source produces the same SHA256.
+
+### Why the tarball
+The `docs/skills/si-chip/` per-file mirror was tried in PR #5 but Jekyll
+treats `SKILL.md` (which has YAML front-matter) as a renderable page and
+serves it at `/skills/si-chip/SKILL/` (HTML-rendered, body-only) instead
+of the raw `.md` URL the installer expects. The tarball sidesteps this
+because Jekyll passes `.tar.gz` files through unmodified.
