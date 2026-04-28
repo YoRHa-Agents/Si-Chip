@@ -27,7 +27,7 @@ curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
 | `--target` | `cursor` / `claude` / `both` | (interactive prompt) | when `--yes` |
 | `--scope` | `global` / `repo` | (interactive prompt) | when `--yes` |
 | `--repo-root` | path | `$PWD` | when `--scope repo --yes` |
-| `--version` | tag | `v0.1.0` | no |
+| `--version` | tag | `v0.1.1` | no |
 | `--source-url` | URL | `https://yorha-agents.github.io/Si-Chip` | no (mostly for testing) |
 | `--yes` / `-y` | flag | `false` | no |
 | `--dry-run` | flag | `false` | no |
