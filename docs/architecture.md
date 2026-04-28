@@ -5,6 +5,8 @@ title: Architecture
 
 # Architecture
 
+// CHAPTER 01 //
+
 ## 1. Source-of-truth and platform mirrors
 
 ```mermaid
@@ -23,6 +25,8 @@ flowchart LR
     cursor -.-> bridge
 ```
 
+// CHAPTER 02 //
+
 ## 2. Dogfood loop (spec section 8.1 Frozen Order)
 
 ```mermaid
@@ -39,6 +43,8 @@ flowchart TB
     package -. "next round" .-> profile
 ```
 
+// CHAPTER 03 //
+
 ## 3. Three progressive gate profiles
 
 ```mermaid
@@ -51,6 +57,8 @@ flowchart LR
     v3 -- "2 consecutive failures" --> v2
     v2 -- "2 consecutive failures" --> v1
 ```
+
+// CHAPTER 04 //
 
 ## 4. Decision tree for half-retirement (spec section 6.2)
 
@@ -66,6 +74,8 @@ flowchart TB
     vv -- "all axes <= 0<br/>OR governance_risk_delta < 0" --> retire
     vv -- "governance_risk_delta<br/>significantly negative" --> disable
 ```
+
+// CHAPTER 05 //
 
 ## 5. Cross-tree drift contract (zero drift required)
 

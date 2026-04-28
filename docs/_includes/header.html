@@ -1,0 +1,17 @@
+<header class="hero" role="banner">
+  <div class="hero-frame">
+    <div class="hero-meta">// YORHA AGENTS / SI-CHIP / V{{ site.version | default: '0.1.0' }}</div>
+    <h1 class="hero-title"><span class="bracket">[</span>{{ site.title | upcase }}<span class="bracket">]</span></h1>
+    <p class="hero-subtitle">{{ site.description }}<span class="cursor">&#9612;</span></p>
+    <nav class="hero-nav" aria-label="Primary">
+      {% for item in site.nav %}
+        {% assign url = item.url %}
+        {% if url contains '://' %}
+          <a class="nav-link" href="{{ url }}">&#9654; {{ item.title | upcase }}</a>
+        {% else %}
+          <a class="nav-link" href="{{ url | relative_url }}">&#9654; {{ item.title | upcase }}</a>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  </div>
+</header>

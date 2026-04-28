@@ -7,7 +7,7 @@ title: Home
 
 Persistent BasicAbility optimization factory.
 
-[Install](./install/){: .btn .btn-blue} [User Guide](./userguide/){: .btn} [Architecture](./architecture/){: .btn} [Live Demo](./demo/){: .btn .btn-green}
+[▶ INSTALL](./install/){:.btn} [▶ USER GUIDE](./userguide/){:.btn} [▶ ARCHITECTURE](./architecture/){:.btn} [▶ LIVE DEMO](./demo/){:.btn}
 
 > **Status (v0.1.0):** SHIP_ELIGIBLE at gate `relaxed` (= `v1_baseline`).
 > 2 consecutive `v1_baseline` passes — eligible for `v2_tightened` promotion in a follow-up release.
