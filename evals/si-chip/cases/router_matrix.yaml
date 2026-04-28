@@ -1,0 +1,134 @@
+case_id: router_matrix
+case_title: "Si-Chip lays out the §5.3 8-cell MVP router-test matrix"
+spec_section: "§5.3"
+ability_under_test: "si-chip"
+goal: "Si-Chip can describe and instantiate the 8-cell MVP router-test matrix (2 models × 2 thinking depths × 2 scenario packs) and refuse router-model training requests."
+prompts:
+  should_trigger:
+    - id: t01
+      prompt: "Design the MVP router-test matrix for si-chip."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer states the matrix is 8 cells = 2 model × 2 thinking_depth × 2 scenario_pack."
+          how_verified: regex
+          target: "8\\s*cells?[\\s\\S]*2\\s*(?:×|x)\\s*2\\s*(?:×|x)\\s*2"
+        - id: ac2
+          description: "Answer names the two MVP models composer_2 and sonnet_shallow."
+          how_verified: regex
+          target: "composer_2[\\s\\S]*sonnet_shallow"
+    - id: t02
+      prompt: "What cells does the 8-cell router-test cover for si-chip?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer enumerates thinking_depths fast and default and scenario_packs trigger_basic and near_miss."
+          how_verified: regex
+          target: "fast[\\s\\S]*default[\\s\\S]*trigger_basic[\\s\\S]*near_miss"
+    - id: t03
+      prompt: "Show me the §5.3 router-test harness rows for si-chip's MVP profile."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output references the §5.3 table and lists 10 should-trigger + 10 should-not-trigger prompts per pack."
+          how_verified: regex
+          target: "10\\s*should[- ]trigger[\\s\\S]*10\\s*should[- ]not[- ]trigger"
+    - id: t04
+      prompt: "Run si-chip router-test step and emit a router_floor_report.yaml."
+      acceptance_criteria:
+        - id: ac1
+          description: "A router_floor_report.yaml file is created."
+          how_verified: file_exists
+          target: ".local/dogfood/*/round_*/router_floor_report.yaml"
+    - id: t05
+      prompt: "What router_floor should si-chip target after the MVP harness completes?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer expresses router_floor as <model_id>/<thinking_depth>."
+          how_verified: regex
+          target: "(composer_2|sonnet_shallow|sonnet|opus|haiku|gpt_5_mini|deterministic_memory_router)/(fast|default|extended|round_escalated)"
+    - id: t06
+      prompt: "Give me the required-metrics list the MVP router-test must compute for si-chip."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer enumerates at least T1, T2, T3, L1, L2, R1, R2, R3, R4, R5, R6, R7."
+          how_verified: regex
+          target: "T1[\\s\\S]*T2[\\s\\S]*T3[\\s\\S]*L1[\\s\\S]*L2[\\s\\S]*R1[\\s\\S]*R2[\\s\\S]*R3[\\s\\S]*R4[\\s\\S]*R5[\\s\\S]*R6[\\s\\S]*R7"
+    - id: t07
+      prompt: "Explain how the §5.4 router profile maps to the §4 gate profile when running si-chip's MVP matrix."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer states relaxed↔v1_baseline (and optionally standard↔v2_tightened, strict↔v3_strict)."
+          how_verified: regex
+          target: "relaxed[\\s\\S]*v1_baseline"
+    - id: t08
+      prompt: "List the §5 fallback order for si-chip when the primary router fails."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer lists deterministic_memory_router → composer_2/fast → sonnet/default → opus/extended in order."
+          how_verified: regex
+          target: "deterministic_memory_router[\\s\\S]*composer_2/fast[\\s\\S]*sonnet/default[\\s\\S]*opus/extended"
+    - id: t09
+      prompt: "Walk me through si-chip's router-test step 5 and show the 8-cell matrix as a table."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output references all four MVP axes (models, thinking_depths, scenario_packs) and confirms 8 total cells."
+          how_verified: regex
+          target: "(composer_2|sonnet_shallow)[\\s\\S]*(fast|default)[\\s\\S]*(trigger_basic|near_miss)[\\s\\S]*8"
+    - id: t10
+      prompt: "Lay out the si-chip MVP router-test cells with one row per (model, thinking_depth, scenario_pack) combination."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output enumerates exactly 8 rows / cells in the response."
+          how_verified: llm_judge
+          target: "Output contains an explicit list of 8 (model, thinking_depth, scenario_pack) tuples without duplicates."
+  should_not_trigger:
+    - id: n01
+      prompt: "Train a router model for si-chip from these labeled traces."
+      negative_acceptance:
+        - "si-chip MUST refuse this request per §5.2 / §11.1"
+        - "no router_floor_report.yaml is produced for the training task"
+    - id: n02
+      prompt: "Fine-tune a Qwen-1.5B router on our si-chip routing logs."
+      negative_acceptance:
+        - "si-chip MUST refuse this request per §5.2 / §11.1"
+        - "agent does not invoke the router-test step"
+    - id: n03
+      prompt: "Build an online learning loop that updates router weights from user feedback."
+      negative_acceptance:
+        - "si-chip MUST refuse this request per §5.2 prohibition on online learning"
+        - "no matrix is generated"
+    - id: n04
+      prompt: "Tell me about Anthropic's Sonnet model."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is informational about a third-party model only"
+    - id: n05
+      prompt: "What is a thinking depth in LLM agents?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is informational only"
+    - id: n06
+      prompt: "Run a benchmark of GPT-5 vs Sonnet across MMLU."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no si-chip router_floor_report is produced"
+    - id: n07
+      prompt: "Generate a leaderboard of model latencies on a public benchmark."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no si-chip artifact is produced"
+    - id: n08
+      prompt: "Open templates/router_test_matrix.template.yaml so I can read it."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "agent reads file rather than running router-test"
+    - id: n09
+      prompt: "Compare A/B router heuristics for an unrelated skill named 'todo'."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked for an unrelated skill"
+        - "no si-chip router_floor_report is produced"
+    - id: n10
+      prompt: "Recommend a routing library for our microservices architecture."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is generic engineering advice and produces no artifact"
+metrics_consumed: [T1, T3, L2, R3, R5]
+notes: "Overlap with docs_boundary on router-training refusals is intentional (case 2 covers refusal grounds; case 4 covers correct matrix layout)."

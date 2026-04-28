@@ -1,0 +1,153 @@
+# Si-Chip Iteration-Delta Report — round_2 vs round_1
+# Conforms to templates/iteration_delta_report.template.yaml.
+# This is the FIRST round-to-round iteration_delta (Round 1 was vs no_ability_baseline).
+# Per spec §8.3 multi-round rule: Round 2 must hold pass_rate >= 0.85 (no regression
+# vs Round 1) AND show >= 1 efficiency axis improving by >= +0.05 (v1_baseline bucket).
+round_id: round_2
+prior_round_id: round_1
+computed_at: '2026-04-28T10:04:30+00:00'
+
+# §8.2 evidence #6 deltas — current round MVP-8 keys reported per dimension.
+deltas:
+  task_quality:
+    - T1
+    - T2
+    - T3
+  context_economy:
+    - C1
+    - C2
+    - C4
+  latency_path:
+    - L2
+  routing_cost:
+    - R3
+    - R4
+
+# Per-axis status. Mirrors the §6.1 7-axis value_vector emitted in
+# half_retire_decision.yaml. positive_axis = true means improvement
+# (delta favourable). Round-to-round delta = round_2_value − round_1_value
+# of the value_vector axis (per S5 task spec step 7).
+axis_status:
+  task_quality:
+    positive_axis: false
+    delta: 0.0            # task_delta: 0.35 -> 0.35; flat (no change) — equal counts as "no regression" per spec §8.3, not "positive"
+  context_economy:
+    positive_axis: true
+    delta: 0.31           # context_delta axis: -1.71 -> -1.40 (Round 2 footprint 3598 vs Round 1 4071); >= +0.05 v1_baseline bucket — IMPROVED
+    delta_iteration_flavour: 0.1162  # alternate framing per S5 task §3 diagnose: (footprint_round_1 − footprint_round_2) / footprint_round_1 = (4071 − 3598) / 4071; also >= +0.05
+    rationale: 'Both flavours of context_delta (value-vector axis subtraction OR round-to-round footprint efficiency) clear the v1_baseline +0.05 bucket. Driver: Improvement #1 (SKILL.md body slim 2493 -> 2020 tokens, -473).'
+  latency_path:
+    positive_axis: false
+    delta: 0.0            # latency_delta axis: -0.55 -> -0.55; flat (Improvement #2 latency action a2 was deferred to Round 3 — see notes.md §1)
+  generalizability:
+    positive_axis: false
+    delta: 0.0            # not measured this round
+  usage_cost:
+    positive_axis: false
+    delta: 0.0            # not measured this round
+  routing_cost:
+    positive_axis: false
+    delta: 0.0            # routing_delta axis: 0.8934 -> 0.8934; flat (R3 unchanged); R4 newly populated at 0.05 but R4 is NOT in the value-vector axis set
+  governance_risk:
+    positive_axis: false
+    delta: 0.0            # governance_risk_delta axis: 0 -> 0; flat
+
+# §4.1 v1_baseline hard-threshold check vs round_2 metrics_report.yaml
+v1_baseline_threshold_check:
+  pass_rate:
+    threshold: '>= 0.75'
+    observed: 0.85
+    pass: true
+  pass_k:
+    threshold: '>= 0.40'
+    observed: 0.5478
+    pass: true
+  trigger_F1:
+    threshold: '>= 0.80'
+    observed: 0.8934
+    pass: true
+  near_miss_FP_rate:
+    threshold: '<= 0.15'
+    observed: 0.05
+    pass: true                # NEW in Round 2 (Round 1 was inapplicable)
+  metadata_tokens:
+    threshold: '<= 120'
+    observed: 78
+    pass: true
+  per_invocation_footprint:
+    threshold: '<= 9000'
+    observed: 3598
+    pass: true
+  wall_clock_p95:
+    threshold: '<= 45 s'
+    observed: 1.4693
+    pass: true
+  routing_latency_p95:
+    threshold: '<= 2000 ms'
+    observed: null
+    pass: inapplicable        # not yet measured (Round 3 a2)
+  routing_token_overhead:
+    threshold: '<= 0.20'
+    observed: null
+    pass: inapplicable        # not yet measured (Round 3 a3)
+  iteration_delta_any_axis:
+    threshold: '>= +0.05'
+    observed: 0.31            # context_delta axis wins this clause (also +0.1162 by iteration-flavour framing)
+    pass: true
+
+verdict:
+  pass_v1_baseline: true
+  blockers: []
+  rationale: 'All measured v1_baseline hard thresholds pass; iteration_delta clause satisfied by context_delta axis = +0.31 (>= +0.05); pass_rate held at 0.85 (no regression vs Round 1); R4_near_miss_FP_rate newly populated at 0.05 (passes both v1 and v3_strict). The two inapplicable rows (R6_routing_latency_p95, R7_routing_token_overhead) are tracked in next_action_plan.yaml a2/a3 for Round 3.'
+
+# Spec §8.3 multi-round monotonicity check (Round 2 vs Round 1).
+monotonicity_check_required: true
+monotonicity_check_status:
+  performed: true
+  pass_rate_no_regression:
+    threshold: 'round_2 pass_rate >= round_1 pass_rate (spec §8.3 — pass_rate must not regress)'
+    round_1: 0.85
+    round_2: 0.85
+    pass: true
+  per_metric_no_more_than_1pct_regression:
+    threshold: 'no v1_baseline metric regressed by more than 1%'
+    checks:
+      T1_pass_rate:           { round_1: 0.85,    round_2: 0.85,    pct_change: 0.0,   pass: true }
+      T2_pass_k:              { round_1: 0.5478,  round_2: 0.5478,  pct_change: 0.0,   pass: true }
+      C1_metadata_tokens:     { round_1: 78,      round_2: 78,      pct_change: 0.0,   pass: true }
+      C4_per_invocation_footprint: { round_1: 4071, round_2: 3598, pct_change: -11.62, pass: true, note: 'lower-is-better; -11.62% is an IMPROVEMENT, not regression' }
+      L2_wall_clock_p95:      { round_1: 1.4693,  round_2: 1.4693,  pct_change: 0.0,   pass: true }
+      R3_trigger_F1:          { round_1: 0.8934,  round_2: 0.8934,  pct_change: 0.0,   pass: true }
+    pass: true
+  overall_pass: true
+
+# Spec §4.2 Promotion Rule trace (consumed by next round's planner).
+promotion_state:
+  current_gate: v1_baseline
+  consecutive_v1_passes: 2          # Round 1 + Round 2
+  promotable_to: 'v2_tightened — eligible after this round per spec §4.2 (2 consecutive v1 passes); deferred to a follow-up plan per S5 task spec ("we are not promoting in this round")'
+
+# S5-specific evidence — surfaces both flavours of context_delta so the verdict cannot be ambiguous.
+context_delta_summary:
+  value_vector_axis:
+    formula: 'value_vector.context_delta_round_2 − value_vector.context_delta_round_1'
+    round_1: -1.71
+    round_2: -1.40
+    delta: 0.31
+    bucket: 'v1_baseline +0.05'
+    pass: true
+  iteration_flavour:
+    formula: '(footprint_round_1 − footprint_round_2) / footprint_round_1'
+    round_1_footprint: 4071
+    round_2_footprint: 3598
+    delta: 0.1162
+    bucket: 'v1_baseline +0.05'
+    pass: true
+
+provenance:
+  generator: 'S5 dogfood Round 2 (manual orchestration)'
+  spec_version: v0.1.0
+  basis_metrics_report_round_2: .local/dogfood/2026-04-28/round_2/metrics_report.yaml
+  basis_metrics_report_round_1: .local/dogfood/2026-04-28/round_1/metrics_report.yaml
+  basis_half_retire_decision_round_2: .local/dogfood/2026-04-28/round_2/half_retire_decision.yaml
+  basis_half_retire_decision_round_1: .local/dogfood/2026-04-28/round_1/half_retire_decision.yaml

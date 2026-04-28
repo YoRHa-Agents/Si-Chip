@@ -1,0 +1,134 @@
+case_id: profile_self
+case_title: "Si-Chip generates its own BasicAbilityProfile"
+spec_section: "§8.1 step 1 (profile)"
+ability_under_test: "si-chip"
+goal: "Given a request to profile Si-Chip itself, Si-Chip activates and emits a BasicAbilityProfile YAML conforming to the §2.1 frozen schema."
+prompts:
+  should_trigger:
+    - id: t01
+      prompt: "Build a Si-Chip BasicAbilityProfile of itself and write it to .local/dogfood/today/round_1/basic_ability_profile.yaml."
+      acceptance_criteria:
+        - id: ac1
+          description: "A basic_ability_profile.yaml file is created under the requested round directory."
+          how_verified: file_exists
+          target: ".local/dogfood/*/round_1/basic_ability_profile.yaml"
+        - id: ac2
+          description: "The emitted YAML carries the top-level basic_ability key and the §2.1 id field is 'si-chip'."
+          how_verified: json_field
+          target: "$.basic_ability.id == 'si-chip'"
+    - id: t02
+      prompt: "Scaffold a basic_ability_profile.yaml for the si-chip ability following templates/basic_ability_profile.schema.yaml."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output references templates/basic_ability_profile.schema.yaml as the schema source."
+          how_verified: regex
+          target: "templates/basic_ability_profile\\.schema\\.yaml"
+    - id: t03
+      prompt: "What is Si-Chip's current lifecycle stage and where do you record it in its profile?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer cites lifecycle.stage and uses one of the §2.2 enum values."
+          how_verified: regex
+          target: "lifecycle\\.stage\\s*[:=]\\s*(exploratory|evaluated|productized|routed|governed|half_retired|retired)"
+    - id: t04
+      prompt: "Run the profile step of Si-Chip's self-dogfood and show me the resulting profile."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response references profile_static.py or the equivalent step-1 invocation and shows a YAML profile body."
+          how_verified: regex
+          target: "(profile_static\\.py|basic_ability:\\s*\\n\\s*id:)"
+    - id: t05
+      prompt: "Generate a BasicAbilityProfile for si-chip including all 7 metric dimensions with null placeholders."
+      acceptance_criteria:
+        - id: ac1
+          description: "All seven §3.1 dimension keys appear under metrics."
+          how_verified: regex
+          target: "task_quality[\\s\\S]*context_economy[\\s\\S]*latency_path[\\s\\S]*generalizability[\\s\\S]*usage_cost[\\s\\S]*routing_cost[\\s\\S]*governance_risk"
+    - id: t06
+      prompt: "Profile si-chip and tell me what its current_surface.shape_hint should be."
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer assigns one of the frozen shape_hint enum values."
+          how_verified: regex
+          target: "shape_hint\\s*[:=]\\s*(markdown_first|code_first|cli_first|registry_first|memory_first|mixed)"
+    - id: t07
+      prompt: "Create the si-chip profile YAML and ensure packaging.install_targets covers all three platforms."
+      acceptance_criteria:
+        - id: ac1
+          description: "packaging.install_targets includes cursor, claude_code, and codex sub-keys."
+          how_verified: regex
+          target: "install_targets[\\s\\S]*cursor[\\s\\S]*claude_code[\\s\\S]*codex"
+    - id: t08
+      prompt: "Bootstrap Si-Chip's first-round profile and stamp the source_of_truth field."
+      acceptance_criteria:
+        - id: ac1
+          description: "source_of_truth field equals .agents/skills/si-chip/."
+          how_verified: regex
+          target: "source_of_truth\\s*[:=]\\s*['\"]?\\.agents/skills/si-chip/?"
+    - id: t09
+      prompt: "What does step 1 of Si-Chip's self-dogfood produce, and can you produce it now for si-chip?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Response identifies basic_ability_profile.yaml as the step-1 artifact and outputs one."
+          how_verified: regex
+          target: "basic_ability_profile\\.yaml"
+    - id: t10
+      prompt: "Si-Chip self-bootstrap: emit profile, then explain which §3 metrics are MVP-8 vs full-28 placeholders."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output enumerates the 8 MVP keys (T1, T2, T3, C1, C4, L2, R3, R5) explicitly."
+          how_verified: regex
+          target: "T1[\\s\\S]*T2[\\s\\S]*T3[\\s\\S]*C1[\\s\\S]*C4[\\s\\S]*L2[\\s\\S]*R3[\\s\\S]*R5"
+  should_not_trigger:
+    - id: n01
+      prompt: "Build a project plan for our Q3 roadmap."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no .local/dogfood/ artifact created"
+    - id: n02
+      prompt: "What is Si-Chip in one sentence?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is informational only and produces no file artifact"
+    - id: n03
+      prompt: "Write me a Python class to model an Ability with a name and description."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no basic_ability_profile.yaml is created"
+    - id: n04
+      prompt: "Show me the schema file at templates/basic_ability_profile.schema.yaml."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "agent simply reads the file rather than running a profile step"
+    - id: n05
+      prompt: "Summarize the Si-Chip project README for a new teammate."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no .local/dogfood/ artifact created"
+    - id: n06
+      prompt: "Print today's date in ISO format."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no profile artifact created"
+    - id: n07
+      prompt: "Translate the Si-Chip identity paragraph into English."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no profile artifact created"
+    - id: n08
+      prompt: "Open .agents/skills/si-chip/SKILL.md so I can read it."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no profile generation occurs"
+    - id: n09
+      prompt: "List the directories under .agents/skills/."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no profile artifact created"
+    - id: n10
+      prompt: "Generate a personal goals file for me named profile.yaml."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "agent disambiguates and does not produce a BasicAbilityProfile"
+metrics_consumed: [T1, T2, T3, C1, C4, R3]
+notes: "Trigger surface: profile/scaffold/bootstrap verbs paired with si-chip or BasicAbility. Near-miss surface: generic 'profile' or 'plan' words without ability context."

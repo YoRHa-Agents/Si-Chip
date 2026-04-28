@@ -1,0 +1,131 @@
+# Si-Chip Self-Eval Suite Template
+# Spec source: §8.1 (8-step frozen order), §8.2 (minimum evidence set),
+#              §5.3 (dataset rows: 10 should + 10 should-not per pack).
+# This IS a DevolaFlow WorkflowTemplate (parse_template + check_schema_conformance).
+# Primitive mapping per task contract:
+#   profile -> analyze, evaluate -> test, diagnose -> analyze,
+#   improve -> refine, router_test -> test, half_retire_review -> review,
+#   iterate -> refine, package_register -> release.
+
+schema_version: "1.0"
+
+metadata:
+  name: "si-chip-self-eval"
+  version: "0.1.0"
+  display_name: "Si-Chip Self-Eval Suite"
+  description: "Frozen 8-step self-dogfood protocol per spec v0.1.0 §8.1."
+  category: "self-evaluation"
+  applicable_scenarios:
+    - "si-chip-self-dogfood"
+  tags:
+    - "si-chip"
+    - "self-eval"
+    - "dogfood"
+  author: "si-chip"
+
+stages:
+  - id: "profile"
+    primitive: "analyze"
+    description: "§8.1 step 1 — generate Si-Chip's own BasicAbilityProfile."
+    team: "Implement"
+    duration_class: "short"
+
+  - id: "evaluate"
+    primitive: "test"
+    description: "§8.1 step 2 — no-ability baseline vs with-ability; emit metrics_report."
+    team: "Implement"
+    duration_class: "medium"
+
+  - id: "diagnose"
+    primitive: "analyze"
+    description: "§8.1 step 3 — locate bottlenecks across R6 7 dim / 28 sub-metrics."
+    team: "Implement"
+    duration_class: "short"
+
+  - id: "improve"
+    primitive: "refine"
+    description: "§8.1 step 4 — generate and execute the next_action_plan."
+    team: "Implement"
+    duration_class: "medium"
+
+  - id: "router_test"
+    primitive: "test"
+    description: "§8.1 step 5 — run §5.3 8-cell MVP (or 96-cell Full); emit router_floor_report."
+    team: "Implement"
+    duration_class: "medium"
+
+  - id: "half_retire_review"
+    primitive: "review"
+    description: "§8.1 step 6 — compute §6.1 value vector; emit half_retire_decision."
+    team: "Implement"
+    duration_class: "short"
+
+  - id: "iterate"
+    primitive: "refine"
+    description: "§8.1 step 7 — diff against prior round; emit iteration_delta_report."
+    team: "Implement"
+    duration_class: "short"
+
+  - id: "package_register"
+    primitive: "release"
+    description: "§8.1 step 8 — sync source-of-truth to platform targets per §7 priority."
+    team: "Implement"
+    duration_class: "short"
+
+composition:
+  compose: "sequence"
+  stages:
+    - stage: "profile"
+    - stage: "evaluate"
+    - stage: "diagnose"
+    - stage: "improve"
+    - stage: "router_test"
+    - stage: "half_retire_review"
+    - stage: "iterate"
+    - stage: "package_register"
+
+# ── Dataset (§5.3 row "Dataset": 10 should-trigger + 10 should-not-trigger per pack) ──
+# 6 MVP cases covering the self-dogfood evidence surfaces.
+dataset:
+  schema: "si-chip-self-eval-dataset-0.1.0"
+  profile: "mvp"
+  cases:
+    - id: "profile_self"
+      scenario_pack: "trigger_basic"
+      should_trigger_count: 10
+      should_not_trigger_count: 10
+      description: "Generate a BasicAbilityProfile for Si-Chip itself (§8.1 step 1)."
+    - id: "docs_boundary"
+      scenario_pack: "near_miss"
+      should_trigger_count: 10
+      should_not_trigger_count: 10
+      description: "Detect §11 out-of-scope requests vs legitimate Si-Chip asks."
+    - id: "metrics_gap"
+      scenario_pack: "trigger_basic"
+      should_trigger_count: 10
+      should_not_trigger_count: 10
+      description: "Diagnose missing R6 sub-metric coverage in metrics_report."
+    - id: "router_matrix"
+      scenario_pack: "trigger_basic"
+      should_trigger_count: 10
+      should_not_trigger_count: 10
+      description: "Execute §5.3 router-test and produce router_floor_report."
+    - id: "half_retire_review"
+      scenario_pack: "near_miss"
+      should_trigger_count: 10
+      should_not_trigger_count: 10
+      description: "Run §6.2 decision rules against the 7-axis value vector."
+    - id: "next_action_plan"
+      scenario_pack: "trigger_basic"
+      should_trigger_count: 10
+      should_not_trigger_count: 10
+      description: "Draft and persist the next round's action plan (§8.1 step 4)."
+
+# ── Evidence contract (§8.2 six-file minimum) ──
+expected_evidence:
+  - basic_ability_profile.yaml
+  - metrics_report.yaml
+  - router_floor_report.yaml
+  - half_retire_decision.yaml
+  - next_action_plan.yaml
+  - iteration_delta_report.yaml

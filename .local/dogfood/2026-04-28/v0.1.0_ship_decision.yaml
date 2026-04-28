@@ -1,0 +1,75 @@
+# Si-Chip v0.1.0 Ship Decision (machine-readable verdict)
+# Author: S8 final-validate stage agent
+# Companion to: .local/dogfood/2026-04-28/v0.1.0_ship_report.md
+spec_version: "v0.1.0"
+decided_at: "2026-04-28T10:53:45+00:00"
+verdict: "SHIP_ELIGIBLE"
+gate_profile: "relaxed"
+consecutive_v1_passes: 2
+
+machine_checks:
+  default_mode_verdict: "PASS"
+  default_mode_failed_invariants: []
+  strict_prose_mode_verdict: "FAIL"   # expected — proves validator catches §13.4 prose vs TABLE discrepancy
+  strict_prose_failed_invariants:
+    - R6_KEYS              # spec §3.1 TABLE=37 vs §13.4 prose=28
+    - THRESHOLD_TABLE      # spec §4.1 TABLE=30 cells vs §13.4 prose=21
+
+multi_round_evidence:
+  round_1: { present: true, files: 6, gate: PASS }
+  round_2: { present: true, files: 6, gate: PASS }
+
+cross_platform_drift:
+  cursor: DRIFT_ZERO
+  claude: DRIFT_ZERO
+  three_tree: ALL_TREES_DRIFT_ZERO
+
+packaging_gate_three_trees:
+  source: { metadata_tokens: 78, body_tokens: 2020, pass: true }
+  cursor: { metadata_tokens: 78, body_tokens: 2020, pass: true }
+  claude: { metadata_tokens: 78, body_tokens: 2020, pass: true }
+
+round_audit:
+  round_1:
+    pass_rate: 0.85
+    trigger_F1: 0.8934
+    metadata_tokens: 78
+    per_invocation_footprint: 4071
+    wall_clock_p95_s: 1.4693
+    iteration_delta_max_axis: "routing_delta +0.8934 (vs no_ability baseline)"
+    half_retire_decision: keep
+    pass_v1_baseline: true
+  round_2:
+    pass_rate: 0.85
+    trigger_F1: 0.8934
+    metadata_tokens: 78
+    per_invocation_footprint: 3598
+    wall_clock_p95_s: 1.4693
+    iteration_delta_max_axis: "context_delta +0.31 axis (=+0.1162 round-to-round flavour)"
+    half_retire_decision: keep
+    pass_v1_baseline: true
+    pass_rate_no_regression: true
+    iteration_delta_positive_axis: true
+
+out_of_scope_compliance:
+  marketplace: absent
+  router_training: absent
+  md_to_cli: absent
+  ide_compat_layer: absent
+  codex_native_runtime: absent_deferred
+
+out_of_scope_for_followup:
+  - "v2_tightened promotion"
+  - "Codex .codex/ bridge"
+  - "Round 3+ dogfood loop continuation"
+
+provenance:
+  ship_report: ".local/dogfood/2026-04-28/v0.1.0_ship_report.md"
+  validator_default_json: "/tmp/spec_validator_default.json"
+  validator_strict_json: "/tmp/spec_validator_strict.json"
+  cursor_drift_json: ".local/dogfood/2026-04-28/round_2/raw/cursor_sync_drift.json"
+  claude_drift_json: ".local/dogfood/2026-04-28/round_2/raw/claude_sync_drift.json"
+  three_tree_summary_json: ".local/dogfood/2026-04-28/round_2/raw/three_tree_drift_summary.json"
+  spec_path: ".local/research/spec_v0.1.0.md"
+  round_1_iteration_delta_report: ".local/dogfood/2026-04-28/round_1/iteration_delta_report.yaml"
+  round_2_iteration_delta_report: ".local/dogfood/2026-04-28/round_2/iteration_delta_report.yaml"

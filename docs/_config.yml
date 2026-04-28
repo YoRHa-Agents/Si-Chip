@@ -1,0 +1,43 @@
+title: Si-Chip
+description: Persistent BasicAbility optimization factory — frozen spec v0.1.0
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+  - jekyll-remote-theme
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: true
+include:
+  - CONTRIBUTING.md
+  - CHANGELOG.md
+
+markdown: kramdown
+kramdown:
+  syntax_highlighter: rouge
+  parse_block_html: true
+
+# Jekyll defaults
+permalink: pretty
+exclude:
+  - vendor
+  - node_modules
+  - .jekyll-cache
+  - Gemfile
+  - Gemfile.lock
+
+# Site-level navigation (used by index.md)
+nav:
+  - title: Home
+    url: /
+  - title: Install
+    url: /install/
+  - title: User Guide
+    url: /userguide/
+  - title: Architecture
+    url: /architecture/
+  - title: Demo
+    url: /demo/
+  - title: Spec (v0.1.0)
+    url: https://github.com/YoRHa-Agents/Si-Chip/blob/main/.local/research/spec_v0.1.0.md
+  - title: Source
+    url: https://github.com/YoRHa-Agents/Si-Chip

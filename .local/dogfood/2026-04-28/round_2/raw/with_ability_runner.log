@@ -1,0 +1,9 @@
+INFO si_chip.with_ability_runner: SKILL.md tokens: meta=78 body=2020 (source=/home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md)
+INFO si_chip.with_ability_runner: wrote /home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/docs_boundary/result.json pass_rate=0.9500 F1=0.9474 latency_p95=1.4780
+INFO si_chip.with_ability_runner: wrote /home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/half_retire_review/result.json pass_rate=0.8500 F1=0.8235 latency_p95=1.4960
+INFO si_chip.with_ability_runner: wrote /home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/metrics_gap/result.json pass_rate=0.9500 F1=1.0000 latency_p95=1.4820
+INFO si_chip.with_ability_runner: wrote /home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/next_action_plan/result.json pass_rate=0.7500 F1=0.8000 latency_p95=1.4200
+INFO si_chip.with_ability_runner: wrote /home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/profile_self/result.json pass_rate=0.8000 F1=0.8421 latency_p95=1.4570
+INFO si_chip.with_ability_runner: wrote /home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/router_matrix/result.json pass_rate=0.8000 F1=0.9474 latency_p95=1.4830
+INFO si_chip.with_ability_runner: ran 6 cases
+/home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round2/summary.json

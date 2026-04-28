@@ -1,0 +1,38 @@
+---
+description: Si-Chip skill bridge — points Cursor at .cursor/skills/si-chip/ and AGENTS.md for the persistent BasicAbility optimization factory
+alwaysApply: false
+globs:
+  - ".local/dogfood/**"
+  - ".agents/skills/si-chip/**"
+  - "evals/si-chip/**"
+  - "templates/basic_ability_profile.schema.yaml"
+  - "templates/half_retire_decision.template.yaml"
+  - "templates/router_test_matrix.template.yaml"
+---
+
+# Si-Chip Cursor Bridge
+
+This bridge tells Cursor that whenever the user is working on Si-Chip BasicAbility profiles,
+dogfood rounds, half-retire decisions, or router-tests, the authoritative Skill body lives at
+`.cursor/skills/si-chip/SKILL.md` (mirrored from `.agents/skills/si-chip/SKILL.md`) and the
+governing rule layer is `AGENTS.md` (compiled from `.rules/si-chip-spec.mdc`).
+
+## When to Apply
+
+- Authoring or editing `.local/dogfood/<DATE>/round_<N>/{basic_ability_profile,metrics_report,...}.yaml`
+- Producing `half_retire_decision.yaml` (must have numeric 7-axis value_vector per spec §6)
+- Running router-test sweeps against `templates/router_test_matrix.template.yaml`
+- Diagnosing R6 metric coverage against `templates/basic_ability_profile.schema.yaml`
+
+## Hard Rules (inherited from AGENTS.md / spec §11.1 — NEVER violate)
+
+- No marketplace.
+- No router model training.
+- No Markdown-to-CLI converter.
+- No generic IDE compatibility layer.
+
+## Source-of-truth invariant
+
+Edits to the Skill body MUST be applied to `.agents/skills/si-chip/SKILL.md` (the canonical source);
+`.cursor/skills/si-chip/SKILL.md` is a generated mirror — drift between the two is a CI failure
+(see `.local/dogfood/<DATE>/round_<N>/raw/cursor_sync_drift.json`).

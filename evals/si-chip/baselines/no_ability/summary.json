@@ -1,0 +1,71 @@
+{
+  "runner": "no_ability_runner",
+  "runner_version": "0.1.0",
+  "seed": 42,
+  "cases_dir": "/home/agent/workspace/Si-Chip/evals/si-chip/cases",
+  "out_dir": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability",
+  "case_count": 6,
+  "per_case": [
+    {
+      "case_id": "docs_boundary",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/docs_boundary.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability/docs_boundary/result.json",
+      "pass_rate": 0.5,
+      "pass_k_4": 0.0625,
+      "latency_p95_s": 0.88,
+      "trigger_F1": 0.0
+    },
+    {
+      "case_id": "half_retire_review",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/half_retire_review.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability/half_retire_review/result.json",
+      "pass_rate": 0.5,
+      "pass_k_4": 0.0625,
+      "latency_p95_s": 0.95,
+      "trigger_F1": 0.0
+    },
+    {
+      "case_id": "metrics_gap",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/metrics_gap.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability/metrics_gap/result.json",
+      "pass_rate": 0.5,
+      "pass_k_4": 0.0625,
+      "latency_p95_s": 0.987,
+      "trigger_F1": 0.0
+    },
+    {
+      "case_id": "next_action_plan",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/next_action_plan.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability/next_action_plan/result.json",
+      "pass_rate": 0.5,
+      "pass_k_4": 0.0625,
+      "latency_p95_s": 0.9470000000000001,
+      "trigger_F1": 0.0
+    },
+    {
+      "case_id": "profile_self",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/profile_self.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability/profile_self/result.json",
+      "pass_rate": 0.5,
+      "pass_k_4": 0.0625,
+      "latency_p95_s": 0.982,
+      "trigger_F1": 0.0
+    },
+    {
+      "case_id": "router_matrix",
+      "source": "/home/agent/workspace/Si-Chip/evals/si-chip/cases/router_matrix.yaml",
+      "out": "/home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability/router_matrix/result.json",
+      "pass_rate": 0.5,
+      "pass_k_4": 0.0625,
+      "latency_p95_s": 0.988,
+      "trigger_F1": 0.0
+    }
+  ],
+  "aggregates": {
+    "mean_pass_rate": 0.5,
+    "mean_pass_k_4": 0.0625,
+    "mean_latency_p95_s": 0.9556666666666667,
+    "mean_trigger_F1": 0.0,
+    "router_floor": "n/a (no_ability)"
+  }
+}

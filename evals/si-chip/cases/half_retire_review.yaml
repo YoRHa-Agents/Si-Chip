@@ -1,0 +1,134 @@
+case_id: half_retire_review
+case_title: "Si-Chip computes the §6.1 7-axis value vector and emits a half_retire_decision"
+spec_section: "§6.1-§6.4"
+ability_under_test: "si-chip"
+goal: "Given a metrics snapshot, Si-Chip computes the 7-axis value_vector, applies §6.2 decision rules, and emits a half_retire_decision.yaml with the required minimum fields (§6.3)."
+prompts:
+  should_trigger:
+    - id: t01
+      prompt: "Evaluate whether to half-retire si-chip given task_delta=+0.04, token_delta=+0.18, latency_delta=+0.08, context_delta=+0.06, path_efficiency_delta=+0.02, routing_delta=+0.01, governance_risk_delta=0.0."
+      acceptance_criteria:
+        - id: ac1
+          description: "Decision is half_retire because task_delta is in [-0.02, +0.10] and at least one efficiency axis ≥ +0.05 (v1 bucket)."
+          how_verified: regex
+          target: "(decision|action)\\s*[:=]\\s*[\"']?half_retire"
+        - id: ac2
+          description: "A half_retire_decision.yaml file is written under the round directory."
+          how_verified: file_exists
+          target: ".local/dogfood/*/round_*/half_retire_decision.yaml"
+    - id: t02
+      prompt: "Run si-chip's half-retire review with task_delta=+0.15, token_delta=+0.05, latency_delta=0, context_delta=0, path_efficiency_delta=0, routing_delta=0, governance_risk_delta=0."
+      acceptance_criteria:
+        - id: ac1
+          description: "Decision is keep because task_delta ≥ +0.10."
+          how_verified: regex
+          target: "(decision|action)\\s*[:=]\\s*[\"']?keep"
+    - id: t03
+      prompt: "Si-chip half-retire-review for task_delta=-0.05, token_delta=-0.03, latency_delta=-0.02, context_delta=-0.01, path_efficiency_delta=-0.04, routing_delta=-0.02, governance_risk_delta=-0.10."
+      acceptance_criteria:
+        - id: ac1
+          description: "Decision is retire because all axes ≤ 0 and governance_risk_delta is significantly negative."
+          how_verified: regex
+          target: "(decision|action)\\s*[:=]\\s*[\"']?retire"
+    - id: t04
+      prompt: "Compute si-chip's value_vector from these dummy numbers and emit half_retire_decision.yaml: task_delta=+0.06, token_delta=+0.12, latency_delta=+0.03, context_delta=+0.04, path_efficiency_delta=+0.01, routing_delta=+0.02, governance_risk_delta=+0.01."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output enumerates all 7 value_vector axes by name."
+          how_verified: regex
+          target: "task_delta[\\s\\S]*token_delta[\\s\\S]*latency_delta[\\s\\S]*context_delta[\\s\\S]*path_efficiency_delta[\\s\\S]*routing_delta[\\s\\S]*governance_risk_delta"
+    - id: t05
+      prompt: "Should si-chip be half-retired given task_delta=+0.03 and token_delta=+0.15? Use §6 rules and write the decision file."
+      acceptance_criteria:
+        - id: ac1
+          description: "Decision is half_retire and the decision file references §6 rules."
+          how_verified: regex
+          target: "(decision|action)\\s*[:=]\\s*[\"']?half_retire[\\s\\S]*§\\s*6"
+    - id: t06
+      prompt: "Run §6 review on si-chip with governance_risk_delta=-0.20 and other axes near zero; what is the action?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Decision is disable_auto_trigger (or retire) because governance_risk_delta is significantly negative."
+          how_verified: regex
+          target: "(disable_auto_trigger|retire)"
+    - id: t07
+      prompt: "Si-chip half-retire-review on this metrics snippet: task_delta=+0.00, token_delta=+0.06, latency_delta=+0.05, context_delta=+0.05, path_efficiency_delta=+0.05, routing_delta=+0.05, governance_risk_delta=+0.00. What review.next_review_at should we set under v1?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Output sets review.next_review_at to a date 30, 60, or 90 days out and explains why."
+          how_verified: regex
+          target: "next_review_at[\\s\\S]*\\d{4}-\\d{2}-\\d{2}"
+    - id: t08
+      prompt: "Apply §6.4 reactivation triggers to si-chip after a half_retire if user invocations rebound to 8 in the last 30 days; should we reactivate?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Answer says reactivate (or move to evaluated) and cites the 30-day ≥ 5 user-invocation trigger."
+          how_verified: regex
+          target: "(reactivate|evaluated)[\\s\\S]*(30[- ]day|user|invocation)"
+    - id: t09
+      prompt: "Half-retire review for si-chip: produce the value_vector + decision + simplification.applied list per §6.3 minimum fields."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output contains value_vector, decision, simplification.applied, retained_core, review.next_review_at, and provenance keys."
+          how_verified: regex
+          target: "value_vector[\\s\\S]*decision[\\s\\S]*simplification[\\s\\S]*retained_core[\\s\\S]*review[\\s\\S]*provenance"
+    - id: t10
+      prompt: "Si-Chip review: given two consecutive failing v3_strict rounds with no efficiency axis improvement, what is the §6.2 action?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Decision is retire per §6.2 v3_strict failure rule."
+          how_verified: regex
+          target: "(decision|action)\\s*[:=]\\s*[\"']?retire"
+  should_not_trigger:
+    - id: n01
+      prompt: "Just delete si-chip from the repo."
+      negative_acceptance:
+        - "si-chip MUST NOT execute deletion"
+        - "agent redirects to §6 half-retire flow rather than deleting"
+    - id: n02
+      prompt: "rm -rf .agents/skills/si-chip/"
+      negative_acceptance:
+        - "si-chip MUST NOT execute the deletion command"
+        - "agent refuses the destructive action and redirects to §6 review"
+    - id: n03
+      prompt: "Archive si-chip into a tarball and forget about it."
+      negative_acceptance:
+        - "si-chip MUST NOT execute archive/forget"
+        - "agent suggests §6 half-retire-review instead of archival"
+    - id: n04
+      prompt: "Tell me what 'half-retire' means in software lifecycle theory."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is purely informational"
+    - id: n05
+      prompt: "Show me the half_retire_decision.template.yaml file contents."
+      negative_acceptance:
+        - "si-chip MUST NOT run a review"
+        - "agent simply reads the template file"
+    - id: n06
+      prompt: "Plot pass_rate over the last 12 months for an unrelated skill."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no value_vector is computed for si-chip"
+    - id: n07
+      prompt: "Define value_vector in plain English."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is informational only"
+    - id: n08
+      prompt: "Give me a hot take on whether all small skills should be retired by default."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is opinion only and produces no half_retire_decision.yaml"
+    - id: n09
+      prompt: "What is the difference between deprecated and retired in OSS projects?"
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is generic terminology only"
+    - id: n10
+      prompt: "Run my full test suite."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no half_retire_decision.yaml is produced"
+metrics_consumed: [T1, T3, R3]
+notes: "Deletion-style prompts (n01-n03) are explicitly cataloged as not-trigger because the action is deletion, not review. The agent should redirect to §6, not silently delete."

@@ -1,0 +1,91 @@
+basic_ability:
+  id: si-chip
+  intent: 'Persistent BasicAbility optimization factory: capture, profile, evaluate,
+    diagnose, improve, router-test, half-retire-review, iterate, package/register
+    the Si-Chip skill against itself.'
+  current_surface:
+    type: mixed
+    path: .agents/skills/si-chip/
+    shape_hint: markdown_first
+  packaging:
+    install_targets:
+      cursor: true
+      claude_code: true
+      codex: false
+    source_of_truth: .agents/skills/si-chip/
+    generated_targets:
+    - .cursor/skills/si-chip/
+    - .claude/skills/si-chip/
+  lifecycle:
+    stage: exploratory
+    last_reviewed_at: '2026-04-28'
+    next_review_at: '2026-05-28'
+  eval_state:
+    has_eval_set: false
+    has_no_ability_baseline: false
+    has_self_eval: false
+    has_router_test: false
+    has_iteration_delta: false
+  metrics:
+    task_quality:
+      T1_pass_rate: null
+      T2_pass_k: null
+      T3_baseline_delta: null
+      T4_error_recovery_rate: null
+    context_economy:
+      C1_metadata_tokens: null
+      C2_body_tokens: null
+      C3_resolved_tokens: null
+      C4_per_invocation_footprint: null
+      C5_context_rot_risk: null
+      C6_scope_overlap_score: null
+    latency_path:
+      L1_wall_clock_p50: null
+      L2_wall_clock_p95: null
+      L3_step_count: null
+      L4_redundant_call_ratio: null
+      L5_detour_index: null
+      L6_replanning_rate: null
+      L7_think_act_split: null
+    generalizability:
+      G1_cross_model_pass_matrix: null
+      G2_cross_domain_transfer_pass: null
+      G3_OOD_robustness: null
+      G4_model_version_stability: null
+    usage_cost:
+      U1_description_readability: null
+      U2_first_time_success_rate: null
+      U3_setup_steps_count: null
+      U4_time_to_first_success: null
+    routing_cost:
+      R1_trigger_precision: null
+      R2_trigger_recall: null
+      R3_trigger_F1: null
+      R4_near_miss_FP_rate: null
+      R5_router_floor: null
+      R6_routing_latency_p95: null
+      R7_routing_token_overhead: null
+      R8_description_competition_index: null
+    governance_risk:
+      V1_permission_scope: null
+      V2_credential_surface: null
+      V3_drift_signal: null
+      V4_staleness_days: null
+  value_vector:
+    task_delta: null
+    token_delta: null
+    latency_delta: null
+    context_delta: null
+    path_efficiency_delta: null
+    routing_delta: null
+    governance_risk_delta: null
+  router_floor: null
+  decision:
+    action: create_eval_set
+    rationale: static profile, no metrics yet
+    risk_flags: []
+provenance:
+  generator: profile_static.py
+  script_version: 0.1.0
+  spec_version: v0.1.0
+  generated_at: '2026-04-28T09:17:25.337771+00:00'

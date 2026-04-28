@@ -1,0 +1,91 @@
+# Si-Chip Next-Action Plan — round_2 -> round_3
+# Conforms to templates/next_action_plan.template.yaml (spec §8.1 step 4 / §8.2 evidence #5).
+# target_gate stays bound to v1_baseline ("relaxed") because spec §4.2 Promotion Rule
+# requires TWO consecutive v1 passes BEFORE promoting to v2_tightened. Round 2 is the
+# 2nd consecutive v1 pass — promotion to v2_tightened is now eligible but is a separate
+# decision deferred to a follow-up plan (S5 task spec explicitly states "we are not
+# promoting in this round; we just need Round 2 to pass for ship").
+round_id: round_2
+generated_at: '2026-04-28T10:03:00+00:00'
+basis_metrics_report: .local/dogfood/2026-04-28/round_2/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-28/round_2/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-28/round_1/iteration_delta_report.yaml
+target_gate: relaxed  # spec §5.4 binding: relaxed -> v1_baseline (eligible to promote after this round but holding)
+
+actions:
+  - id: a1
+    title: Instrument L1_wall_clock_p50 alongside L2 (split p50/p95 in runner result.json)
+    owner: Implement
+    applies_to_metric: L1_wall_clock_p50
+    primitive: refine
+    exit_criterion: 'L1_wall_clock_p50 non-null in round_3 metrics_report.yaml AND L2_wall_clock_p95 not regressed (still <= 1.469 s)'
+    notes: |
+      Round 1 and Round 2 both emit only L2 from the runner's percentile_p95
+      helper. Round 3 should add a percentile_p50 helper to with_ability_runner.py
+      and aggregate_eval.py so the spec §3.1 D3 latency table fills more cells.
+
+  - id: a2
+    title: Populate R6_routing_latency_p95 (router-test cell-level p95 latency)
+    owner: Implement
+    applies_to_metric: R6_routing_latency_p95
+    primitive: refine
+    exit_criterion: 'R6_routing_latency_p95 non-null in round_3 metrics_report.yaml AND <= 2000 ms (v1_baseline ceiling)'
+    notes: |
+      Round 1 and Round 2 router_floor_report.yaml already emits per-cell
+      latency_p95_ms in the simulated 8-cell sweep. Round 3 should hoist the
+      cheapest passing cell's latency_p95_ms into metrics_report.yaml so the
+      v1_baseline routing_latency_p95 row stops being inapplicable.
+
+  - id: a3
+    title: Populate R7_routing_token_overhead (count routing-stage tokens vs body)
+    owner: Implement
+    applies_to_metric: R7_routing_token_overhead
+    primitive: refine
+    exit_criterion: 'R7_routing_token_overhead non-null in round_3 metrics_report.yaml AND <= 0.20 (v1_baseline ceiling)'
+    notes: |
+      Round 1 and Round 2 leave R7 null. Compute as (router-stage token cost)
+      divided by (full body invocation tokens). The router-test stage is
+      lightweight in the simulated runner (description retrieval only); the
+      ratio should be small, but it must be non-null so v2_tightened promotion
+      is unblocked.
+
+  - id: a4
+    title: Populate U1-U4 (description readability + first-time success metrics)
+    owner: Implement
+    applies_to_metric: U1_description_readability
+    primitive: research
+    exit_criterion: 'U1_description_readability AND U2_first_time_success_rate non-null in round_3 metrics_report.yaml'
+    notes: |
+      D5 usage_cost is currently fully null. Round 3 should at least populate
+      U1 (Flesch-Kincaid grade level on SKILL.md description field) and U2
+      (success rate on first-trigger attempts from prompt_outcomes — a derived
+      proxy from existing data, no new runner needed).
+
+expected_iteration_delta_axes:
+  - latency_path     # via a1 (L1 fill) + a2 (R6 fill) — both currently zero/null
+  - usage_cost       # via a4 — currently zero/null
+# Pre-commitment: round_3 must show movement on at least one of the above
+# (per spec §4.1 v1_baseline iteration_delta row, any axis >= +0.05).
+# Note: routing_cost axis was Round 1's positive (+0.8934) and Round 2 held it;
+# context_economy axis was Round 2's positive (+0.1162); Round 3 picks new axes
+# to broaden coverage rather than re-claim the same axes.
+
+deferred_from_round_1:
+  - id: a2_round_1
+    title: 'Reduce L2_wall_clock_p95 by moving _safe_devolaflow_version() behind a flag'
+    deferral_reason: |
+      Round 1's a2 required editing .agents/skills/si-chip/scripts/aggregate_eval.py
+      which is OUTSIDE S5's allowed-edit set. Round 2 explicitly only touched
+      SKILL.md (Improvement #1) and round_2 evidence files. The script edit is
+      legitimate Round 3 work and is folded into a1/a2 above (which require
+      runner / aggregator edits anyway).
+
+provenance:
+  generator: 'S5 dogfood Round 2 (manual orchestration)'
+  spec_version: v0.1.0
+  basis_round: round_2
+  cites:
+    - .local/dogfood/2026-04-28/round_2/raw/notes.md  # diagnose output (Step 3)
+    - .local/dogfood/2026-04-28/round_2/metrics_report.yaml
+    - .local/dogfood/2026-04-28/round_1/next_action_plan.yaml  # carry-forward audit
+    - .local/research/spec_v0.1.0.md  # §4.1 thresholds, §4.2 promotion rule

@@ -1,0 +1,2 @@
+WARNING si_chip.profile_static: schema does not declare a 'basic_ability' mapping; skipping cross-check
+/home/agent/workspace/Si-Chip/.local/dogfood/2026-04-28/round_1/basic_ability_profile.yaml
