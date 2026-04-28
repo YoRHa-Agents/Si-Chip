@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://yorha-agents.github.io/Si-Chip/sitemap.xml

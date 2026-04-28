@@ -25,20 +25,31 @@
 
   function applyTheme(theme) {
     document.body.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
     var t = document.querySelector("[data-toggle-theme]");
-    if (t) t.textContent = theme === "night" ? "[ THEME / NIGHT ]" : "[ THEME / DAY ]";
+    if (t) {
+      t.textContent = theme === "night" ? "[ THEME / NIGHT ]" : "[ THEME / DAY ]";
+      t.setAttribute("aria-pressed", String(theme === "night"));
+    }
     var f = document.querySelector("[data-footer-theme]");
     if (f) f.textContent = theme === "night" ? "[ THEME: NIGHT ]" : "[ THEME: DAY ]";
     try { window.localStorage.setItem(STORAGE_THEME, theme); } catch (e) { /* ignore */ }
+    try {
+      window.dispatchEvent(new CustomEvent("si-chip:theme-changed", { detail: { theme: theme } }));
+    } catch (e) { /* CustomEvent unsupported: silent skip */ }
   }
 
   function applyLang(lang) {
     document.body.setAttribute("data-lang", lang);
+    document.documentElement.setAttribute("data-lang", lang);
+    document.documentElement.setAttribute("lang", lang === "zh" ? "zh-Hans" : "en");
     var t = document.querySelector("[data-toggle-lang]");
-    if (t) t.textContent = lang === "zh" ? "[ LANG / 中 ]" : "[ LANG / EN ]";
+    if (t) {
+      t.textContent = lang === "zh" ? "[ LANG / 中 ]" : "[ LANG / EN ]";
+      t.setAttribute("aria-pressed", String(lang === "zh"));
+    }
     var f = document.querySelector("[data-footer-lang]");
     if (f) f.textContent = lang === "zh" ? "[ 语言: 中 ]" : "[ LANG: EN ]";
-    document.documentElement.setAttribute("lang", lang);
     try {
       var island = document.getElementById("si-chip-i18n");
       if (island) {

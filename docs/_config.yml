@@ -1,11 +1,12 @@
 title: Si-Chip
 description: Persistent BasicAbility optimization factory - frozen spec v0.1.0
-version: 0.1.0
+version: 0.1.1
 
 # No Jekyll built-in theme; we ship our own NieR: Automata-styled layout.
 
 plugins:
   - jekyll-relative-links
+  - jekyll-sitemap
 
 relative_links:
   enabled: true
@@ -44,7 +45,7 @@ nav:
     url: /architecture/
   - title: Demo
     url: /demo/
-  - title: Spec (v0.1.0)
+  - title: Spec
     url: https://github.com/YoRHa-Agents/Si-Chip/blob/main/.local/research/spec_v0.1.0.md
   - title: Source
     url: https://github.com/YoRHa-Agents/Si-Chip

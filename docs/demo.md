@@ -5,16 +5,12 @@ title: Demo
 
 <div lang="en" markdown="1">
 
-# Live Demo: v0.1.0 ship walkthrough
-
 This page walks through the actual evidence Si-Chip produced when it
 self-shipped v0.1.0 on 2026-04-28.
 
 </div>
 
 <div lang="zh" markdown="1">
-
-# 实时演示：v0.1.0 交付走查
 
 本页面逐章呈现 Si-Chip 在 2026-04-28 自我交付 v0.1.0 时实际产出的证据。
 

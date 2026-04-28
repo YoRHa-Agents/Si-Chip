@@ -4,14 +4,14 @@
   --bg:          #D2CDB7;   /* weathered paper */
   --bg-soft:     #C8C2A6;   /* code blocks, alt rows */
   --fg:          #3F3A2C;   /* deep olive-brown body */
-  --fg-soft:     #7A745E;   /* secondary, captions */
+  --fg-soft:     #5A553F;   /* secondary, captions */
   --accent:      #171614;   /* near-black borders */
-  --rust:        #92765A;   /* rare warning highlight */
+  --rust:        #74573D;   /* rare warning highlight */
   --blood:       #5A2A1F;   /* OUT OF SCOPE badges */
 
   --font-display: 'Saira Stencil One', 'Impact', sans-serif;
   --font-section: 'B612 Mono', 'Courier New', monospace;
-  --font-body:    'Noto Sans JP', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body:    "Noto Sans SC", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono:    'B612 Mono', 'Courier New', monospace;
 
   --space-xs: 0.4rem;
@@ -386,6 +386,28 @@ a.btn:focus {
   outline: none;
 }
 
+/* 8b. .btn-green variant - secondary "go" call-to-action */
+.page-body a.btn.btn-green,
+a.btn.btn-green {
+  color: #2D5A3F;
+  border-color: #2D5A3F;
+}
+.page-body a.btn.btn-green:hover,
+a.btn.btn-green:hover {
+  background: #2D5A3F;
+  color: var(--bg);
+}
+body[data-theme="night"] .page-body a.btn.btn-green,
+body[data-theme="night"] a.btn.btn-green {
+  color: #8FB996;
+  border-color: #8FB996;
+}
+body[data-theme="night"] .page-body a.btn.btn-green:hover,
+body[data-theme="night"] a.btn.btn-green:hover {
+  background: #8FB996;
+  color: var(--bg);
+}
+
 /* 9. Footer */
 .footer {
   max-width: var(--content-width);
@@ -477,7 +499,9 @@ a.btn:focus {
 
 /* 13. i18n display rules + responsive overflow ─────────────────────────── */
 /* Both language blocks render in DOM; CSS hides one based on body[data-lang]. */
+html[data-lang="en"] [lang="zh"]:not(html):not([data-i18n]),
 body[data-lang="en"] [lang="zh"]:not(html):not([data-i18n]) { display: none; }
+html[data-lang="zh"] [lang="en"]:not(html):not([data-i18n]),
 body[data-lang="zh"] [lang="en"]:not(html):not([data-i18n]) { display: none; }
 
 /* Responsive table overflow (fixes the demo-page report) */
@@ -501,6 +525,7 @@ body[data-lang="zh"] [lang="en"]:not(html):not([data-i18n]) { display: none; }
 }
 
 /* 14. Dark mode (night) - mirror the day palette ──────────────────────── */
+html[data-theme="night"],
 body[data-theme="night"] {
   --bg:         #14120F;
   --bg-soft:    #1F1C18;
@@ -512,11 +537,13 @@ body[data-theme="night"] {
 }
 /* Soften the scan-line overlay in night mode so it does not
    dominate the dark background. */
+html[data-theme="night"] .scanlines,
 body[data-theme="night"] .scanlines {
   opacity: 0.03;
   mix-blend-mode: screen;
 }
 /* Keep the cursor visible on dark bg. */
+html[data-theme="night"] .cursor,
 body[data-theme="night"] .cursor {
   color: var(--fg);
 }
@@ -563,4 +590,40 @@ body[data-theme="night"] .cursor {
   .toggle {
     font-size: 0.75rem;
   }
+}
+
+/* 16. Text selection - keep palette consistent across themes */
+::selection { background: var(--accent); color: var(--bg); }
+::-moz-selection { background: var(--accent); color: var(--bg); }
+
+/* 17. Localized code-block labels (zh) and mermaid-aware label */
+[lang="zh"] pre::before { content: "// 代码"; }
+pre:has(code.language-mermaid)::before { content: "// DIAGRAM"; }
+[lang="zh"] pre:has(code.language-mermaid)::before { content: "// 图表"; }
+
+/* 18. Lang-specific body font - prefer Noto Sans SC for Simplified Chinese */
+body.nier:lang(zh) { font-family: "Noto Sans SC", "Noto Sans JP", system-ui, sans-serif; }
+
+/* 19. Skip-link - hidden until keyboard-focused */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  font-family: "B612 Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.skip-link:focus {
+  left: 0;
+  top: 0;
+  padding: 0.6em 1em;
+  background: var(--accent);
+  color: var(--bg);
+  z-index: 10000;
+  outline: 2px solid var(--accent);
+}
+
+/* 20. Reduced-motion - hold the hero subtitle steady */
+@media (prefers-reduced-motion: reduce) {
+  .hero-subtitle { opacity: 1 !important; animation: none !important; }
 }

@@ -1,23 +1,22 @@
 <header class="hero" role="banner">
   <div class="hero-frame">
     <div class="hero-controls" aria-label="Site preferences">
-      <button class="toggle" type="button" data-toggle-lang aria-label="Toggle language">[ LANG / EN ]</button>
-      <button class="toggle" type="button" data-toggle-theme aria-label="Toggle theme">[ THEME / DAY ]</button>
+      <button class="toggle" type="button" data-toggle-lang aria-label="Toggle language" aria-pressed="false">[ LANG / EN ]</button>
+      <button class="toggle" type="button" data-toggle-theme aria-label="Toggle theme" aria-pressed="false">[ THEME / DAY ]</button>
     </div>
     <div class="hero-meta" data-i18n="hero.meta">// YORHA AGENTS / SI-CHIP / V{{ site.version | default: '0.1.1' }}</div>
     <h1 class="hero-title"><span class="bracket">[</span>{{ site.title | upcase }}<span class="bracket">]</span></h1>
     <p class="hero-subtitle" data-i18n="hero.subtitle">{{ site.description }}<span class="cursor">&#9612;</span></p>
     <nav class="hero-nav" aria-label="Primary">
-      {% for item in site.nav %}
-        {% assign url = item.url %}
-        {% assign t = item.title | downcase | replace: ' ', '' %}
-        {% assign i18n_key = 'nav.' | append: t %}
-        {% if url contains '://' %}
-          <a class="nav-link" href="{{ url }}" data-i18n="{{ i18n_key }}">&#9654; {{ item.title | upcase }}</a>
-        {% else %}
-          <a class="nav-link" href="{{ url | relative_url }}" data-i18n="{{ i18n_key }}">&#9654; {{ item.title | upcase }}</a>
-        {% endif %}
-      {% endfor %}
+{%- for item in site.nav -%}
+  {%- assign t = item.title | downcase | replace: ' ', '' -%}
+  {%- assign i18n_key = 'nav.' | append: t -%}
+  {%- if item.url contains '://' -%}
+    <a class="nav-link" href="{{ item.url }}" data-i18n="{{ i18n_key }}" target="_blank" rel="noopener noreferrer">&#9654; {{ item.title | upcase }}</a>
+  {%- else -%}
+    <a class="nav-link" href="{{ item.url | relative_url }}" data-i18n="{{ i18n_key }}">&#9654; {{ item.title | upcase }}</a>
+  {%- endif -%}
+{%- endfor -%}
     </nav>
   </div>
 </header>
