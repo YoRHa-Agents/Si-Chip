@@ -474,3 +474,93 @@ a.btn:focus {
   .nav-link, .footer-link { color: black; }
   .page-body a { color: black; text-decoration: underline; }
 }
+
+/* 13. i18n display rules + responsive overflow ─────────────────────────── */
+/* Both language blocks render in DOM; CSS hides one based on body[data-lang]. */
+body[data-lang="en"] [lang="zh"]:not(html):not([data-i18n]) { display: none; }
+body[data-lang="zh"] [lang="en"]:not(html):not([data-i18n]) { display: none; }
+
+/* Responsive table overflow (fixes the demo-page report) */
+.page-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  margin: 1.2em 0;
+  border-collapse: collapse;
+}
+.page-body table th,
+.page-body table td {
+  padding: 0.4em 0.9em;
+}
+
+@media (max-width: 720px) {
+  .page-body table {
+    font-size: 0.85em;
+  }
+}
+
+/* 14. Dark mode (night) - mirror the day palette ──────────────────────── */
+body[data-theme="night"] {
+  --bg:         #14120F;
+  --bg-soft:    #1F1C18;
+  --fg:         #D2CDB7;
+  --fg-soft:    #8C8771;
+  --accent:     #D2CDB7;
+  --rust:       #B89A78;
+  --blood:      #A04438;
+}
+/* Soften the scan-line overlay in night mode so it does not
+   dominate the dark background. */
+body[data-theme="night"] .scanlines {
+  opacity: 0.03;
+  mix-blend-mode: screen;
+}
+/* Keep the cursor visible on dark bg. */
+body[data-theme="night"] .cursor {
+  color: var(--fg);
+}
+
+/* 15. Toggle controls (theme + lang) - top-right of the hero ──────────── */
+.hero-controls {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.6rem;
+  display: flex;
+  gap: 0.6rem;
+  font-family: var(--font-mono, "B612 Mono", monospace);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  z-index: 2;
+}
+.toggle {
+  display: inline-block;
+  cursor: pointer;
+  padding: 0.25em 0.7em;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  text-transform: uppercase;
+  user-select: none;
+  transition: background 80ms linear, color 80ms linear;
+}
+.toggle:hover,
+.toggle:focus {
+  background: var(--accent);
+  color: var(--bg);
+  outline: none;
+}
+.toggle:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 720px) {
+  .hero-controls {
+    position: static;
+    margin-top: 1em;
+    justify-content: flex-end;
+  }
+  .toggle {
+    font-size: 0.75rem;
+  }
+}
