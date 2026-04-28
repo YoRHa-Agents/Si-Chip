@@ -5,8 +5,6 @@ title: Home
 
 <div lang="en" markdown="1">
 
-# Si-Chip
-
 Persistent BasicAbility optimization factory.
 
 [▶ INSTALL](./install/){:.btn} [▶ USER GUIDE](./userguide/){:.btn} [▶ ARCHITECTURE](./architecture/){:.btn} [▶ LIVE DEMO](./demo/){:.btn .btn-green}
@@ -64,8 +62,6 @@ PRs introducing any of these will be closed without review.
 </div>
 
 <div lang="zh" markdown="1">
-
-# Si-Chip
 
 持久化的 BasicAbility 优化工厂。
 

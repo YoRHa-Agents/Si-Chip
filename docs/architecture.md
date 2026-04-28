@@ -5,13 +5,9 @@ title: Architecture
 
 <div lang="en" markdown="1">
 
-# Architecture
-
 </div>
 
 <div lang="zh" markdown="1">
-
-# 架构
 
 </div>
 
