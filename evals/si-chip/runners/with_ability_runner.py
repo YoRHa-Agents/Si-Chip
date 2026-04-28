@@ -251,13 +251,41 @@ def _count_tokens_subprocess(skill_md: Path, count_tokens_script: Path) -> Tuple
     return meta, body
 
 
+def _per_prompt_token_split(metadata_tokens: int, body_tokens: int) -> Dict[str, int]:
+    """Return the per-prompt routing-stage vs body-invocation token split.
+
+    Spec §3.1 D6 R7 ``routing_token_overhead`` is defined as
+    ``routing_stage_tokens / body_invocation_tokens``. In the simulated
+    runner the routing stage cost is the SKILL.md frontmatter the router
+    must read to decide whether to trigger the skill (i.e.
+    ``metadata_tokens``); the body-invocation cost is what is paid AFTER
+    routing — the SKILL.md body plus the user prompt footprint.
+
+    The split is deterministic (it depends only on ``count_tokens.py``
+    output) so re-running with the same SKILL.md yields byte-identical
+    fields. Both values are integers >= 0.
+    """
+
+    return {
+        "routing_stage_tokens": int(metadata_tokens),
+        "body_invocation_tokens": int(body_tokens) + USER_PROMPT_FOOTPRINT,
+    }
+
+
 def evaluate_case(
     case: Dict[str, Any],
     seed: int,
     metadata_tokens: int,
     body_tokens: int,
 ) -> Dict[str, Any]:
-    """Compute the with-ability per-case result payload."""
+    """Compute the with-ability per-case result payload.
+
+    Round 3 (S5 task spec Edit A) added per-prompt
+    ``routing_stage_tokens`` and ``body_invocation_tokens`` to every
+    entry in ``prompt_outcomes`` and to the case-level top-level fields,
+    so the aggregator can compute spec §3.1 D6 R7
+    (``routing_token_overhead``) without further instrumentation.
+    """
 
     case_id = case["case_id"]
     should_trigger = case["prompts"]["should_trigger"]
@@ -268,6 +296,10 @@ def evaluate_case(
 
     tp = fp = fn = tn = 0
     correct = 0
+
+    token_split = _per_prompt_token_split(metadata_tokens, body_tokens)
+    routing_stage_tokens = token_split["routing_stage_tokens"]
+    body_invocation_tokens = token_split["body_invocation_tokens"]
 
     for entry in should_trigger:
         prompt_id = entry["id"]
@@ -301,6 +333,8 @@ def evaluate_case(
             "ac_met": ac_met,
             "correct": is_correct,
             "latency_s": latency_s,
+            "routing_stage_tokens": routing_stage_tokens,
+            "body_invocation_tokens": body_invocation_tokens,
         })
 
     for entry in should_not_trigger:
@@ -332,6 +366,8 @@ def evaluate_case(
             "near_miss_FP": triggered,
             "correct": is_correct,
             "latency_s": latency_s,
+            "routing_stage_tokens": routing_stage_tokens,
+            "body_invocation_tokens": body_invocation_tokens,
         })
 
     total = len(should_trigger) + len(should_not_trigger)
@@ -341,6 +377,9 @@ def evaluate_case(
     precision, recall, f1 = f1_score(tp, fp, fn)
     per_invocation_footprint = int(metadata_tokens) + int(body_tokens) + USER_PROMPT_FOOTPRINT
 
+    case_routing_stage_tokens_total = routing_stage_tokens * total
+    case_body_invocation_tokens_total = body_invocation_tokens * total
+
     return {
         "pass_rate": pass_rate,
         "pass_k_4": pass_k_4,
@@ -349,6 +388,8 @@ def evaluate_case(
         "per_invocation_footprint": per_invocation_footprint,
         "trigger_F1": f1,
         "router_floor": ROUTER_FLOOR,
+        "routing_stage_tokens_total": case_routing_stage_tokens_total,
+        "body_invocation_tokens_total": case_body_invocation_tokens_total,
         "prompt_outcomes": prompt_outcomes,
         "_meta": {
             "case_id": case_id,
@@ -365,6 +406,12 @@ def evaluate_case(
             "metadata_tokens_source": "SKILL.md (count_tokens.py --both --json)",
             "body_tokens": int(body_tokens),
             "user_prompt_footprint": USER_PROMPT_FOOTPRINT,
+            "routing_stage_tokens_per_prompt": routing_stage_tokens,
+            "body_invocation_tokens_per_prompt": body_invocation_tokens,
+            "r7_token_split_basis": (
+                "routing_stage_tokens = SKILL.md metadata_tokens; "
+                "body_invocation_tokens = body_tokens + USER_PROMPT_FOOTPRINT"
+            ),
         },
     }
 
@@ -414,6 +461,8 @@ def run(cases_dir: Path, out_dir: Path, seed: int) -> Dict[str, Any]:
             "latency_p95_s": result["latency_p95_s"],
             "trigger_F1": result["trigger_F1"],
             "per_invocation_footprint": result["per_invocation_footprint"],
+            "routing_stage_tokens_total": result["routing_stage_tokens_total"],
+            "body_invocation_tokens_total": result["body_invocation_tokens_total"],
         })
         LOGGER.info(
             "wrote %s pass_rate=%.4f F1=%.4f latency_p95=%.4f",
@@ -441,6 +490,14 @@ def run(cases_dir: Path, out_dir: Path, seed: int) -> Dict[str, Any]:
                 if per_case else 0.0
             ),
             "router_floor": ROUTER_FLOOR,
+            "sum_routing_stage_tokens": sum(p["routing_stage_tokens_total"] for p in per_case),
+            "sum_body_invocation_tokens": sum(p["body_invocation_tokens_total"] for p in per_case),
+            "r7_routing_token_overhead": (
+                sum(p["routing_stage_tokens_total"] for p in per_case)
+                / sum(p["body_invocation_tokens_total"] for p in per_case)
+                if per_case and sum(p["body_invocation_tokens_total"] for p in per_case) > 0
+                else None
+            ),
         },
     }
     _write_json(out_dir / "summary.json", summary)

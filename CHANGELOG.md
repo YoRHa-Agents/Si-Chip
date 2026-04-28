@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Round 3 (v0.1.2) dogfood: `R6_routing_latency_p95` and `R7_routing_token_overhead` now hoisted from per-cell router-test data and per-prompt runner instrumentation into `metrics_report.yaml`; D6 routing-cost dimension reaches 8/8 sub-metric coverage at `v1_baseline` (was 6/8 in Round 2). R6 = 1100 ms (≤ 2000 ms ceiling, also passes v2_tightened ≤ 1200 ms); R7 = 0.0233 (≤ 0.20 ceiling, also passes v2_tightened 0.12 and v3_strict 0.08).
+- `evals/si-chip/runners/with_ability_runner.py` records `routing_stage_tokens` + `body_invocation_tokens` per prompt (Round 3 Edit A); per-case totals also surfaced for the aggregator. Sibling test `evals/si-chip/runners/test_with_ability_runner.py` (8 unit tests covering instrumentation determinism + v1_baseline ceiling).
+- `.agents/skills/si-chip/scripts/aggregate_eval.py` adds `hoist_r6_routing_latency_p95` (cells where `pass_rate >= 0.80` → min `latency_p95_ms`) and `hoist_r7_routing_token_overhead` (sum routing / sum body) plus a new `--router-floor-report` CLI flag (Round 3 Edit B). Sibling test `.agents/skills/si-chip/scripts/test_aggregate_eval.py` (12 unit tests + 4 doctests covering hoist logic, degenerate paths, and 28-key invariant).
+- All 6 evidence files at `.local/dogfood/2026-04-28/round_3/` (`basic_ability_profile.yaml`, `metrics_report.yaml`, `router_floor_report.yaml`, `half_retire_decision.yaml`, `next_action_plan.yaml`, `iteration_delta_report.yaml`) plus `raw/` derivations (`r4_near_miss_FP_rate_derivation.json`, `r7_derivation.json`, `notes.md`, `eval_run.log`, `spec_validator.json`).
+- `docs/skills/si-chip-0.1.2.tar.gz` deterministic release tarball (SHA-256 reproducible across rebuilds; same canonical layout as v0.1.0/v0.1.1: 1 SKILL.md + 5 references + 3 scripts).
+
+### Changed
+- `.agents/skills/si-chip/SKILL.md` frontmatter `version: 0.1.1` → `version: 0.1.2` (canonical), with mirrored bumps in `.cursor/skills/si-chip/SKILL.md` and `.claude/skills/si-chip/SKILL.md`. Body unchanged. Mirror drift verified = 0 across all 3 trees.
+- `install.sh` and `docs/install.sh` default `SI_CHIP_VERSION_DEFAULT` constant: `v0.1.1` → `v0.1.2`. Override with `--version v0.1.1` (or `v0.1.0`) to install a prior payload.
+- `docs/_install_body.md` `--version` table cell: `v0.1.1` → `v0.1.2` (English + Chinese rows).
+- Round 3 promotion-state trace: `consecutive_v1_passes: 3` (Round 1 + 2 + 3); promotion to v2_tightened still held to Round 12 per master plan.
 - Pages site supports zh/en language toggle and day/night theme toggle. Hero top-right `[ LANG / EN ]` and `[ THEME / DAY ]` buttons; persisted to `localStorage` (`si-chip-lang`, `si-chip-theme`); first-visit defaults from `navigator.language` and `prefers-color-scheme`. Body markdown bilingualized via `<div lang="en" markdown="1">` / `<div lang="zh" markdown="1">` pattern; chrome translations live in a JSON island inside `_layouts/default.html`.
 - `docs/assets/css/nier.css` extended (~+90 lines) with three new sections: i18n display rules + responsive table overflow, dark-mode palette overrides under `body[data-theme="night"]`, and toggle control styles.
 - `docs/assets/js/nier.js` extended (~12 → ~100 lines) with theme + language state machines (localStorage + system-preference detection + DOM event handlers); cursor blink behavior preserved.
@@ -14,6 +25,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - The 8-column table in `docs/demo.md` (and any wide table site-wide) no longer overflows the NieR page chrome on the right edge. `.page-body table` is now `display: block; max-width: 100%; overflow-x: auto; white-space: nowrap;` at all viewport widths, so wide tables scroll horizontally inside the chrome rather than bursting out.
+
+### Notes
+- `tools/spec_validator.py --json` default-mode 8/8 PASS unchanged after Round 3 (matches v0.1.0 ship report). Strict-prose-count mode still flags the known §3.1/§4.1 vs §13.4 discrepancies (R6_KEYS + THRESHOLD_TABLE) — reconciliation deferred to Round 11 spec bump per master plan.
+- Round 3 metrics_report C1_metadata_tokens 78 → 82 is fully attributable to commit 96f22d4 (`chore(release): v0.1.1`) which bumped SKILL.md frontmatter `version + license` AFTER Round 2 evidence was authored; Round 3 frontmatter bump (0.1.1 → 0.1.2) added 0 tokens (verified: `o200k_base("0.1.1") == o200k_base("0.1.2")`). Documented in `metrics_report.yaml#provenance.c1_drift_attribution`. Both 78 and 82 pass v1_baseline (≤ 120) and v2_tightened (≤ 100).
 
 ## [0.1.1] — 2026-04-28
 

@@ -15,7 +15,7 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-SI_CHIP_VERSION_DEFAULT="v0.1.1"
+SI_CHIP_VERSION_DEFAULT="v0.1.2"
 SOURCE_URL_DEFAULT="https://yorha-agents.github.io/Si-Chip"
 
 MANIFEST=(

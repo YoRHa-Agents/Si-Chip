@@ -190,17 +190,171 @@ def _empty_metrics_block() -> Dict[str, Dict[str, Any]]:
     return {dim: {k: None for k in keys} for dim, keys in METRIC_KEYS.items()}
 
 
+PASS_CELL_THRESHOLD = 0.80
+
+
+def hoist_r6_routing_latency_p95(
+    router_floor_report: Dict[str, Any],
+    *,
+    pass_threshold: float = PASS_CELL_THRESHOLD,
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist R6 from a router_floor_report.yaml dict.
+
+    Spec §3.1 D6 R6 ``routing_latency_p95`` (ms): the cheapest passing
+    cell's latency_p95_ms across the router-test sweep. "Passing" means
+    the per-cell ``pass_rate >= pass_threshold`` (default 0.80, the spec
+    §5.3 router-test cell pass criterion).
+
+    Returns ``(value_ms, derivation_dict)``. ``value_ms`` is the
+    selected ``min(latency_p95_ms)`` across passing cells, or ``None``
+    if no cells meet the threshold (defensive null preserves the §3.2
+    explicit-null contract).
+
+    >>> rf = {"cells": [{"pass_rate": 0.86, "latency_p95_ms": 1100},
+    ...                  {"pass_rate": 0.74, "latency_p95_ms": 900}]}
+    >>> v, _ = hoist_r6_routing_latency_p95(rf)
+    >>> v
+    1100.0
+    """
+
+    if not isinstance(router_floor_report, dict):
+        return None, {"error": "router_floor_report is not a dict"}
+    cells = router_floor_report.get("cells")
+    if not isinstance(cells, list) or not cells:
+        return None, {"error": "router_floor_report has no cells"}
+
+    passing: List[Dict[str, Any]] = []
+    for cell in cells:
+        if not isinstance(cell, dict):
+            continue
+        pr = cell.get("pass_rate")
+        lat = cell.get("latency_p95_ms")
+        if pr is None or lat is None:
+            continue
+        try:
+            pr_f = float(pr)
+            lat_f = float(lat)
+        except (TypeError, ValueError):
+            continue
+        if pr_f >= pass_threshold:
+            passing.append(
+                {
+                    "model": cell.get("model"),
+                    "thinking_depth": cell.get("thinking_depth"),
+                    "scenario_pack": cell.get("scenario_pack"),
+                    "pass_rate": pr_f,
+                    "latency_p95_ms": lat_f,
+                }
+            )
+
+    if not passing:
+        return None, {
+            "error": "no passing cells",
+            "pass_threshold": pass_threshold,
+            "n_cells_total": len(cells),
+        }
+
+    chosen = min(passing, key=lambda c: c["latency_p95_ms"])
+    derivation = {
+        "method": "min(latency_p95_ms across cells where pass_rate >= threshold)",
+        "pass_threshold": pass_threshold,
+        "n_cells_total": len(cells),
+        "n_cells_passing": len(passing),
+        "passing_cells": passing,
+        "chosen_cell": chosen,
+    }
+    return chosen["latency_p95_ms"], derivation
+
+
+def hoist_r7_routing_token_overhead(
+    with_rows: List[Dict[str, Any]],
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist R7 from with-ability per-case result.json rows.
+
+    Spec §3.1 D6 R7 ``routing_token_overhead`` =
+    ``sum(routing_stage_tokens) / sum(body_invocation_tokens)`` across
+    every prompt invocation (case-aggregate sums work because the
+    runner emits per-case totals).
+
+    Returns ``(value, derivation_dict)``. Result is ``None`` if no row
+    carries the new R7 instrumentation fields (Round 3 Edit A); this is
+    the documented degenerate path and must be recorded in
+    ``raw/r7_derivation.json`` per the master iteration plan.
+
+    >>> rows = [{"routing_stage_tokens_total": 78,
+    ...          "body_invocation_tokens_total": 3520}]
+    >>> v, _ = hoist_r7_routing_token_overhead(rows)
+    >>> round(v, 4)
+    0.0222
+    """
+
+    routing_total = 0
+    body_total = 0
+    counted_rows = 0
+    skipped_rows = 0
+    for r in with_rows:
+        rs = r.get("routing_stage_tokens_total")
+        bi = r.get("body_invocation_tokens_total")
+        if rs is None or bi is None:
+            skipped_rows += 1
+            continue
+        try:
+            routing_total += int(rs)
+            body_total += int(bi)
+            counted_rows += 1
+        except (TypeError, ValueError):
+            skipped_rows += 1
+
+    if counted_rows == 0 or body_total <= 0:
+        return None, {
+            "error": "no rows carried R7 instrumentation",
+            "counted_rows": counted_rows,
+            "skipped_rows": skipped_rows,
+            "n_rows_total": len(with_rows),
+            "remediation": (
+                "rerun evals/si-chip/runners/with_ability_runner.py against "
+                "evals/si-chip/cases/ — Round 3 Edit A added per-prompt "
+                "routing_stage_tokens + body_invocation_tokens to result.json"
+            ),
+        }
+
+    ratio = routing_total / body_total
+    derivation = {
+        "method": "sum(routing_stage_tokens_total) / sum(body_invocation_tokens_total) across with-ability rows",
+        "sum_routing_stage_tokens": routing_total,
+        "sum_body_invocation_tokens": body_total,
+        "n_rows_counted": counted_rows,
+        "n_rows_skipped": skipped_rows,
+        "n_rows_total": len(with_rows),
+    }
+    return ratio, derivation
+
+
 def build_report(
     with_rows: List[Dict[str, Any]],
     without_rows: List[Dict[str, Any]],
     runs_dir: Path,
     baseline_dir: Path,
     skill_md_meta_tokens: Optional[int],
+    *,
+    router_floor_report: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Compute the metrics_report dict from collected rows.
 
     Populates MVP-8 keys; leaves the other 20 sub-metric keys at
     ``null`` per spec §3.2 frozen constraint #2.
+
+    Round 3 (S5 task spec Edit B) hoists D6 R6 and R7:
+
+    * R6_routing_latency_p95 = ``min(latency_p95_ms across passing
+      cells)`` from ``router_floor_report`` when supplied.
+    * R7_routing_token_overhead = ``sum(routing_stage_tokens_total) /
+      sum(body_invocation_tokens_total)`` across ``with_rows`` when the
+      Round 3 Edit A instrumentation is present.
+
+    Both stay ``null`` when their data source is degenerate; the
+    aggregator MUST NOT silently substitute a placeholder
+    (workspace rule "No Silent Failures").
     """
 
     pass_with = _mean([float(r["pass_rate"]) for r in with_rows])
@@ -227,6 +381,16 @@ def build_report(
     metrics["routing_cost"]["R3_trigger_F1"] = trigger_f1
     metrics["routing_cost"]["R5_router_floor"] = router_floor
 
+    r6_value: Optional[float] = None
+    r6_derivation: Dict[str, Any] = {"loaded": False}
+    if router_floor_report is not None:
+        r6_value, r6_derivation = hoist_r6_routing_latency_p95(router_floor_report)
+        r6_derivation["loaded"] = True
+    metrics["routing_cost"]["R6_routing_latency_p95"] = r6_value
+
+    r7_value, r7_derivation = hoist_r7_routing_token_overhead(with_rows)
+    metrics["routing_cost"]["R7_routing_token_overhead"] = r7_value
+
     devolaflow_version = _safe_devolaflow_version()
 
     report = {
@@ -245,9 +409,29 @@ def build_report(
             "script_version": SCRIPT_VERSION,
             "devolaflow_version": devolaflow_version,
             "metadata_tokens_source": "skill_md" if skill_md_meta_tokens is not None else "result.json mean",
+            "r6_derivation": r6_derivation,
+            "r7_derivation": r7_derivation,
         },
     }
     return report
+
+
+def _maybe_load_router_floor_report(path: Optional[Path]) -> Optional[Dict[str, Any]]:
+    """Load a router_floor_report.yaml when ``path`` is provided.
+
+    Raises ``FileNotFoundError`` when ``path`` is set but missing
+    (workspace rule "No Silent Failures").
+    """
+
+    if path is None:
+        return None
+    if not path.exists():
+        raise FileNotFoundError(f"--router-floor-report path not found: {path}")
+    with path.open("r", encoding="utf-8") as fp:
+        data = yaml.safe_load(fp)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: router_floor_report must be a YAML mapping")
+    return data
 
 
 def _safe_devolaflow_version() -> Optional[str]:
@@ -304,6 +488,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=None,
         help="Optional SKILL.md path; when set, C1_metadata_tokens is sourced from count_tokens.py against it.",
     )
+    parser.add_argument(
+        "--router-floor-report",
+        default=None,
+        help=(
+            "Optional router_floor_report.yaml path; when set, "
+            "R6_routing_latency_p95 is hoisted from min(latency_p95_ms) "
+            "across cells with pass_rate >= 0.80 (Round 3 Edit B)."
+        ),
+    )
     parser.add_argument("--verbose", action="store_true", help="Set log level to INFO.")
     args = parser.parse_args(argv)
 
@@ -317,6 +510,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     runs_dir = Path(args.runs_dir).resolve()
     baseline_dir = Path(args.baseline_dir).resolve()
     skill_md = Path(args.skill_md).resolve() if args.skill_md else None
+    router_floor_path = Path(args.router_floor_report).resolve() if args.router_floor_report else None
 
     with_runs = _walk_runs(runs_dir)
     base_runs = _walk_runs(baseline_dir)
@@ -326,7 +520,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     without_rows = _collect(base_runs)
 
     skill_md_meta = _maybe_skill_md_metadata_tokens(skill_md)
-    report = build_report(with_rows, without_rows, runs_dir, baseline_dir, skill_md_meta)
+    router_floor_report = _maybe_load_router_floor_report(router_floor_path)
+    report = build_report(
+        with_rows,
+        without_rows,
+        runs_dir,
+        baseline_dir,
+        skill_md_meta,
+        router_floor_report=router_floor_report,
+    )
 
     template_metrics = _load_template_metrics(Path(args.templates_dir).resolve())
     _cross_check_metrics(report["metrics"], template_metrics)

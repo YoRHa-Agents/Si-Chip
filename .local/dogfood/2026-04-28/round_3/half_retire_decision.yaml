@@ -1,0 +1,104 @@
+# Si-Chip Half-Retirement Decision — round_3
+# Conforms to templates/half_retire_decision.template.yaml (spec §6).
+# Decision rule: spec §6.2 "keep" condition fires because task_delta >= +0.10.
+ability_id: si-chip
+version: '0.1.2+round_3'  # project_version 0.1.2 + dogfood round_3
+decided_at: '2026-04-28T18:30:00+00:00'
+decision: keep
+
+# §6.1 frozen 7-axis value vector (computed vs no_ability baseline).
+# Round 3 recomputes token_delta and context_delta against the new
+# per_invocation_footprint = 3602 (Round 2 was 3598; +4 from C1 release-artifact
+# attribution — see metrics_report.yaml#provenance.c1_drift_attribution).
+# task_delta, latency_delta (within rounding), routing_delta, governance_risk_delta
+# are unchanged from Round 2.
+value_vector:
+  task_delta: 0.35              # = pass_with(0.85) - pass_without(0.50); R6 T3 — unchanged from Round 2.
+  token_delta: -1.4013333333333333  # = (1500 - 3602) / 1500; Round 2 was -1.40 (-1.39867); axis delta -0.0013 (release-artifact regression).
+  latency_delta: -0.5466666666666666  # = (0.95 - 1.4693) / 0.95; effectively unchanged from Round 2's -0.55.
+  context_delta: -1.4013333333333333  # = (1500 - 3602) / 1500; same formula as token_delta. Round 2 was -1.40.
+  path_efficiency_delta: null   # L5 detour_index still not measured (spec §3.2 explicit null placeholder).
+  routing_delta: 0.8933952528379773  # = trigger_F1_with(0.8934) - trigger_F1_without(0.0); R6 D6 — unchanged from Round 2.
+  governance_risk_delta: 0.0    # No risk regression introduced; D7 — unchanged from Round 2.
+
+# §6.2 rule evaluation trace
+rule_evaluation:
+  spec_section: "§6.2"
+  bound_gate: v1_baseline
+  bucket_threshold: 0.05
+  fired_rule: keep
+  fired_condition: 'task_delta (+0.35) >= +0.10'
+  other_rules_checked:
+    half_retire: 'NOT FIRED (task_delta +0.35 outside near-zero band [-0.02, +0.10]; condition #1 of half_retire fails)'
+    retire: 'NOT FIRED (task_delta +0.35 strictly positive; routing_delta +0.8934 strictly positive; not all axes <= 0; governance_risk_delta = 0.0 not negative)'
+    disable_auto_trigger: 'NOT FIRED (governance_risk_delta = 0.0, not materially negative)'
+  round_3_axis_movement:
+    task_delta_axis_delta: '0.0 (Round 2 +0.35 -> Round 3 +0.35)'
+    token_delta_axis_delta: '-0.0013 (Round 2 -1.40 -> Round 3 -1.4013; release-artifact from C1 frontmatter bump 78 -> 82)'
+    context_delta_axis_delta: '-0.0013 (same arithmetic as token_delta)'
+    latency_delta_axis_delta: '+0.0033 (rounding artifact; effectively unchanged)'
+    routing_delta_axis_delta: '0.0 (Round 2 +0.8934 -> Round 3 +0.8934)'
+    governance_risk_delta_axis_delta: '0.0 (Round 2 0.0 -> Round 3 0.0)'
+    routing_cost_measurement_fill_bonus: 'D6 routing-cost dimension reaches 8/8 sub-metric coverage (R6 + R7 newly populated). This is a measurement-coverage win, not a value-vector axis-movement win.'
+    note: 'No 7-axis value-vector axis hits the v1_baseline +0.05 bucket via round-to-round movement this round. The §4.1 v1_baseline iteration_delta clause is satisfied via the master-plan-allowed "measurement-fill" axis bonus on routing_cost (R6 + R7 NEW). See iteration_delta_report.yaml#axis_status.routing_cost.'
+
+simplification:
+  applied: []                    # No simplification: decision = keep; ability is fully retained.
+  bound_gate: v1_baseline
+
+retained_core:
+  - 'full SKILL.md (body unchanged from Round 2 at 2020 tokens; frontmatter version bumped 0.1.1 -> 0.1.2 only)'
+  - 'all 6 templates'
+  - 'all 5 references'
+  - 'Round 3 newly-instrumented runner: per-prompt routing_stage_tokens + body_invocation_tokens (Edit A on with_ability_runner.py)'
+  - 'Round 3 newly-instrumented aggregator: hoist_r6_routing_latency_p95 + hoist_r7_routing_token_overhead (Edit B on aggregate_eval.py)'
+  - 'all 28 sub-metric keys present per spec §3.2 frozen constraint #2 (8 measured, 20 explicit null)'
+  - 'D6 routing_cost dimension at 8/8 sub-metric coverage (NEW THIS ROUND)'
+
+review:
+  next_review_at: '2026-05-28'   # today + 30 days, per spec §6 cadence (30/60/90)
+  triggers:
+    - new_model_no_ability_baseline_gap          # spec §6.4 trigger 1
+    - new_scenario_or_domain_match               # spec §6.4 trigger 2
+    - router_test_requires_ability_for_cheap_model  # spec §6.4 trigger 3
+    - efficiency_axis_becomes_significant        # spec §6.4 trigger 4
+    - upstream_api_change_wrapper_stabilizes     # spec §6.4 trigger 5
+    - manual_invocation_rebound                  # spec §6.4 trigger 6
+
+# Explicit non-half_retire trace (per L1 task spec Step 6 — must document why
+# half_retire = false).
+half_retire_explicit_check:
+  half_retire_false: true
+  reasons:
+    - 'task_delta carry-over from Round 2 still >= 0.10 (+0.35 vs +0.10 spec §6.2 keep ceiling)'
+    - 'routing_cost axis is now strictly improved by measurement-fill (R6_routing_latency_p95 null -> 1100 ms; R7_routing_token_overhead null -> 0.0233; D6 6/8 -> 8/8 sub-metric coverage)'
+    - 'No §11 forever-out violation (no marketplace, no router model training, no Markdown-to-CLI converter, no generic IDE compatibility layer introduced this round)'
+    - 'governance_risk_delta still >= 0 (== 0.0; no negative governance regression that would force disable_auto_trigger)'
+    - 'spec §6.2 half_retire condition first clause (task_delta near zero in [-0.02, +0.10]) is FALSE; condition is conjunctive — not even checked further'
+
+provenance:
+  round_id: round_3
+  prior_round_id: round_2
+  metrics_report_path: .local/dogfood/2026-04-28/round_3/metrics_report.yaml
+  router_floor_report_path: .local/dogfood/2026-04-28/round_3/router_floor_report.yaml
+  prior_half_retire_decision_path: .local/dogfood/2026-04-28/round_2/half_retire_decision.yaml
+  decided_by: 'si-chip.self_eval (Round 3 dogfood — L1 Stage Agent)'
+  baseline_summary_path: evals/si-chip/baselines/no_ability/summary.json
+  spec_version: v0.1.0
+
+rationale: |
+  Round 3 task_delta is unchanged at +0.35 (with-ability pass_rate 0.85 vs
+  no-ability baseline 0.50) which still satisfies spec §6.2 "keep" condition
+  (task_delta >= +0.10). The previously inapplicable D6 R6 + R7 cells are now
+  populated for the FIRST TIME: R6_routing_latency_p95 = 1100 ms (well within
+  v1_baseline ceiling 2000 ms; also passes v2_tightened ceiling 1200 ms);
+  R7_routing_token_overhead = 0.0233 (well within v1_baseline ceiling 0.20;
+  also passes v2_tightened 0.12 and v3_strict 0.08). D6 routing_cost dimension
+  thereby reaches 8/8 sub-metric coverage at v1_baseline. The token_delta and
+  context_delta value-vector axes regressed by -0.0013 each (Round 2 -1.40 ->
+  Round 3 -1.4013), entirely attributable to the v0.1.1 release commit (96f22d4)
+  bumping SKILL.md frontmatter `version: 0.1.0 -> 0.1.1` and `license: internal
+  -> Apache-2.0` which added 4 metadata tokens BETWEEN Round 2 and Round 3
+  evidence — not a Round 3 dogfood activity. No reactivation triggers fire on
+  a "keep" decision; the six standard triggers remain on watch through
+  2026-05-28.

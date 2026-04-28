@@ -1,0 +1,24 @@
+Agent Impact Analysis of /home/agent/workspace/Si-Chip/.agents/skills/si-chip
+  Total files scanned: 10
+  Agent mechanisms: 5
+  Agent artifacts: 1
+  Key points: 11
+    [2] Mechanism: multi_platform_sync
+    [2] Mechanism: behavioral_rules
+    [2] Mechanism: drift_prevention
+    [2] Mechanism: productive_contradiction
+    [2] Mechanism: active_forgetting
+
+  Code structure:
+  Files analyzed: 3
+  Total lines: 853
+  Functions: 25
+  Classes: 0
+  Avg complexity: 3.67
+  Knowledge units: 25
+  Findings: 11
+  Duration: 18.2 ms
+
+  Audit:
+    critical=0 warn=1 info=0
+    [warn/finding_id] finding_id_namespace: unknown finding-ID format (7 ID(s); first few: ['SUM-dad744-0000', 'DEP-dad744-0001', 'CC-f14608-0000']); expected namespaced '^[A-Z]+-[0-9a-f]{8}-[0-9]+$'
