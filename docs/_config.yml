@@ -3,7 +3,6 @@ description: Persistent BasicAbility optimization factory - frozen spec v0.1.0
 version: 0.1.0
 
 # No Jekyll built-in theme; we ship our own NieR: Automata-styled layout.
-theme: ""
 
 plugins:
   - jekyll-relative-links
