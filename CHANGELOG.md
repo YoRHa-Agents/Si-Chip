@@ -6,27 +6,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+(no entries yet)
+
+## [0.1.1] — 2026-04-28
+
+This release packages everything that has landed since v0.1.0 (PR #2 through PR #6) into a single named version. The frozen specification at `.local/research/spec_v0.1.0.md` is unchanged; this is a packaging / docs / installer release on top of the same v0.1.0 spec gate evidence.
+
 ### Added
-- `install.sh` — one-line bash installer at `https://yorha-agents.github.io/Si-Chip/install.sh`. Supports `--target cursor|claude|both`, `--scope global|repo`, `--repo-root <path>`, `--version`, `--source-url`, `--yes`, `--dry-run`, `--force`, `--uninstall`, `--help`. Interactive when run in a TTY without `--yes`.
-- `docs/skills/si-chip/` — fourth Skill payload mirror (alongside `.agents/`, `.cursor/`, `.claude/`) so the installer can fetch the 9-file payload from the public Pages URL. Drift contract documented in `CONTRIBUTING.md` §9.
-- `docs/install.sh` — byte-identical copy of root `install.sh`, served by Pages.
+- One-line bash installer (PR #5, refined in PR #6) at `https://yorha-agents.github.io/Si-Chip/install.sh`. Supports `--target cursor|claude|both`, `--scope global|repo`, `--repo-root <path>`, `--version`, `--source-url`, `--yes`, `--dry-run`, `--force`, `--uninstall`, `--help`. Interactive in a TTY without `--yes`.
+- `docs/skills/si-chip-0.1.1.tar.gz` — deterministic release tarball for v0.1.1 (new in this release). The v0.1.0 tarball at `docs/skills/si-chip-0.1.0.tar.gz` is preserved for backward compatibility — `--version v0.1.0` still works.
+- NieR: Automata-themed GitHub Pages design (PR #3, fixed in PR #4): warm khaki / olive-brown palette, B612 Mono + Saira Stencil One typography, bracketed `[SI-CHIP]` title, scan-line overlay, blinking cursor, `// CHAPTER 0N //` section markers, "GLORY TO MANKIND." motto, `[STATUS: ONLINE] [NODE: 0001] [VER: 0.1.1] [OPERATOR: 6O]` footer status grid. Cayman theme retired.
+- `docs/_layouts/default.html`, `docs/_includes/{header,footer}.html`, `docs/assets/css/nier.css` (~476 lines), `docs/assets/js/nier.js` (12 lines, prefers-reduced-motion guarded).
+- `CONTRIBUTING.md` §9 Mirror Drift Contract: 3-tree (`.agents/`, `.cursor/`, `.claude/`) + 1-derived-tarball (`docs/skills/si-chip-<version>.tar.gz`) contract with diff and rebuild commands.
 
 ### Changed
-- `INSTALL.md` and `docs/_install_body.md` — promoted the new one-line install path to the top; the previous git-clone manual flow is now under `## Manual install`.
-- `README.md` — `## Quick Start` split into `## Quick Install` (one-liner) and `## Quick Start (after install or clone)` (the original 3-command verification block).
-- `install.sh` and `docs/install.sh` now download the Skill payload as a
-  single tarball at `https://yorha-agents.github.io/Si-Chip/skills/si-chip-<version>.tar.gz`
-  over HTTP(S). The previous per-file mirror at `docs/skills/si-chip/` was
-  removed because Jekyll renders YAML-front-matter `.md` files (SKILL.md
-  served as HTML at `/skills/si-chip/SKILL/`, raw .md URL = 404). Tarball
-  is byte-deterministic (`tar --sort=name --owner=0 --group=0 --numeric-owner
-  --mtime=... --format=ustar | gzip -n -9`); same source -> same SHA256.
-  `file://` source URLs still use per-file copy. CONTRIBUTING.md §9 updated
-  to a 3-tree + 1-tarball drift contract.
+- `.agents/skills/si-chip/SKILL.md` frontmatter: `version: 0.1.0` → `version: 0.1.1`; `license: internal` → `license: Apache-2.0` (matches the repo's actual `LICENSE` file). Token budget still passes v3_strict (metadata ≤ 100, body ≤ 5000).
+- `install.sh` and `docs/install.sh` default `SI_CHIP_VERSION` constant: `v0.1.0` → `v0.1.1`. Override with `--version v0.1.0` to install the prior payload.
+- `INSTALL.md` and `docs/_install_body.md`: now lead with `## Quick Install (one-line)`; the previous git-clone flow is `## Manual install`; Codex deferral promoted to its own section.
+- `README.md`: status badge bumped to `v0.1.1 ship-eligible`; `## Quick Start` split into `## Quick Install` (one-liner) and `## Quick Start (after install or clone)` (the original 3-command verification block).
+- `install.sh` HTTP(S) path now downloads a single tarball at `${SOURCE_URL}/skills/si-chip-${VERSION}.tar.gz` and extracts it (PR #6). The previous per-file mirror at `docs/skills/si-chip/` was removed because Jekyll renders YAML-front-matter `.md` files (SKILL.md was served at `/skills/si-chip/SKILL/`, raw `.md` URL = 404). `file://` source URLs continue to use per-file `cp` for local testing.
+
+### Fixed
+- Pages build no longer hangs on `include_relative ../USERGUIDE.md` / `../INSTALL.md` traversal in `docs/userguide.md` and `docs/install.md` (PR #2). Userguide/install bodies now ship as sibling Jekyll partials `docs/_userguide_body.md` and `docs/_install_body.md`. Live URLs return HTTP 200.
+- `docs/_config.yml` previously had `theme: ""` which Jekyll rejects (`MissingDependencyException: The  theme could not be found.`); the `theme:` key is now omitted entirely so Jekyll picks up the local `_layouts/default.html` via `defaults.layout: default` (PR #4).
+- `install.sh` no longer 404s on SKILL.md when run against the live Pages URL (PR #6 tarball switch).
 
 ### Notes
-- The installer never targets Codex (spec §7.2: Codex is bridge-only and deferred). It also never offers a `--target marketplace` option (spec §11.1: forever-out).
-- `DESIGN.md` is intentionally omitted from all three platform mirrors and the `docs/skills/si-chip/` Pages mirror.
+- Codex (`--target codex`) remains out of scope (spec §7.2: bridge-only, deferred).
+- Marketplace (`--target marketplace`) remains forever-out (spec §11.1).
+- `DESIGN.md` is intentionally NOT in any platform mirror or in the tarball (internal artifact only).
+- Spec text `.local/research/spec_v0.1.0.md` is unchanged — this release does NOT bump the spec version. The next spec bump (when there is one) would go to spec v0.2.0 alongside a project release ≥ v0.2.0.
+- Dogfood evidence at `.local/dogfood/2026-04-28/round_{1,2}/` is unchanged; the v0.1.0 ship verdict (SHIP_ELIGIBLE at `relaxed` / `v1_baseline`, two consecutive v1 passes, ALL_TREES_DRIFT_ZERO, 8/8 spec invariants PASS) carries forward unchanged.
 
 ## [0.1.0] — 2026-04-28
 
@@ -86,4 +96,6 @@ package, an evaluation harness, and machine-checkable spec invariants.
 - No generic IDE compatibility layer.
 - Codex native SKILL.md runtime is bridge-only and deferred.
 
+[Unreleased]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/YoRHa-Agents/Si-Chip/releases/tag/v0.1.0

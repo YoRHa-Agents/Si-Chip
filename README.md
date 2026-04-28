@@ -2,7 +2,7 @@
 
 > Persistent BasicAbility optimization factory.
 
-![status](https://img.shields.io/badge/status-v0.1.0%20ship--eligible-brightgreen)
+![status](https://img.shields.io/badge/status-v0.1.1%20ship--eligible-brightgreen)
 ![spec](https://img.shields.io/badge/spec-v0.1.0%20frozen-blue)
 ![gate](https://img.shields.io/badge/gate-v1__baseline%20%C3%972-success)
 ![license](https://img.shields.io/badge/license-Apache--2.0-lightgrey)
