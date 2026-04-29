@@ -1,0 +1,32 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T11:33:00+00:00'
+targets_round: round_19
+bound_gate: v3_strict
+target_branch: feature/si-chip-token-econ
+
+# Round 19: release cycle-3 as v0.9.0 + final ship decision + SUMMARY append.
+
+actions:
+  - action_id: a1
+    priority: P0
+    description: |
+      Version bump 0.8.0 -> 0.9.0 in:
+        - package.json, mcp/package.json, .cursor-plugin/plugin.json
+        - mcp/src/index.ts Server version
+        - scripts/package-plugin.mjs, scripts/package-smoke-test.mjs
+        - README.md, docs/user-guide.md, docs/admin-integration-guide.md
+        - mcp/src/aggregate/ranking.ts comments (v0.8.0 -> v0.9.0)
+  - action_id: a2
+    priority: P0
+    description: "CHANGELOG.md: add [0.9.0] entry with the 2 cycle-3 changes + R-3 mitigation"
+  - action_id: a3
+    priority: P0
+    description: "Build v0.9.0 tarball (npm run package + package:smoke); delete v0.8.0 dist artifacts"
+  - action_id: a4
+    priority: P0
+    description: "Update Si-Chip ship_decision.yaml + SUMMARY.md for Cycle 3"
+  - action_id: a5
+    priority: P0
+    description: "Push branch (extends MR #5) or open new MR"
+
+provenance: { target_commit_base: TBD_round_18 }

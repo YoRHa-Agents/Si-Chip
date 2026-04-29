@@ -1,22 +1,24 @@
 ---
 name: si-chip-spec
-version: v0.2.0
+version: v0.3.0
 status: frozen
-effective_date: 2026-04-28
-promoted_from: v0.2.0-rc1
-supersedes: v0.1.0
-source: .local/research/spec_v0.2.0.md
+effective_date: 2026-04-29
+promoted_from: v0.3.0-rc1
+supersedes: v0.2.0
+source: .local/research/spec_v0.3.0.md
 alwaysApply: true
 compiled_into: AGENTS.md
 language: zh-CN
-reconciliation_only: true
+reconciliation_only: false
+additive_only: true
 ---
 
-# Si-Chip Spec v0.2.0（Frozen Rule Layer — 仅 §13.4 prose-count reconciliation, promoted from v0.2.0-rc1）
+# Si-Chip Spec v0.3.0（Frozen Rule Layer — additive: §14 core_goal + §15 round_kind + §16 multi-ability + §17 hard rules 9 & 10, promoted from v0.3.0-rc1）
 
-> 本规则为 Si-Chip 仓库 Agent 的强约束。`§3 / §4 / §5 / §6 / §7 / §8 / §11` 为 **Normative**，违反即视为越界。
+> 本规则为 Si-Chip 仓库 Agent 的强约束。`§3 / §4 / §5 / §6 / §7 / §8 / §11 / §14 / §15` 为 **Normative**，违反即视为越界（v0.3.0 新增 §14 / §15 加入 Normative 集合）。
 > 相对 v0.1.0，本规范仅做 §13.4 prose 与 §3.1 / §4.1 table 的计数对齐（"28 子指标" → "37 子指标"、"21 个数" → "30 个数"）；Normative 段的语义（sub-metric 集合、阈值数值、步骤顺序、平台优先级、value-vector 轴、forever-out 项）与 v0.1.0 逐字节等价。
-> 完整论证见 `.local/research/spec_v0.2.0.md`（promoted from `.local/research/spec_v0.2.0-rc1.md`，pinned 历史快照保留）；本文件只承载冻结约束。
+> 相对 v0.2.0，本规范 **仅做加法**：新增 §14 core_goal Normative + §15 round_kind Normative + §16 multi-ability dogfood layout Informative + §17 hard rules 9 & 10；§3 / §4 / §5 / §6 / §7 / §8 / §11 与 v0.2.0 byte-identical；§13 v0.2.0 的 8 条 hard rules byte-identical 保留，仅追加 v0.3.0 新增的 rules 9 + 10。
+> 完整论证见 `.local/research/spec_v0.3.0.md`（promoted from `.local/research/spec_v0.3.0-rc1.md`，body byte-identical；上游 baseline `.local/research/spec_v0.2.0.md` 与 `spec_v0.2.0-rc1.md` 作为 pinned 历史快照保留）；本文件只承载冻结约束。
 
 ---
 
@@ -343,5 +345,9 @@ Si-Chip 在向外提供任何指导前，必须先在本仓库完成 **多轮** 
 6. **MUST** 要求 `half_retire` 决策提供 eval-metric 证据（value_vector + 当前 gate 阈值桶比对），禁止主观或 "base model 已覆盖" 单一理由。
 7. **MUST** 在 self-dogfood 任一步骤失败时显式报告，禁止静默跳过。
 8. **MUST** 在每轮 dogfood 落盘 §8.2 的 6 件最小证据集；缺一即视为未完成。
+9. **MUST** attach `core_goal_test_pack` to every BasicAbility profile and verify `C0_core_goal_pass_rate = 1.0` every round; any C0 < 1.0 = round failure regardless of other axes (per §14.3).
+10. **MUST** declare `round_kind ∈ {code_change | measurement_only | ship_prep | maintenance}` in every `next_action_plan.yaml`; iteration_delta clause interpretation per §15.2.
 
 > 任何 Agent 在解读本文件与上层 workspace rules 冲突时，以 workspace rules（如 "No Silent Failures"、"Mandatory Verification"、"Protected Branch Workflow"）为更高优先级，但不得借此绕过本规则的 Normative 段。
+>
+> v0.3.0 add-on：rules 9 + 10 是 v0.2.0 8 rules 之上的 **additive** 增量（spec §17.1 + §17.2），AGENTS.md §13 因此从 8 条扩为 10 条；冲突解读保持 workspace rules 优先级最高的语义不变。

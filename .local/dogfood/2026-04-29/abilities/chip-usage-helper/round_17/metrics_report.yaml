@@ -1,0 +1,48 @@
+ability_id: chip-usage-helper
+round_id: round_17
+prior_round_id: round_16
+generated_at: '2026-04-29T11:30:30+00:00'
+spec_version: v0.1.0
+gate_bound: v3_strict
+cycle: token_economy_v3 (feedback_for_v0.8.0 follow-up)
+mvp_8: { T1_pass_rate: 0.97, T2_pass_k: 1.0, T3_baseline_delta: 0.92, C1_metadata_tokens: 70, C4_per_invocation_footprint: 2473, L2_wall_clock_p95: 1.78, R3_trigger_F1: 1.0, R5_router_floor: composer_2/fast }
+
+token_tiers_progress_cycle_3:
+  v0.8.0_baseline:         { eager: 365, on_call: 7338, template: 4544, skill_body: 2009, payload: [2548, 3281], first_run: [10251, 10984] }
+  round_17_gut_template:   { eager: 365, on_call: 7078, template: 4162, skill_body: 2131, payload: [2548, 3281], first_run: [9991, 10724] }
+  delta_vs_v080:
+    template_tokens: -382 (-8.4%)
+    skill_body_tokens: +122 (R-3 mitigation note)
+    on_call_net: -260 (-3.5%)
+    first_run_min: -260
+    first_run_max: -260
+
+v3_strict_threshold_check:
+  pass_rate: { threshold: '>= 0.90', observed: 0.97, pass: true }
+  metadata_tokens: { threshold: '<= 80', observed: 70, pass: true }
+  per_invocation_footprint: { threshold: '<= 5000', observed: 2473, pass: true }
+  trigger_F1: { threshold: '>= 0.90', observed: 1.0, pass: true }
+  near_miss_FP_rate: { threshold: '<= 0.05', observed: 0.0, pass: true }
+  routing_token_overhead: { threshold: '<= 0.08', observed: 0.0318, pass: true }
+  pass_k: { threshold: '>= 0.65', observed: 1.0, pass: true }
+  wall_clock_p95: { threshold: '<= 20 s', observed: 1.78, pass: true }
+  routing_latency_p95: { threshold: '<= 800 ms', observed: 0.18, pass: true }
+
+verdict: { pass_v1_baseline: true, pass_v2_tightened: true, pass_v3_strict: true, blockers: [] }
+
+rationale: |
+  Round 17 (feedback_for_v0.8.0 Issue S-1): removed canvas template's 87 lines
+  of EMPTY_RANKING + default data (~480 tokens) and moved them to a sibling
+  templates/empty-data.ts as LAZY author-reference. Also added an explicit
+  "Do NOT read types.d.ts or empty-data.ts" note to SKILL recipe (R-3).
+  Template 4544 -> 4162 (-382 tokens). Skill body +122 (from the note). Net
+  ON-CALL -260 tokens. 101/101 tests pass.
+
+  The template savings are -382 rather than the feedback's predicted -600+
+  because (a) my evaluator uses a 3.8 chars/token heuristic vs feedback's
+  tiktoken (historically diverges ~15-25% on TS prose), and (b) the new
+  explanatory comment took back ~80 tokens.
+
+provenance:
+  raw_metrics_json: round_17/raw/eval_metrics.json
+  feedback_issue: "S-1 (P3) + R-3 (minor note)"

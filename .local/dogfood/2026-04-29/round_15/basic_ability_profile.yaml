@@ -1,0 +1,206 @@
+# Si-Chip BasicAbilityProfile — round_15 (v0.3.0-rc1 measurement_only round)
+# Conforms to templates/basic_ability_profile.schema.yaml ($schema_version 0.2.0).
+# Round 15 is a §15.1 `measurement_only` round: SAME source tree as Round 14
+# (no ability source files modified between Round 14 and Round 15) re-measured
+# to demonstrate deterministic reproducibility per §15.2 monotonicity-only clause.
+#
+# What this round CHANGED (NONE — measurement_only per §15.1):
+#   * NO source-code edits whatsoever (verified Step 1: all source-tree mtimes
+#     are <= 2026-04-29T10:49:51 UTC; Round 14 evidence written 11:06+ UTC).
+#   * RE-RAN the same 5-case core_goal_test_pack from Round 14 -> 5/5 PASS
+#     (C0 = 1.0; monotonicity 1.0 -> 1.0 verified per §14.3.2 / §15.3).
+#   * RE-RAN dual-spec spec_validator (v0.2.0 + v0.3.0-rc1 + v0.3.0-rc1 strict-prose)
+#     -> 11/11 BLOCKERs PASS on each (replay confirms Round 14 deterministic).
+#   * RE-RAN governance_scan -> V1=V2=0 / V3=0.0 / V4=0; governance_risk_delta=0.0
+#     (3/3 SHA-256 mirror byte-equality preserved; 15th consecutive ALL_TREES_DRIFT_ZERO).
+#   * RE-RAN pytest -> 395 passed / 1 skipped (byte-equivalent to Round 14).
+#
+# v1_baseline status: 15th consecutive v1 pass (Rounds 1-15 all clear v1_baseline).
+# spec_validator.py: 11/11 BLOCKERs PASS on both v0.2.0 and v0.3.0-rc1 specs (replay).
+# Full test suite: 395 passed / 1 skipped (replay; byte-equivalent to Round 14 raw).
+
+basic_ability:
+  id: si-chip
+  intent: 'Persistent BasicAbility optimization factory: capture, profile, evaluate, diagnose, improve, router-test, half-retire-review, iterate, package/register the Si-Chip skill against itself.'
+
+  # ── §14.1 core_goal block (REQUIRED v0.3.0-rc1) ──────────────────────
+  core_goal:
+    statement: |
+      Given a BasicAbility input, Si-Chip MUST emit the 6 evidence files (spec §8.2 — basic_ability_profile / metrics_report / router_floor_report / half_retire_decision / next_action_plan / iteration_delta_report) under .local/dogfood/<DATE>/[abilities/<id>/]round_<N>/ and produce a deterministic 11-BLOCKER spec_validator PASS on BOTH the frozen v0.2.0 spec AND the newly shipped v0.3.0-rc1 spec.
+    test_pack_path: .local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml
+    minimum_pass_rate: 1.0
+    test_pack_version: '1.0.0'
+    last_passed_round: round_15                # BUMPED from Round 14's 'round_14' (Round 15 confirmed C0 = 1.0 = 5/5 cases pass; per raw/core_goal_test_pack_run_round_15.json).
+
+  current_surface:
+    type: mixed
+    path: .agents/skills/si-chip/
+    shape_hint: markdown_first
+
+  packaging:
+    install_targets:
+      cursor: true
+      claude_code: true
+      codex: true                 # bridge-only per §7.2 priority 3 / §11.2 deferred — install_target=true reflects the AGENTS.md + .codex/ bridge surface (NOT native SKILL.md runtime).
+    source_of_truth: .agents/skills/si-chip/
+    generated_targets:
+      - .cursor/skills/si-chip/
+      - .claude/skills/si-chip/
+      - 'AGENTS.md (via .rules/si-chip-spec.mdc compiler)'
+
+  lifecycle:
+    stage: routed                  # UNCHANGED from Round 14 (PROMOTED Round 14 from Round 13's `evaluated`).
+    last_reviewed_at: '2026-04-29' # UNCHANGED — Round 15 same-day measurement_only round.
+    next_review_at: '2026-05-29'   # UNCHANGED — last_reviewed_at + 30 days per §6 cadence.
+
+  eval_state:
+    has_eval_set: true
+    has_no_ability_baseline: true
+    has_self_eval: true
+    has_router_test: true
+    has_iteration_delta: true
+
+  # R6 7-dim 37-sub-metric block. Round 15 carries Round 14 values BYTE-IDENTICAL
+  # for ALL 37 keys (deterministic; same source tree; no eval-data change). This
+  # is the central §15.2 monotonicity-only proof: the SAME source produces the
+  # SAME measurements across rounds. Every value below is verifiable byte-for-byte
+  # against .local/dogfood/2026-04-29/round_14/basic_ability_profile.yaml.
+  metrics:
+    task_quality:
+      T1_pass_rate: 0.85                         # CARRIED Round 14 (no Si-Chip eval data change; 6-case mean against evals/si-chip/baselines/with_si_chip_round4/).
+      T2_pass_k: 0.5477708333333333              # CARRIED Round 14 byte-identical (deterministic SHA-256 PROXY).
+      T3_baseline_delta: 0.35                    # CARRIED Round 14.
+      T4_error_recovery_rate: null               # Out of scope for v0.1.x/v0.2.x/v0.3.0; explicit-null per spec §3.2.
+
+    context_economy:
+      C1_metadata_tokens: 97                     # CARRIED Round 14 (re-verified live this round via count_tokens.py against current SKILL.md; raw/count_tokens_skill_md.json shows 97 byte-identical).
+      C2_body_tokens: 3022                       # CARRIED Round 14 (re-verified live this round via count_tokens.py against current SKILL.md; raw/count_tokens_skill_md.json shows 3022 byte-identical).
+      C3_resolved_tokens: null                   # Stays null BY DESIGN (on-demand reference loading).
+      C4_per_invocation_footprint: 3119          # CARRIED Round 14 (re-derived live via eval_skill.py harness output; raw/eval_skill_output.yaml#metrics.context_economy.C4 = 3119 byte-identical).
+      C5_context_rot_risk: 0.2601                # CARRIED Round 14 byte-identical (carry-forward convention since Round 11).
+      C6_scope_overlap_score: 0.043478260869565216  # CARRIED Round 14 byte-identical.
+
+    latency_path:
+      L1_wall_clock_p50: 1.2153333333333334      # CARRIED Round 14 (6-case L1 mean; not re-derived this round; deterministic baselines unchanged).
+      L2_wall_clock_p95: 1.4693333333333334      # CARRIED Round 14 (same).
+      L3_step_count: 20                          # CARRIED.
+      L4_redundant_call_ratio: 0.0               # CARRIED (single-handler degenerate; Si-Chip has 1 handler).
+      L5_detour_index: null                      # Real-LLM upgrade required; deferred to v0.3.x.
+      L6_replanning_rate: null                   # Same.
+      L7_think_act_split: null                   # Same.
+
+    generalizability:
+      G1_cross_model_pass_matrix:                # CARRIED Round 14 byte-identical (mvp 8-cell sweep cells hard-coded in MVP_CELL_OUTCOMES; deterministic).
+        composer_2:
+          trigger_basic: 0.9
+          near_miss: 0.83
+        sonnet_shallow:
+          trigger_basic: 0.88
+          near_miss: 0.81
+      G2_cross_domain_transfer_pass: null        # Out of scope for v0.1.x / v0.2.x / v0.3.0; deferred to v0.3.x.
+      G3_OOD_robustness: null                    # Same.
+      G4_model_version_stability: null           # Same.
+
+    usage_cost:
+      U1_description_readability: 19.580000000000002   # CARRIED Round 14 byte-identical.
+      U2_first_time_success_rate: 0.75                  # CARRIED Round 14 (6-case mean).
+      U3_setup_steps_count: 1                           # CARRIED.
+      U4_time_to_first_success: 0.007293148897588253    # CARRIED Round 14 byte-identical.
+
+    routing_cost:
+      R1_trigger_precision: 1.0                  # CARRIED Round 14 AUX (re-verified live this round via cjk_trigger_eval against same 40-prompt eval_pack; identical 20/(20+0) = 1.0; raw/eval_skill_output.yaml#trigger_confusion).
+      R2_trigger_recall: 1.0                     # CARRIED Round 14 AUX (re-verified live identical 20/(20+0) = 1.0).
+      R3_trigger_F1: 0.8933952528379773          # CARRIED Round 14 (canonical 6-case derivation; AUX R3 = 1.0 from cjk_trigger_eval is informational).
+      R4_near_miss_FP_rate: 0.05                 # CARRIED Round 14 (canonical 6-case 3/60).
+      R5_router_floor: composer_2/fast           # CARRIED Round 14.
+      R6_routing_latency_p95: 1100.0             # CARRIED Round 14.
+      R7_routing_token_overhead: 0.023295454545454546  # CARRIED Round 14 (canonical 6-case 9840/422400).
+      R8_description_competition_index: 0.043478260869565216  # CARRIED Round 14 byte-identical.
+
+    governance_risk:
+      V1_permission_scope: 0                     # FRESH-VERIFIED Round 15 via tools/governance_scan.py (raw/governance_scan_round_15.json) -> 0 byte-identical to Round 14.
+      V2_credential_surface: 0                   # FRESH-VERIFIED Round 15 -> 0 byte-identical.
+      V3_drift_signal: 0.0                       # FRESH-VERIFIED Round 15 -> 0.0 byte-identical (3/3 SHA-256 mirror equality preserved; 15th consecutive ALL_TREES_DRIFT_ZERO round). Per raw/governance_scan_round_15.json.
+      V4_staleness_days: 0                       # Same-day review (2026-04-29; lifecycle.last_reviewed_at unchanged from Round 14).
+
+  # §6.1 frozen 7-axis value vector. Round 15 carries Round 14 byte-identical
+  # for ALL 7 axes — measurement_only round produces no axis movement by design
+  # (per §15.2 monotonicity-only clause: no regression required, but no improvement
+  # required either). The governance_risk_delta is RE-DERIVED LIVE this round
+  # (clean baseline 0.0 unchanged).
+  value_vector:
+    task_delta: 0.35                             # CARRIED Round 14 byte-identical.
+    token_delta: -1.4733333333333334             # CARRIED Round 14 byte-identical (legacy formula).
+    latency_delta: -0.5374956400418557           # CARRIED Round 14 byte-identical.
+    context_delta: -1.4733333333333334           # CARRIED Round 14 byte-identical.
+    path_efficiency_delta: null                  # L5 still null.
+    routing_delta: 0.8933952528379773            # CARRIED Round 14 byte-identical = R3 trigger_F1_with - 0.0.
+    governance_risk_delta: 0.0                   # DERIVED LIVE Round 15 via tools/governance_scan.py::compute_governance_risk_delta(V1=0,V2=0,V3=0.0,V4=0). Numerically 0.0 = byte-identical to Round 14 (clean baseline).
+
+  router_floor: composer_2/default               # CARRIED Round 14 (no router-test rerun for measurement_only; intersection cells hard-coded in MVP_CELL_OUTCOMES).
+
+  decision:
+    action: keep
+    rationale: |
+      Round 15 measurement_only round; C0 monotonicity confirmed (round_14: 1.0, round_15: 1.0); 11/11 dual-spec validator PASS replayed; 395 pytest replayed; 15th consecutive v1_baseline pass.
+
+      Per spec §15.1, Round 15 was pre-classified as `measurement_only` by Round
+      14's next_action_plan.yaml (3 actions a1/a2/a3 all pre-specified the
+      verify primitive: re-run core_goal_test_pack, re-run dual-spec
+      spec_validator, re-run governance_scan). All 3 actions executed; all 3
+      passed their exit_criterion verbatim. Per §15.2 the iteration_delta
+      clause for measurement_only is `monotonicity_only` (RELAXED — no axis
+      improvement required, only assert no regression). Per §15.3 C0 = 1.0 +
+      monotonicity is UNIVERSAL across all 4 round_kinds (so measurement_only
+      MUST satisfy C0 AND no-regression — both satisfied: 1.0 == 1.0).
+
+      Per §15.4.1 a measurement_only round is eligible to count toward §4.2
+      promotion-rule consecutive-rounds counter (eligibility conditions:
+      C0 = 1.0 AND C0 >= prior_round.C0 AND no v1_baseline hard gate
+      regressed). All three conditions met. Combined with Round 14 (which
+      also met §15.4.1 conditions for code_change), Round 14 + Round 15 = 2
+      consecutive PASSes; v0.3.0 ship gate (= relaxed = v1_baseline; same
+      as v0.2.0 ship gate per §4.2 promotion rule) becomes ELIGIBLE.
+
+      Per §6.2 keep condition: task_delta = +0.35 (CARRIED byte-identical from
+      Round 14; same legacy 6-case baselines). All 9 v1_baseline hard
+      thresholds PASS (15th consecutive v1 pass). spec_validator dual-spec
+      verdict = 11/11 PASS / 11/11 PASS (replay). Full pytest 395 passed /
+      1 skipped (replay).
+
+    risk_flags:
+      - 'Round 15 is a v0.3.0-rc1 measurement_only round. Per §15.4.1 it is eligible to count toward §4.2 promotion-rule consecutive-rounds counter (C0 = 1.0 AND C0 >= prior_round.C0 AND no v1_baseline hard gate regressed; all three satisfied — see iteration_delta_report.yaml#promotion_state).'
+      - 'C0_core_goal_pass_rate is 1.0 (5/5 cases). prior_round.C0 (Round 14) is 1.0. Per §14.3.2 the no-regression check is satisfied (1.0 >= 1.0). Per §15.3 universal MUST = 1.0 across all 4 round_kinds is satisfied.'
+      - 'spec_validator dual-spec PASS = 11 BLOCKERs / 11 BLOCKERs replayed (BAP_SCHEMA, R6_KEYS, THRESHOLD_TABLE, ROUTER_MATRIX_CELLS, VALUE_VECTOR_AXES, PLATFORM_PRIORITY, DOGFOOD_PROTOCOL, FOREVER_OUT_LIST, REACTIVATION_DETECTOR_EXISTS, CORE_GOAL_FIELD_PRESENT, ROUND_KIND_TEMPLATE_VALID). Same 11 IDs as Round 14. The strict-prose-count variant on v0.3.0-rc1 also passes (replay).'
+      - 'T2_pass_k still misses v2_tightened (>= 0.55) by -0.0022 — same pre-existing carry-forward blocker since Round 1 (deterministic SHA-256 PROXY). Round 15 is measurement_only and CANNOT modify source per §15.1 (would have made it a code_change round); v0.3.x real-LLM runner remains the unblock path.'
+      - 'L5/L6/L7 + G2/G3/G4 stay null in canonical metrics. Same as Round 14; no measurement extension this round (would conflict with §15.1 measurement_only invariant — that clause forbids ability source changes only; new measurement code is also new source).'
+      - 'R1/R2 receive AUX live values 1.0/1.0 from cjk_trigger_eval.py against the same 40-prompt eval_pack as Round 14. These are byte-identical replays of the Round 14 AUX values; documented as informational only — they do NOT supersede the canonical 6-case R3 (different prompt set + ability boundary).'
+      - 'V3_drift_signal stays 0.0 post Round 15 governance_scan (3/3 SHA-256 byte-equality across .agents / .cursor / .claude trees per raw/governance_scan_round_15.json; 15th consecutive ALL_TREES_DRIFT_ZERO round).'
+      - 'V4_staleness_days = 0 on day-of-review (2026-04-29; lifecycle.last_reviewed_at carried unchanged from Round 14). Rises monotonically until next dogfood (next_review_at = 2026-05-29).'
+      - 'router_floor cells remain simulated (Round 15 did not re-run router-test per measurement_only carry-forward convention; deterministic MVP_CELL_OUTCOMES dict). R6_routing_latency_p95 = 1100 ms is sweep-latency, not real-LLM latency. Real-LLM swap path documented at evals/si-chip/runners/with_ability_runner.py (deferred to v0.3.x).'
+      - 'Pre-flight Step 1 (source-tree drift verification) confirmed: all 8 modified ability-source files + all 14 untracked ability-source files have mtimes <= 2026-04-29T10:49:51 UTC (Round 14 source-code phase finished by 10:49:51); Round 14 evidence files written 11:06+ UTC; Round 15 evidence files written 11:35+ UTC. NO source drift between Round 14 and Round 15.'
+
+provenance:
+  generator: 'Round 15 dogfood — L3 Task Agent (v0.3.0-rc1 measurement_only Stage 6b)'
+  script_version: '0.1.0'
+  spec_version: v0.3.0-rc1
+  generated_at: '2026-04-29T11:35:12+00:00'
+  basis_round: round_14
+  basis_round_artifact: .local/dogfood/2026-04-29/round_14/basic_ability_profile.yaml
+  target_branch: feat/v0.3.0-core-goal-invariant
+  target_commit_base: 6dc04e3e344486cc3b621af5f3a5258b9e744588   # SAME as Round 14 (no commits between Rounds 14 and 15)
+  changes_this_round:
+    - 'measurement_only — no source code change vs Round 14; metrics_report fields recomputed live where applicable'
+    - 'core_goal_test_pack.yaml re-run: 5/5 cases pass; C0 monotonicity verified (1.0 -> 1.0)'
+    - 'spec_validator dual-spec replayed: 11/11 + 11/11 PASS'
+    - 'governance_scan.py replayed: V3_drift_signal = 0.0'
+    - 'pytest replayed: 395 passed / 1 skipped'
+  step_edits_applied:
+    step1: ['lifecycle.last_reviewed_at unchanged at 2026-04-29 (same calendar day as Round 14; measurement_only does not advance review date)', 'lifecycle.next_review_at unchanged at 2026-05-29', 'lifecycle.stage unchanged at routed', 'core_goal.last_passed_round bumped round_14 -> round_15 (Round 15 confirmed C0 = 1.0)']
+    step2: ['metrics.context_economy.C1_metadata_tokens RE-VERIFIED live = 97 byte-identical to Round 14', 'metrics.context_economy.C2_body_tokens RE-VERIFIED live = 3022 byte-identical', 'metrics.context_economy.C4_per_invocation_footprint RE-VERIFIED live = 3119 byte-identical', 'metrics.routing_cost.R1/R2 AUX RE-VERIFIED live = 1.0/1.0 byte-identical', 'metrics.governance_risk.V1-V4 RE-VERIFIED live = 0/0/0.0/0 byte-identical']
+    step3: ['diagnose: Round 15 is structurally a measurement_only round (per §15.1.2 decision tree: ability source files NOT modified); the deterministic re-measurement confirms byte-equivalence to Round 14 across all measured axes.']
+    step4: ['next_action_plan.yaml authored with round_kind = measurement_only (§15.1); round_kind_iteration_delta_clause = monotonicity_only (§15.2); 3 actions for Round 16 (ship_prep is the L0-recommended next step).']
+    step5: ['router_floor_report.yaml carried byte-identical from Round 14 (no router-test rerun); +1 §15 round_kind documentation block updated to measurement_only.']
+    step6: ['half_retire_decision.yaml: action remains keep; +1 §14.7 core_goal_invariant block updated with monotonicity_check round_14 -> round_15.']
+    step7: ['iteration_delta_report.yaml: round_kind = measurement_only; round_kind_iteration_delta_clause = monotonicity_only (§15.2 RELAXED clause); 0 axis improvement required; monotonicity_check.overall_pass = true; core_goal_check.c0_pass_rate_this_round = 1.0; c0_no_regression = true (1.0 >= 1.0).']
+    step8: ['package-register: NOT TRIGGERED for measurement_only; v0.3.0 final ship is a separate ship_prep round (Round 16 per next_action_plan.yaml).']

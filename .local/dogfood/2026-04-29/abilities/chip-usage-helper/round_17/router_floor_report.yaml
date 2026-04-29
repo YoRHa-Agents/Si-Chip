@@ -1,0 +1,8 @@
+ability_id: chip-usage-helper
+round_id: round_17
+generated_at: '2026-04-29T11:30:30+00:00'
+spec: { profile: mvp, cells: 8, gate_bound: v3_strict }
+aggregate: { cells_pass: 8, cells_total: 8, R6_routing_latency_p95_ms: 0.18, R7_routing_token_overhead: 0.0318 }
+router_floor: composer_2/fast
+profile_to_gate: strict
+note: "Template-body refactor only; routing surface unchanged."

@@ -1,0 +1,44 @@
+ability_id: chip-usage-helper
+version: '0.6.3+round_9'
+decided_at: '2026-04-29T08:23:00+00:00'
+decision: keep
+
+value_vector:
+  task_delta: 0.92
+  token_delta: 0.0
+  latency_delta: -0.0242
+  context_delta: 0.0
+  path_efficiency_delta: 0.5     # L4 analyzer fix: now correctly walks 6 handlers
+  routing_delta: 1.0
+  governance_risk_delta: 0.0
+
+rule_evaluation:
+  spec_section: "§6.2"
+  bound_gate: v3_strict
+  bucket_threshold: 0.15
+  fired_rule: keep
+  fired_condition: "task_delta (+0.92) >> +0.10"
+  axis_movement: "Round 9 has 1 axis at-or-above v3_strict bucket: path_efficiency_delta = 0.5 (analyzer fix retroactively confirms zero redundancy across all 6 handlers)."
+
+simplification: { applied: [], bound_gate: v3_strict }
+retained_core: ["8 MCP tools", "SKILL.md", "rules/usage-helper.mdc", "commands/usage-report.md"]
+review:
+  next_review_at: '2026-05-29'
+  triggers: [new_model_no_ability_baseline_gap, new_scenario_or_domain_match, router_test_requires_ability_for_cheap_model, efficiency_axis_becomes_significant, upstream_api_change_wrapper_stabilizes, manual_invocation_rebound]
+
+provenance:
+  round_id: round_9
+  prior_round_id: round_8
+  metrics_report_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_9/metrics_report.yaml
+  prior_half_retire_decision_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_8/half_retire_decision.yaml
+  decided_by: 'eval_chip_usage_helper.py + manual review'
+  spec_version: v0.1.0
+
+rationale: |
+  Round 9 keeps. The path-efficiency improvement is in the *measurement* not the *code*
+  this round: the L4 analyzer was previously myopic (single-handler scan) and now scans
+  all 6 get-*.ts handlers, retroactively confirming zero redundancy across the codebase.
+  T2 properly measured at 1.0 (k=4, order-permuted) — the trigger is genuinely
+  order-invariant. L6=0 architecture confirmed (retries correctly centralized in HTTP
+  client, not duplicated in handlers). L7=0.19 think/act split is reasonable for a
+  tool-invocation skill.

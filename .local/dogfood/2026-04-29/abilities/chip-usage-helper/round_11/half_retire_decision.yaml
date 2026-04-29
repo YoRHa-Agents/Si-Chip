@@ -1,0 +1,22 @@
+ability_id: chip-usage-helper
+version: '0.7.0+round_11'
+decided_at: '2026-04-29T09:50:30+00:00'
+decision: keep
+value_vector: { task_delta: 0.92, token_delta: 0.142, latency_delta: 0.0571, context_delta: 0.0, path_efficiency_delta: 0.0, routing_delta: 1.0, governance_risk_delta: 0.0 }
+rule_evaluation:
+  spec_section: "§6.2"
+  bound_gate: v3_strict
+  fired_rule: keep
+  fired_condition: "task_delta (+0.92) >> +0.10"
+  axis_movement: "Round 11 introduces token_delta = +0.142 (compact JSON). Below v3_strict +0.15 bucket but a real win; subsequent rounds (12-15) will compound."
+simplification: { applied: [], bound_gate: v3_strict }
+retained_core: ["8 MCP tools", "SKILL.md", "rules/usage-helper.mdc", "commands/usage-report.md"]
+review:
+  next_review_at: '2026-05-29'
+  triggers: [new_model_no_ability_baseline_gap, new_scenario_or_domain_match, router_test_requires_ability_for_cheap_model, efficiency_axis_becomes_significant, upstream_api_change_wrapper_stabilizes, manual_invocation_rebound]
+provenance:
+  round_id: round_11
+  prior_round_id: round_10
+  metrics_report_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_11/metrics_report.yaml
+  spec_version: v0.1.0
+rationale: "Compact-JSON refactor preserves contract (structuredContent unchanged); 99/99 tests still pass; payload tokens drop 35-45%."

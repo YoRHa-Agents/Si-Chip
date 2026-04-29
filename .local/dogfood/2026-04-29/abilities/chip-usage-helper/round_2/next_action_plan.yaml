@@ -1,0 +1,62 @@
+# chip-usage-helper — Round 2 next_action_plan (targets Round 3)
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T05:07:50+00:00'
+targets_round: round_3
+bound_gate: v2_tightened  # promoted after 2 consecutive v1 passes; entering v2_tightened in Round 3
+spec_version: v0.1.0
+target_branch: feature/si-chip
+
+actions:
+  - action_id: a1
+    priority: P0
+    targets_metric: C1_metadata_tokens
+    current: 92
+    expected: '<= 80 (v3_strict gate)'
+    description: |
+      Trim the SKILL `description` from 92 tokens to <=80 tokens while preserving all
+      discriminator semantics. Current description is 3 sentences; can compress to 2
+      by folding the trigger-keyword list and the negative list together.
+    scope_writable_files:
+      - /home/agent/workspace/ChipPlugins/chips/chip_usage_helper/skills/chip-usage-helper/SKILL.md
+    acceptance_criteria:
+      - "C1 <= 80 (v3_strict)"
+      - "R3 stays 1.0 (no regression)"
+      - "R4 stays 0.0"
+      - "npm test 96/96 still passes"
+
+  - action_id: a2
+    priority: P1
+    targets_metric: L3_step_count
+    current: null
+    description: |
+      Populate L3 step_count — count logical steps in get_dashboard_data path
+      (MCP invocation -> resolveMe -> ensureSnapshotFresh -> ensureEventsFresh(team)
+      -> resolveEffectiveAiBillIdentity -> filterEventsByEffectiveEmail -> 4 aggregators
+      -> response). Expected: 7-8 steps per invocation. Deterministic from code.
+    scope_writable_files:
+      - .local/dogfood/2026-04-29/abilities/chip-usage-helper/tools/eval_chip_usage_helper.py
+    acceptance_criteria:
+      - "L3_step_count non-null (integer)"
+
+  - action_id: a3
+    priority: P1
+    targets_metric: L4_redundant_call_ratio
+    current: null
+    description: |
+      Compute L4 = (redundant_fetch_count / total_fetch_count) in get_dashboard_data.
+      Current composite fetches team events once but may re-query for weekly/monthly
+      windows. Requires static analysis of shared.ts + get-dashboard-data.ts.
+    scope_writable_files:
+      - .local/dogfood/2026-04-29/abilities/chip-usage-helper/tools/eval_chip_usage_helper.py
+    acceptance_criteria:
+      - "L4_redundant_call_ratio non-null in [0.0, 1.0]"
+
+anticipated_iteration_delta_axes:
+  - context_economy              # C1 trim
+  - latency_path                 # L3/L4 fill
+expected_delta_bucket: "v2_tightened (>= +0.10 on any efficiency axis)"
+
+provenance:
+  prior_metrics_report: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_2/metrics_report.yaml
+  prior_half_retire: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_2/half_retire_decision.yaml
+  target_repo: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper

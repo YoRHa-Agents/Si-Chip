@@ -1,0 +1,10 @@
+ability_id: chip-usage-helper
+version: '0.8.0+round_18'
+decided_at: '2026-04-29T11:33:00+00:00'
+decision: keep
+value_vector: { task_delta: 0.92, token_delta: 0.039, latency_delta: 0.0, context_delta: 0.037, path_efficiency_delta: 0.0, routing_delta: 1.0, governance_risk_delta: 0.0 }
+rule_evaluation: { bound_gate: v3_strict, fired_rule: keep, fired_condition: "task_delta (+0.92) >> +0.10; Cycle 3 cumulative context_delta +0.045 ON-CALL" }
+retained_core: ["8 MCP tools", "rules/usage-helper.mdc (slim, authoritative trigger vocab)", "commands/usage-report.md", "templates/types.d.ts (LAZY)", "templates/empty-data.ts (LAZY)", "templates/usage.canvas.template.tsx (gutted default data)", "SKILL.md (pointer-style When/Skip)"]
+review: { next_review_at: '2026-05-29', triggers: [new_model_no_ability_baseline_gap, new_scenario_or_domain_match, router_test_requires_ability_for_cheap_model, efficiency_axis_becomes_significant, upstream_api_change_wrapper_stabilizes, manual_invocation_rebound] }
+provenance: { round_id: round_18, prior_round_id: round_17, spec_version: v0.1.0 }
+rationale: "SKILL When/Skip deduplicated against rule (authoritative); saves ~71 tokens per ON-CALL with R3=1.0 preserved."

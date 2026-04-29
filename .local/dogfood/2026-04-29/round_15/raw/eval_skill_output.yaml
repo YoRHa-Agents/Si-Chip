@@ -1,0 +1,355 @@
+schema_version: 0.2.0
+script_version: 0.1.0
+ability_id: si-chip
+round_kind: measurement_only
+generated_at: '2026-04-29T11:34:38Z'
+metrics:
+  task_quality:
+    T1_pass_rate: 1.0
+    T2_pass_k: null
+    T3_baseline_delta: null
+    T4_error_recovery_rate: null
+  context_economy:
+    C1_metadata_tokens: 97
+    C2_body_tokens: 3022
+    C3_resolved_tokens: null
+    C4_per_invocation_footprint: 3119
+    C5_context_rot_risk: null
+    C6_scope_overlap_score: null
+  latency_path:
+    L1_wall_clock_p50: 3.8659
+    L2_wall_clock_p95: 3.8659
+    L3_step_count: null
+    L4_redundant_call_ratio: null
+    L5_detour_index: null
+    L6_replanning_rate: null
+    L7_think_act_split: null
+  generalizability:
+    G1_cross_model_pass_matrix: null
+    G2_cross_domain_transfer_pass: null
+    G3_OOD_robustness: null
+    G4_model_version_stability: null
+  usage_cost:
+    U1_description_readability: null
+    U2_first_time_success_rate: null
+    U3_setup_steps_count: null
+    U4_time_to_first_success: null
+  routing_cost:
+    R1_trigger_precision: 1.0
+    R2_trigger_recall: 1.0
+    R3_trigger_F1: 1.0
+    R4_near_miss_FP_rate: 0.0
+    R5_router_floor: null
+    R6_routing_latency_p95: null
+    R7_routing_token_overhead: null
+    R8_description_competition_index: null
+  governance_risk:
+    V1_permission_scope: null
+    V2_credential_surface: null
+    V3_drift_signal: null
+    V4_staleness_days: null
+core_goal:
+  C0_core_goal_pass_rate: 1.0
+  cases_passed: 5
+  cases_total: 5
+  failed_case_ids: []
+  per_case:
+  - case_id: c0_eval_skill_help_works
+    passed: true
+    exit_code: 0
+    stdout_tail: ''
+    stderr_tail: ''
+  - case_id: c0_round_kind_validate_4_kinds
+    passed: true
+    exit_code: 0
+    stdout_tail: ''
+    stderr_tail: ''
+  - case_id: c0_spec_validator_dual_spec_pass
+    passed: true
+    exit_code: 0
+    stdout_tail: ''
+    stderr_tail: ''
+  - case_id: c0_skill_md_packaging_gate
+    passed: true
+    exit_code: 0
+    stdout_tail: '{"metadata_tokens": 97, "body_tokens": 3022, "budget_meta": 100,
+      "budget_body": 5000, "pass": true, "backend": "tiktoken", "script_version":
+      "0.1.3"}
+
+      '
+    stderr_tail: ''
+  - case_id: c0_six_evidence_files_present
+    passed: true
+    exit_code: 0
+    stdout_tail: 'aml
+
+      .local/dogfood/2026-04-29/round_14/half_retire_decision.yaml
+
+      .local/dogfood/2026-04-29/round_14/iteration_delta_report.yaml
+
+      .local/dogfood/2026-04-29/round_14/metrics_report.yaml
+
+      .local/dogfood/2026-04-29/round_14/next_action_plan.yaml
+
+      .local/dogfood/2026-04-29/round_14/router_floor_report.yaml
+
+      '
+    stderr_tail: ''
+core_goal_check:
+  C0_pass_rate_current: 1.0
+  C0_pass_rate_prior: 1.0
+  cases_passed: 5
+  cases_total: 5
+  failed_case_ids: []
+  regression_detected: false
+  rollback_required: false
+  round_kind: measurement_only
+  required_c0_value: 1.0
+  verdict:
+    core_goal_pass: true
+  spec_section: v0.3.0-rc1 §14.3 / §15.3
+trigger_confusion:
+  tp: 20
+  fp: 0
+  fn: 0
+  tn: 20
+trigger_per_prompt:
+- prompt: evaluate this skill for v0.3 readiness
+  expected: true
+  match: true
+  reason: weak_accumulation:2
+  layer_hit: B_cjk_substring
+- prompt: diagnose why this skill is slow
+  expected: true
+  match: true
+  reason: weak_accumulation:2
+  layer_hit: B_cjk_substring
+- prompt: profile si-chip against its own eval set
+  expected: true
+  match: true
+  reason: weak_accumulation:2
+  layer_hit: B_cjk_substring
+- prompt: draft next round's plan
+  expected: true
+  match: true
+  reason: weak_accumulation:2
+  layer_hit: B_cjk_substring
+- prompt: compare this round to last round
+  expected: true
+  match: true
+  reason: weak_accumulation:2
+  layer_hit: B_cjk_substring
+- prompt: compute the router_floor for chip-usage-helper
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: generate a metrics_report for the new ability
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: what's the iteration_delta vs Round 13
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: verify core_goal hasn't regressed
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: run dogfood round 14 on si-chip
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: should we retire skill X
+  expected: true
+  match: true
+  reason: weak_accumulation:2
+  layer_hit: B_cjk_substring
+- prompt: is this skill a reactivation candidate
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: run the half-retire review for si-chip
+  expected: true
+  match: true
+  reason: weak_accumulation:3
+  layer_hit: B_cjk_substring
+- prompt: what round_kind should this round be
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: this round is measurement_only; confirm
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: update the core_goal_test_pack to cover the new case
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: 我想给这个 skill 做半退役评估
+  expected: true
+  match: true
+  reason: strong_cjk:半退役
+  layer_hit: B_cjk_substring
+- prompt: 运行 dogfood 第 14 轮
+  expected: true
+  match: true
+  reason: strong_ascii
+  layer_hit: A_ascii
+- prompt: 给 si-chip 生成指标报告
+  expected: true
+  match: true
+  reason: strong_cjk:指标报告
+  layer_hit: B_cjk_substring
+- prompt: 核心目标有没有回归
+  expected: true
+  match: true
+  reason: strong_cjk:核心目标
+  layer_hit: B_cjk_substring
+- prompt: publish this skill on a marketplace
+  expected: false
+  match: false
+  reason: discriminator:marketplace_publish
+  layer_hit: C_discriminator
+- prompt: 把这个 skill 发布到商店
+  expected: false
+  match: false
+  reason: discriminator:marketplace_publish
+  layer_hit: C_discriminator
+- prompt: train a router model on these traces
+  expected: false
+  match: false
+  reason: discriminator:router_model_training
+  layer_hit: C_discriminator
+- prompt: train a ranker to pick which skill fires
+  expected: false
+  match: false
+  reason: discriminator:router_model_training
+  layer_hit: C_discriminator
+- prompt: auto-convert this Markdown into a CLI
+  expected: false
+  match: false
+  reason: discriminator:markdown_to_cli_converter
+  layer_hit: C_discriminator
+- prompt: convert this SKILL.md into a bash command
+  expected: false
+  match: false
+  reason: discriminator:markdown_to_cli_converter
+  layer_hit: C_discriminator
+- prompt: just write this Python file
+  expected: false
+  match: false
+  reason: discriminator:implementation_only
+  layer_hit: C_discriminator
+- prompt: 只写一个 python 脚本就行
+  expected: false
+  match: false
+  reason: discriminator:implementation_only
+  layer_hit: C_discriminator
+- prompt: fix this typescript bug
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: just implement the function, no tests
+  expected: false
+  match: false
+  reason: discriminator:implementation_only
+  layer_hit: C_discriminator
+- prompt: explain what BPE tokens are
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: what is MCP?
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: how do BPE tokenizers work
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: send a feishu message
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: list running docker containers
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: generate a haiku
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: what's the weather tomorrow
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: how to install node on macOS
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: render this markdown in a notebook
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+- prompt: describe the quicksort algorithm
+  expected: false
+  match: false
+  reason: no_match
+  layer_hit: default
+token_info:
+  metadata_tokens: 97
+  body_tokens: 3022
+  budget_meta: 100
+  budget_body: 5000
+  pass: true
+  backend: tiktoken
+  script_version: 0.1.3
+functional_tests:
+  T1_pass_rate: 1.0
+  L1_wall_clock_p50: 3.8659
+  L2_wall_clock_p95: 3.8659
+  runs: 1
+  passed: 1
+  per_run:
+  - exit_code: 0
+    duration_s: 3.8659
+    passed: true
+    stdout_tail: '............................................ [ 18%]
+
+      .................s...................................................... [ 36%]
+
+      .................................................. [ 48%]
+
+      ..................................................................... [ 66%]
+
+      ............................................................. [ 81%]
+
+      ..................................... [ 91%]
+
+      ...................................                          [100%]
+
+      395 passed, 1 skipped, 83 subtests passed in 3.44s
+
+      '
+    stderr_tail: ''
+    run_index: 0
+baseline_tests: null
+spec_section: v0.3.0-rc1 §3 + §14 + §15

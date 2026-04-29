@@ -1,0 +1,329 @@
+{
+  "C1_metadata_tokens": 92,
+  "C2_body_tokens": 1991,
+  "C4_per_invocation_footprint": 2878,
+  "cmd_tokens": {
+    "metadata_tokens": 45,
+    "body_tokens": 268,
+    "budget_meta": 120,
+    "budget_body": 5000,
+    "pass": true,
+    "backend": "tiktoken",
+    "script_version": "0.1.3"
+  },
+  "rule_tokens": {
+    "metadata_tokens": 61,
+    "body_tokens": 734,
+    "budget_meta": 120,
+    "budget_body": 5000,
+    "pass": true,
+    "backend": "tiktoken",
+    "script_version": "0.1.3"
+  },
+  "skill_tokens": {
+    "metadata_tokens": 92,
+    "body_tokens": 1991,
+    "budget_meta": 120,
+    "budget_body": 5000,
+    "pass": true,
+    "backend": "tiktoken",
+    "script_version": "0.1.3"
+  },
+  "L1_wall_clock_p50": 1.7454,
+  "L2_wall_clock_p95": 1.8129,
+  "test_result": {
+    "runs": 3,
+    "durations_s": [
+      1.812870188150555,
+      1.7454322050325572,
+      1.6935153789818287
+    ],
+    "p50_s": 1.7454322050325572,
+    "p95_s": 1.812870188150555,
+    "last_exit": 0
+  },
+  "R1_trigger_precision": 1.0,
+  "R2_trigger_recall": 1.0,
+  "R3_trigger_F1": 1.0,
+  "R4_near_miss_FP_rate": 0.0,
+  "trigger_confusion": {
+    "tp": 20,
+    "fp": 0,
+    "fn": 0,
+    "tn": 20
+  },
+  "trigger_mistakes": [],
+  "trigger_decisions": [
+    {
+      "prompt": "show me my cursor usage dashboard",
+      "expected": true,
+      "match": true,
+      "reason": "strong_ascii"
+    },
+    {
+      "prompt": "how much did I spend on cursor this month",
+      "expected": true,
+      "match": true,
+      "reason": "spend+cursor_or_money"
+    },
+    {
+      "prompt": "team ranking for cursor billing",
+      "expected": true,
+      "match": true,
+      "reason": "strong_ascii"
+    },
+    {
+      "prompt": "which model cost me the most this week",
+      "expected": true,
+      "match": true,
+      "reason": "weak_hits:3"
+    },
+    {
+      "prompt": "what's my spend breakdown by model",
+      "expected": true,
+      "match": true,
+      "reason": "weak_hits:3"
+    },
+    {
+      "prompt": "/usage-report",
+      "expected": true,
+      "match": true,
+      "reason": "slash_command"
+    },
+    {
+      "prompt": "/usage-report --window=30d",
+      "expected": true,
+      "match": true,
+      "reason": "slash_command"
+    },
+    {
+      "prompt": "我的 cursor 用量?",
+      "expected": true,
+      "match": true,
+      "reason": "strong_cjk:用量"
+    },
+    {
+      "prompt": "本月花了多少?",
+      "expected": true,
+      "match": true,
+      "reason": "weak_hits:6"
+    },
+    {
+      "prompt": "这个月和上个月比多花了多少?",
+      "expected": true,
+      "match": true,
+      "reason": "weak_hits:5"
+    },
+    {
+      "prompt": "agent 工时占比?",
+      "expected": true,
+      "match": true,
+      "reason": "strong_cjk:工时"
+    },
+    {
+      "prompt": "我在团队里排第几?",
+      "expected": true,
+      "match": true,
+      "reason": "strong_cjk:排第几"
+    },
+    {
+      "prompt": "上个月 cursor 花了多少钱",
+      "expected": true,
+      "match": true,
+      "reason": "weak_hits:6"
+    },
+    {
+      "prompt": "这周的模型分布",
+      "expected": true,
+      "match": true,
+      "reason": "weak_hits:4"
+    },
+    {
+      "prompt": "哪个模型花的最多",
+      "expected": true,
+      "match": true,
+      "reason": "weak_hits:2"
+    },
+    {
+      "prompt": "show dashboard for last 14 days",
+      "expected": true,
+      "match": true,
+      "reason": "strong_ascii"
+    },
+    {
+      "prompt": "看下本周的开销",
+      "expected": true,
+      "match": true,
+      "reason": "strong_cjk:开销"
+    },
+    {
+      "prompt": "列一下我的账单明细",
+      "expected": true,
+      "match": true,
+      "reason": "strong_cjk:账单"
+    },
+    {
+      "prompt": "my agent 工时占比",
+      "expected": true,
+      "match": true,
+      "reason": "strong_cjk:工时"
+    },
+    {
+      "prompt": "团队排名榜",
+      "expected": true,
+      "match": true,
+      "reason": "strong_cjk:排名"
+    },
+    {
+      "prompt": "how do I install a plugin?",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "fix this typescript error in my file",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "what's my current git branch?",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "show me docker logs from the api container",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "help me write a regex for email validation",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "what is MCP?",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "explain how Cursor Composer works",
+      "expected": false,
+      "match": false,
+      "reason": "cursor_meta_discriminator"
+    },
+    {
+      "prompt": "how to open Cursor settings",
+      "expected": false,
+      "match": false,
+      "reason": "cursor_meta_discriminator"
+    },
+    {
+      "prompt": "Cursor keybinding for rename",
+      "expected": false,
+      "match": false,
+      "reason": "cursor_meta_discriminator"
+    },
+    {
+      "prompt": "update Cursor to latest version",
+      "expected": false,
+      "match": false,
+      "reason": "cursor_meta_discriminator"
+    },
+    {
+      "prompt": "Cursor extension marketplace",
+      "expected": false,
+      "match": false,
+      "reason": "cursor_meta_discriminator"
+    },
+    {
+      "prompt": "fetch the weather API response",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "how to debug a segfault",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "send a feishu message",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "list running docker containers",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "generate a haiku about rust",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "how much time did we spend debugging last sprint",
+      "expected": false,
+      "match": false,
+      "reason": "time_spend_discriminator"
+    },
+    {
+      "prompt": "不要浪费时间在这个问题上",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    },
+    {
+      "prompt": "spend time reviewing the PR",
+      "expected": false,
+      "match": false,
+      "reason": "time_spend_discriminator"
+    },
+    {
+      "prompt": "花时间想一下需求",
+      "expected": false,
+      "match": false,
+      "reason": "no_match"
+    }
+  ],
+  "V1_permission_scope": {
+    "write_surface_files": [],
+    "write_surface_count": 0,
+    "outbound_hosts": [
+      "https://ai-bill-dev.neolix.cn",
+      "https://nds-dev.data.neolix.cn"
+    ],
+    "outbound_host_count": 2
+  },
+  "V2_credential_surface": {
+    "sensitive_refs_total": 27,
+    "token_counts": {
+      "authorization": 5,
+      "nds_token": 5,
+      "bearer": 1,
+      "cachedemail": 15,
+      "authinfo.email": 1
+    }
+  },
+  "C5_context_rot_risk": {
+    "value": 0.009955,
+    "formula": "body_tokens / reference_ctx_window",
+    "reference_ctx_window": 200000,
+    "body_tokens": 1991
+  },
+  "C6_scope_overlap_score": {
+    "value": 0.0,
+    "neighbor_count": 0,
+    "pairs": []
+  },
+  "generated_at": "2026-04-29T05:06:26Z"
+}

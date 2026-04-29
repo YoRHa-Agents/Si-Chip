@@ -1,0 +1,12 @@
+ability_id: chip-usage-helper
+round_id: round_19
+prior_round_id: round_18
+generated_at: '2026-04-29T11:35:00+00:00'
+spec_version: v0.1.0
+gate_bound: v3_strict
+cycle: token_economy_v3_final
+mvp_8: { T1_pass_rate: 0.97, T2_pass_k: 1.0, T3_baseline_delta: 0.92, C1_metadata_tokens: 70, C4_per_invocation_footprint: 2402, L2_wall_clock_p95: 1.78, R3_trigger_F1: 1.0, R5_router_floor: composer_2/fast }
+v3_strict_threshold_check: { all: true, note: "ALL 9 v3 rows pass. 13 consecutive." }
+verdict: { pass_v1_baseline: true, pass_v2_tightened: true, pass_v3_strict: true, blockers: [], promotion_status: "Cycle 3 complete; SHIP_ELIGIBLE v0.9.0." }
+rationale: "Final release round — no code changes; version bump + packaging + audit. v0.9.0 tarball sha256 a9ecab20..."
+provenance: { ship_decision: round_19/ship_decision.yaml, feedback_source: feedback_for_v0.8.0_token_usage_verification.md }

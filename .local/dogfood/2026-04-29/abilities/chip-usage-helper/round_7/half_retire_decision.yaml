@@ -1,0 +1,42 @@
+ability_id: chip-usage-helper
+version: '0.6.2+round_7'
+decided_at: '2026-04-29T08:13:00+00:00'
+decision: keep
+
+value_vector:
+  task_delta: 0.92
+  token_delta: 0.0
+  latency_delta: -0.0114    # (1.760 - 1.780)/1.760; tiny negative (test-noise band)
+  context_delta: 0.0
+  path_efficiency_delta: 0.0
+  routing_delta: 1.0
+  governance_risk_delta: 0.0    # V3=0, V4=0 explicitly measured (was assumed null before)
+
+rule_evaluation:
+  spec_section: "§6.2"
+  bound_gate: v2_tightened
+  bucket_threshold: 0.10
+  fired_rule: keep
+  fired_condition: "task_delta (+0.92) >> +0.10"
+
+simplification: { applied: [], bound_gate: v2_tightened }
+retained_core: ["8 MCP tools", "SKILL.md", "rules/usage-helper.mdc", "commands/usage-report.md"]
+review:
+  next_review_at: '2026-05-29'
+  triggers: [new_model_no_ability_baseline_gap, new_scenario_or_domain_match, router_test_requires_ability_for_cheap_model, efficiency_axis_becomes_significant, upstream_api_change_wrapper_stabilizes, manual_invocation_rebound]
+
+provenance:
+  round_id: round_7
+  prior_round_id: round_6
+  metrics_report_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_7/metrics_report.yaml
+  prior_half_retire_decision_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_6/half_retire_decision.yaml
+  decided_by: 'eval_chip_usage_helper.py + manual review'
+  spec_version: v0.1.0
+
+rationale: |
+  Round 7 keeps the ability. task_delta unchanged at +0.92. Round 7's coverage win
+  (V3, V4, U2 newly populated) brings the ability to 26/28 sub-metrics measured.
+  Importantly, governance_risk_delta was previously assumed 0.0; this round it's
+  explicitly measured at 0.0 (V3=0 drift, V4=0 staleness, V1 narrative unchanged,
+  V2 narrative unchanged). The keep decision is now backed by evidence rather than
+  assumption.

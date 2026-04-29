@@ -1,0 +1,231 @@
+# Si-Chip v0.3.0 Ship Decision (machine-readable verdict)
+# Author: Round 15 dogfood — L3 Task Agent (post-Stage-7 packaging, Stage-8 ship-prep)
+# Companion to: .local/dogfood/2026-04-29/v0.3.0_ship_report.md
+# Shape after .local/dogfood/2026-04-28/v0.2.0_ship_decision.yaml.
+#
+# v0.3.0 is an additive bump from v0.2.0 — §3 / §4 / §5 / §6 / §7 / §8 / §11 / §13
+# are byte-identical; spec_v0.3.0 promotes from v0.3.0-rc1 with body byte-identical.
+# Three additions: §14 core_goal Normative + §15 round_kind Normative + §16
+# multi-ability layout Informative; §17 adds 2 incremental hard rules to AGENTS.md
+# §13 (8 → 10). v0.3.0 ships at the SAME gate as v0.2.0 (relaxed = v1_baseline);
+# v2_tightened still blocked by the carry-forward T2_pass_k structural blocker
+# (deterministic SHA-256 PROXY pass_k_4 = pass_rate^4 = 0.5478 vs >= 0.55, -0.0022)
+# which requires a real-LLM runner deferred to v0.4.0 (carry-forward from
+# v0.2.0 ship report's "Roadmap to v0.3.0" — that section is now "Roadmap
+# to v0.4.0" because v0.3.0 was scoped to core_goal + round_kind +
+# multi-ability layout, not the real-LLM runner).
+
+spec_version: "v0.3.0"
+decided_at: "2026-04-29T12:50:00+00:00"
+
+# v0.3.0 ship gate verdict — SHIP_ELIGIBLE
+verdict: "SHIP_ELIGIBLE"
+ship_eligible: true
+ship_gate_achieved: "relaxed"   # = v1_baseline; same gate as v0.2.0 ship
+ship_gate_v2_tightened_deferred_to: "v0.4.0+"
+ship_gate_deferral_reason: |
+  T2_pass_k v1_baseline proxy formula (pass_rate^4) yields 0.5477708333333333
+  which fails v2_tightened >= 0.55 by -0.0022; SAME blocker as v0.2.0 ship.
+  Real k=4 sampling requires a real-LLM runner
+  (evals/si-chip/runners/real_llm_runner.py), which is deferred to v0.4.0
+  per the v0.2.0 ship report's "Roadmap to v0.3.0" carry-forward (that
+  section is now "Roadmap to v0.4.0" because v0.3.0 was scoped to
+  core_goal + round_kind + multi-ability layout, not the real-LLM runner).
+  Round 14 (code_change) cannot mod the baselines without becoming a
+  measurement-fill round per §15.1 mixed-kind prohibition; Round 15
+  (measurement_only) by definition cannot mod source. So the v2 unblock
+  remains structurally outside this dogfood cycle's scope.
+
+consecutive_v1_passes: 15        # 13 from v0.2.0 (Rounds 1-13) + Round 14 + Round 15
+consecutive_v2_passes: 0         # T2_pass_k structural blocker since Round 1
+v0_3_0_dogfood_path: CORE_GOAL_INVARIANT_AND_ROUND_KIND_ENUM
+predecessor_ship:
+  version: v0.2.0
+  decision_artifact: .local/dogfood/2026-04-28/v0.2.0_ship_decision.yaml
+  report_artifact: .local/dogfood/2026-04-28/v0.2.0_ship_report.md
+  shipped_at_gate: relaxed       # SAME gate as v0.3.0 (informational; v0.3.0 does NOT promote the gate)
+
+# v1_baseline trace per-round (round-evidence values; sourced from
+# .local/dogfood/2026-04-29/round_{14,15}/iteration_delta_report.yaml +
+# metrics_report.yaml).
+v1_baseline_threshold_check:
+  round_14:
+    pass_rate: 0.85
+    pass_k: 0.5477708333333333
+    trigger_F1: 0.8933952528379773
+    near_miss_FP_rate: 0.05
+    metadata_tokens: 97              # round_14 raw measurement against rc1 SKILL.md (per raw/count_tokens_skill_md.json)
+    per_invocation_footprint: 3710   # canonical legacy formula (Round 13 carry-forward; like-for-like Round-14-recompute = 4619 also PASS at v1 <= 9000 + v2 <= 7000 + v3 <= 5000)
+    wall_clock_p95_s: 1.4693333333333334
+    routing_latency_p95_ms: 1100.0
+    routing_token_overhead: 0.023295454545454546
+    iteration_delta_any_axis: 0.05   # governance_risk + generalizability both at +0.05 v1_baseline bucket
+    c0_core_goal_pass_rate: 1.0      # 5/5 cases pass per .local/dogfood/2026-04-29/round_14/raw/core_goal_test_pack_run.json
+    c0_no_regression: vacuous        # round_13 had no core_goal_test_pack; per §14.3.2 spec
+    round_kind: code_change          # NEW v0.3.0 §15.1
+    round_kind_iteration_delta_clause: strict   # per §15.2: code_change -> strict (>= 1 axis at gate bucket)
+    all_pass: true
+  round_15:
+    pass_rate: 0.85                                         # byte-identical replay
+    pass_k: 0.5477708333333333                              # byte-identical replay (deterministic SHA-256 PROXY)
+    trigger_F1: 0.8933952528379773                          # byte-identical replay
+    near_miss_FP_rate: 0.05                                 # byte-identical replay
+    metadata_tokens: 97                                     # byte-identical (live re-verified against same SKILL.md as Round 14; STILL the rc1 SKILL.md at Round 15 measurement time)
+    per_invocation_footprint: 3710                          # byte-identical (canonical legacy carry-forward)
+    wall_clock_p95_s: 1.4693333333333334                    # byte-identical replay
+    routing_latency_p95_ms: 1100.0                          # byte-identical replay
+    routing_token_overhead: 0.023295454545454546            # byte-identical replay
+    iteration_delta_any_axis: 0.0                           # measurement_only doesn't require movement (per §15.2 monotonicity_only RELAXED clause)
+    iteration_delta_clause: monotonicity_only               # per §15.2 measurement_only branch
+    c0_core_goal_pass_rate: 1.0                             # 5/5 cases replay PASS
+    c0_no_regression_vs_round_14: true                      # 1.0 >= 1.0 — FIRST true non-vacuous monotonicity check
+    round_kind: measurement_only                            # NEW v0.3.0 §15.1
+    all_pass: true
+  note: |
+    Both rounds use the rc1 SKILL.md at measurement time. Stage 7 (rc1 →
+    v0.3.0 promotion) made an additional SKILL.md edit (frontmatter version
+    `0.3.0-rc1` → `0.3.0`; spec ref bump). The post-Stage-7 SKILL.md is
+    re-measured under machine_checks.count_tokens_skill_md_post_stage_7
+    below (91/3023; PASS). The packaging gate stays satisfied across
+    both states (round-time and post-Stage-7).
+
+v0_3_0_unique_evidence:
+  core_goal_invariant_first_use:
+    test_pack_path: ".local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml"
+    test_pack_version: "1.0.0"
+    cases_total: 5
+    cases_passed_round_14: 5
+    cases_passed_round_15: 5
+    case_ids:
+      - c0_eval_skill_help_works
+      - c0_round_kind_validate_4_kinds
+      - c0_spec_validator_dual_spec_pass
+      - c0_skill_md_packaging_gate
+      - c0_six_evidence_files_present
+    monotonicity_round_14_to_15: PASS                       # 1.0 >= 1.0 — FIRST true non-vacuous monotonicity check ever performed for Si-Chip
+    spec_section_first_use: "§14.3.1 (universal MUST = 1.0) + §14.3.2 (no-regression) + §15.3 (universal across all 4 round_kinds)"
+  round_kind_enum_in_production:
+    round_14_kind: code_change
+    round_14_iteration_delta_clause: strict
+    round_15_kind: measurement_only
+    round_15_iteration_delta_clause: monotonicity_only
+    canonical_demonstration: |
+      Round 15 is the first measurement_only round per spec §15.2; clause
+      correctly relaxed to monotonicity_only; consecutive-rounds counter
+      advanced per §15.4.1; Round 14 (code_change) + Round 15
+      (measurement_only) = 2 consecutive eligible PASSes per §4.2 promotion
+      rule. v0.3.0 §15 round_kind enum WORKS IN PRODUCTION.
+    historic_measurement_fill_pattern_resolved: |
+      v0.2.0 cycle Rounds 4-12 used "measurement-fill" flavours masquerading
+      as code_change rounds (per v0.2.0 ship_report §"What Round 13
+      Delivered" §3 Iteration-delta clause satisfaction). v0.3.0 §15.1
+      enum + §15.2 per-kind clause separates the two; Round 14 +
+      Round 15 are the canonical examples (code_change with strict clause +
+      measurement_only with monotonicity_only clause).
+  multi_ability_layout_first_use:
+    layout_path: ".local/dogfood/2026-04-29/abilities/si-chip/"
+    files_under_layout:
+      - README.md
+      - core_goal_test_pack.yaml
+      - eval_pack.yaml
+      - vocabulary.yaml
+    legacy_layout_for_si_chip_self_retained: true             # `.local/dogfood/2026-04-29/round_14/` and `round_15/` use legacy non-abilities-tree layout for backwards-compat
+    chip_usage_helper_already_under_new_layout: true          # `.local/dogfood/2026-04-29/abilities/chip-usage-helper/round_<N>/` (Rounds 1-10+ pre-existing under new layout)
+    abilities_under_new_layout_count: 2                       # si-chip + chip-usage-helper
+    spec_section_first_use: "§16 (Informative @ v0.3.0; promotes to Normative @ v0.3.x once 2+ abilities ship under new layout — already satisfied by Si-Chip Round 14 + chip-usage-helper Rounds 1-10+)"
+  agent_behavior_contract_addons:
+    rule_9: "MUST attach core_goal_test_pack to every BasicAbility profile and verify C0_core_goal_pass_rate = 1.0 every round; any C0 < 1.0 = round failure regardless of other axes (per §14.3)."
+    rule_10: "MUST declare round_kind ∈ {code_change | measurement_only | ship_prep | maintenance} in every next_action_plan.yaml; iteration_delta clause interpretation per §15.2."
+    agents_md_total_hard_rules: 10                            # 8 from v0.2.0 + 2 incremental
+    agents_md_section: "§13"
+
+machine_checks:
+  spec_validator_default_mode_verdict: "PASS"
+  spec_validator_default_mode_count: "11/11 PASS (9 v0.2.0 historical + 2 v0.3.0 new: CORE_GOAL_FIELD_PRESENT + ROUND_KIND_TEMPLATE_VALID)"
+  spec_validator_default_mode_failed_invariants: []
+  spec_validator_v0_3_0_mode_verdict: "PASS"
+  spec_validator_v0_3_0_mode_count: "11/11 PASS (against promoted v0.3.0 frozen spec at .local/research/spec_v0.3.0.md)"
+  spec_validator_v0_3_0_mode_failed_invariants: []
+  spec_validator_v0_3_0_strict_prose_verdict: "PASS"
+  spec_validator_v0_3_0_strict_prose_count: "11/11 PASS"
+  pytest_full_round_14: { exit_code: 0, n_tests_pass: 395, n_skipped: 1, n_subtests: 83 }
+  pytest_full_round_15: { exit_code: 0, n_tests_pass: 395, n_skipped: 1, n_subtests: 0 }   # round_15 pytest log shows "395 passed, 1 skipped" (subtests not separately reported in this pytest configuration; replay byte-identical to Round 14 in test selection)
+  count_tokens_skill_md_round_14: { metadata: 97, body: 3022, pass: true, backend: tiktoken, source: ".local/dogfood/2026-04-29/round_14/raw/count_tokens_skill_md.json" }
+  count_tokens_skill_md_round_15: { metadata: 97, body: 3022, pass: true, backend: tiktoken, source: ".local/dogfood/2026-04-29/round_15/raw/count_tokens_skill_md.json" }
+  count_tokens_skill_md_post_stage_7: { metadata: 91, body: 3023, pass: true, backend: tiktoken, note: "Stage 7 SKILL.md re-bump (rc1 frontmatter version 0.3.0-rc1 → 0.3.0; spec ref bump) yields 91/3023; PASS at packaging gate; deltas vs round-time evidence are -6 metadata / +1 body, both well within v1_baseline ceilings." }
+  three_tree_mirror_drift_round_15: 0
+  three_tree_mirror_skill_md_sha256: "4ec3b1215e5c606d2b2f20e56e3aefc09f4ac2e1c4957143138dfc2db00e7cf2"   # post-Stage-7 SHA-256; verified equal across .agents/ + .cursor/ + .claude/ trees
+  agents_md_compile_hash: "ac9fc929dfb4f879"                  # from .rules/.compile-hashes.json (post Stage-7 re-compile via devolaflow rule compiler)
+
+multi_round_evidence:
+  # v0.2.0 reused 13 rounds (Rounds 1-13) per
+  # .local/dogfood/2026-04-28/v0.2.0_ship_decision.yaml#multi_round_evidence
+  # — those are byte-identical historical record; v0.3.0 NEW rounds are 14 + 15.
+  round_1: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_2: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_3: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_4: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_5: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_6: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_7: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_8: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_9: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_10: { present: true, files: 6, gate: PASS, source: v0.2.0_ship }
+  round_11: { present: true, files: 6, gate: PASS, source: v0.2.0_ship, v2_pass: false }
+  round_12: { present: true, files: 6, gate: PASS, source: v0.2.0_ship, v2_pass: false }
+  round_13: { present: true, files: 6, gate: PASS, source: v0.2.0_ship, v2_pass: false, ship_prep: true }
+  round_14: { present: true, files: 6, gate: PASS, source: v0.3.0_dogfood, v2_pass: false, round_kind: code_change, raw_artifact_count: 14 }
+  round_15: { present: true, files: 6, gate: PASS, source: v0.3.0_dogfood, v2_pass: false, round_kind: measurement_only, raw_artifact_count: 15 }
+
+cross_platform_drift:
+  cursor: DRIFT_ZERO
+  claude: DRIFT_ZERO
+  three_tree: ALL_TREES_DRIFT_ZERO   # 15th consecutive ALL_TREES_DRIFT_ZERO round; SHA-256 byte-equality verified at Stage 7 close
+
+packaging_gate_three_trees:
+  source: { metadata_tokens: 91, body_tokens: 3023, pass: true, sha256: "4ec3b1215e5c606d2b2f20e56e3aefc09f4ac2e1c4957143138dfc2db00e7cf2" }
+  cursor: { metadata_tokens: 91, body_tokens: 3023, pass: true, sha256: "4ec3b1215e5c606d2b2f20e56e3aefc09f4ac2e1c4957143138dfc2db00e7cf2" }
+  claude: { metadata_tokens: 91, body_tokens: 3023, pass: true, sha256: "4ec3b1215e5c606d2b2f20e56e3aefc09f4ac2e1c4957143138dfc2db00e7cf2" }
+
+stage_7_deliverables:
+  spec_v0_3_0_md_created: true                                  # `.local/research/spec_v0.3.0.md` (promoted from rc1; body byte-identical; frontmatter / H1 / preamble / Reconciliation Log only)
+  spec_v0_3_0_rc1_md_pinned: true                               # `.local/research/spec_v0.3.0-rc1.md` retained as historical record
+  skill_md_version: "0.3.0"
+  rules_si_chip_spec_mdc_updated: true                          # `.rules/si-chip-spec.mdc` adds 2 hard rules (9 + 10) per §17
+  agents_md_recompiled: true
+  agents_md_compile_hash: "ac9fc929dfb4f879"
+  agents_md_total_hard_rules: 10                                # 8 from v0.2.0 + 2 incremental v0.3.0
+  tarball_path: docs/skills/si-chip-0.3.0.tar.gz
+  tarball_sha256: "0c3390d355f0ef794d2ba6bc94f3223e24305d523672ec95d5e7aed41b01acac"
+  tarball_size_bytes: 62343
+  tarball_deterministic_build_flags: "--owner=0 --group=0 --numeric-owner --mtime=2026-04-29 --sort=name --exclude='*/__pycache__' --exclude='si-chip/scripts/test_*.py'"
+  install_sh_version: "v0.3.0"
+  docs_install_sh_version: "v0.3.0"
+  docs_install_body_md_versions_updated: 2                      # EN row + CN row
+  changelog_v0_3_0_section_added: true
+
+# Spec §11 forever-out compliance
+spec_11_forever_out_check:
+  marketplace: UNCHANGED
+  router_model_training: UNCHANGED   # tools/round_kind.py + tools/cjk_trigger_eval.py + tools/eval_skill.py + tools/multi_handler_redundant_call.py are pure-Python deterministic; no learned weights; no online learning; no inference model
+  ide_compat: UNCHANGED              # Cursor + Claude Code mirrors at §7.2 priority 1+2; Codex still bridge-only at §11.2 deferred
+  md_to_cli: UNCHANGED               # core_goal_test_pack cases are hand-authored YAML; no MD-to-CLI auto-converter
+  verdict: ALL_4_FOREVER_OUT_PRESERVED
+  spec_v0_3_0_section_14_6_reaffirms_verbatim: true             # §14.6 explicitly re-affirms §11.1 forever-out items with zero modifications
+
+next_steps:
+  - "L0 reviews this v0.3.0_ship_decision.yaml + v0.3.0_ship_report.md"
+  - "L0 inspects git diff (Stages 1-8 work) and approves the 3 commits on feat/v0.3.0-core-goal-invariant"
+  - "L0 runs `gh pr create` to open MR (do NOT push to main directly per workspace Protected Branch Workflow)"
+  - "Post-merge: bump CHANGELOG link / release banner / docs/index.md"
+  - "Post-merge: optionally `gh release create v0.3.0` against the merged main HEAD"
+  - "Post-merge: optionally update workspace memory / lark wiki with v0.3.0 milestone"
+
+v0_4_0_forward_look:
+  primary_actions:
+    - "real_llm_runner.py — must-have; unblocks T2_pass_k v2_tightened (carry-forward from v0.2.0 roadmap; same blocker since Round 1)"
+    - "Refactor chip-usage-helper Round 11 to use tools/eval_skill.py (~600 LoC savings; demonstrates v0.3.0 §16 multi-ability layout fully)"
+    - "Promote §16 multi-ability layout from Informative → Normative (v0.3.x bump after 2+ abilities ship under new layout — Si-Chip + chip-usage-helper already qualifies; bump scheduled for v0.3.x)"
+    - "Consider G2 / G3 / G4 fills (D4 generalizability completion; depends on real-LLM runner)"
+    - "Consider L5 / L6 / L7 fills (D3 latency_path completion; depends on real-LLM runner)"
+  authoritative_action_plan: .local/dogfood/2026-04-29/round_15/next_action_plan.yaml

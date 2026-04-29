@@ -1,0 +1,34 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T08:25:00+00:00'
+targets_round: post_v3_strict_maintenance
+bound_gate: v3_strict
+target_branch: main (after this PR merges)
+
+# Post-ship maintenance plan. The 10-round dogfood loop is complete; this plan covers
+# the watch list for the next 30 days (next_review_at: 2026-05-29).
+
+actions:
+  - action_id: maintenance_a1
+    priority: P2
+    targets_metric: G2_cross_domain_transfer_pass
+    description: |
+      G2 requires running the trigger evaluator on a non-Cursor-billing scenario pack
+      (e.g. AWS billing prompts, generic SaaS spend prompts) to verify the discriminator
+      doesn't false-fire. Defer to v0.6.4 if a second skill in the same cohort lands.
+
+  - action_id: maintenance_a2
+    priority: P2
+    targets_metric: G4_model_version_stability
+    description: |
+      G4 requires re-running the trigger eval after a model upgrade (composer_2 →
+      composer_3 etc.). Re-trigger this round if the upstream Cursor model dial moves.
+
+  - action_id: maintenance_a3
+    priority: P3
+    targets_metric: U4_time_to_first_success
+    description: |
+      Currently U4 = npm test wall-time (warm cache). Add a u4_cold variant that runs
+      `rm -rf node_modules && npm ci && npm test` to capture the real cold-install
+      duration. Useful for first-impression metric reporting.
+
+provenance: { spec_version: v0.1.0, target_commit_base: 393b692 }

@@ -7,7 +7,126 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty for now; post-v0.2.0 items land here)
+- (empty; post-v0.3.0 items land here)
+
+## [0.3.0] - 2026-04-29
+
+### Summary
+Si-Chip v0.3.0 — "Core-Goal Invariant + round_kind enum" — ships as the
+formal release following Round 14 (`code_change`) + Round 15
+(`measurement_only`) consecutive PASSes at v1_baseline against the
+v0.3.0-rc1 spec. Spec promoted rc1 → frozen with body byte-identical;
+AGENTS.md §13 Agent Behavior Contract grows from 8 → 10 hard rules
+(rule 9: `core_goal_test_pack` + `C0 = 1.0`; rule 10: `round_kind`
+4-value enum). Ship gate: `relaxed` (= `v1_baseline`; same gate as
+v0.2.0); v2_tightened deferred again pending real-LLM runner per
+v0.2.0 known limitations.
+
+### Added (Normative)
+
+- **Spec §14 Core-Goal Invariant**: BasicAbility now requires a
+  `core_goal` block with `statement`, `test_pack_path`, and
+  `minimum_pass_rate: 1.0` (locked); top-level invariant; not R6 D8
+  per §14.5.
+- **Spec §15 round_kind Enum**: 4 values (`code_change |
+  measurement_only | ship_prep | maintenance`) with per-kind
+  iteration_delta clause (strict / monotonicity_only / WAIVED /
+  WAIVED) per §15.2; universal C0 = 1.0 + monotonicity per §15.3;
+  consecutive-rounds promotion rule §15.4.
+- **Spec §17 Agent Behavior Contract Add-ons**: 2 new hard rules
+  (9: core_goal_test_pack + C0; 10: round_kind enum) compiled into
+  `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+
+### Added (Informative)
+
+- **Spec §16 Multi-Ability Dogfood Layout**:
+  `.local/dogfood/<DATE>/abilities/<id>/round_<N>/` (Informative
+  @ v0.3.0; promote to Normative at v0.3.x once 2+ abilities migrate).
+
+### Added (Tooling)
+
+- `tools/cjk_trigger_eval.py` (586 LoC) — generic CJK-aware trigger
+  F1 evaluator.
+- `tools/eval_skill.py` (786 LoC) — generic per-ability evaluation
+  harness (replaces 768-line ability-specific harnesses).
+- `tools/multi_handler_redundant_call.py` (404 LoC) — L4
+  redundant-call analyzer over ALL handlers.
+- `tools/round_kind.py` (220 LoC) — `round_kind` enum +
+  iteration_delta clause helpers.
+- 4 companion test files (1138 LoC, 70 unit tests).
+
+### Added (Schema/Templates)
+
+- `templates/basic_ability_profile.schema.yaml` `$schema_version`
+  0.1.0 → 0.2.0; new REQUIRED `core_goal` block.
+- `templates/iteration_delta_report.template.yaml` extended
+  additively with `core_goal_check` + `round_kind`.
+- `templates/next_action_plan.template.yaml` extended additively
+  with `round_kind`.
+
+### Added (spec_validator)
+
+- `tools/spec_validator.py` SCRIPT_VERSION 0.1.4 → 0.2.0;
+  `SUPPORTED_SPEC_VERSIONS` adds `v0.3.0-rc1` (and `v0.3.0`); 9 → 11
+  BLOCKERs with new `CORE_GOAL_FIELD_PRESENT` and
+  `ROUND_KIND_TEMPLATE_VALID`; backward-compat preserved for v0.1.0
+  / v0.2.0-rc1 / v0.2.0 spec modes.
+
+### Added (Documentation)
+
+- `.local/research/r11_core_goal_invariant.md` (967 lines) —
+  research brief.
+- `.local/research/spec_v0.3.0-rc1.md` (1216 lines) — pinned
+  historical record.
+- `.local/research/spec_v0.3.0.md` — promoted frozen spec
+  (body byte-identical to rc1; frontmatter / H1 / preamble /
+  Reconciliation Log only).
+- `.agents/skills/si-chip/references/{core-goal-invariant,round-kind,multi-ability-layout}-r11-summary.md`
+  — 3 new reference docs (mirrored to `.cursor/skills/...` and
+  `.claude/skills/...`).
+- `.agents/skills/si-chip/scripts/eval_skill_quickstart.md` —
+  CLI cheat-sheet (mirrored to both platform mirrors).
+
+### Verified (Dogfood)
+
+- Round 14 (`round_kind: code_change`): 6 evidence files +
+  4 abilities-tree files + 14 raw artifacts; C0 = 1.0 (5/5);
+  spec_validator dual-spec 11/11 + 11/11 PASS; 14th consecutive
+  v1_baseline pass; 2 axes ≥ +0.05 (governance_risk +
+  generalizability).
+- Round 15 (`round_kind: measurement_only`): 6 evidence files +
+  11 raw artifacts; C0 monotonicity 1.0 → 1.0 verified;
+  spec_validator dual-spec 11/11 + 11/11 replay PASS; 15th
+  consecutive v1_baseline pass; canonical demonstration of §15
+  round_kind enum in production.
+- Both rounds: 395 pytest passed / 1 skipped; mirrors byte-identical
+  (V3_drift_signal = 0.0).
+
+### Unchanged (Forever-Out — §11.1)
+
+- No marketplace; no router-model training; no generic IDE
+  compatibility layer; no Markdown-to-CLI converter. v0.3.0 §14.6
+  re-affirms verbatim.
+
+### Files
+
+- 11 new files; 8 modified files; +47 SKILL.md lines / +165 templates
+  lines / +3134 tools LoC / +578 reference doc lines.
+- Tarball: `docs/skills/si-chip-0.3.0.tar.gz`
+  (SHA-256 `0c3390d355f0ef794d2ba6bc94f3223e24305d523672ec95d5e7aed41b01acac`;
+  62 343 bytes; 1 SKILL.md + 1 DESIGN.md + 8 references + 4 scripts =
+  14 files; deterministic build via `--owner=0 --group=0
+  --numeric-owner --mtime=2026-04-29 --sort=name --exclude='*/__pycache__'
+  --exclude='si-chip/scripts/test_*.py'`).
+
+### Ship Verdict
+
+- `ship_eligible: true`
+- `ship_gate_achieved: relaxed` (= `v1_baseline`; same gate as v0.2.0
+  per §4.2 + §15.4 promotion rule)
+- `consecutive_v1_passes: 15` (Rounds 1-15)
+- `consecutive_v2_passes: 0` (T2_pass_k still pending real-LLM runner
+  per v0.2.0 known limitation)
 
 ## [0.2.0] — 2026-04-28
 

@@ -24,23 +24,28 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-SI_CHIP_VERSION_DEFAULT="v0.2.0"
+SI_CHIP_VERSION_DEFAULT="v0.3.0"
 SOURCE_URL_DEFAULT="https://yorha-agents.github.io/Si-Chip"
 
 MANIFEST=(
   "SKILL.md"
+  "DESIGN.md"
   "references/basic-ability-profile.md"
   "references/self-dogfood-protocol.md"
   "references/metrics-r6-summary.md"
   "references/router-test-r8-summary.md"
   "references/half-retirement-r9-summary.md"
+  "references/core-goal-invariant-r11-summary.md"
+  "references/round-kind-r11-summary.md"
+  "references/multi-ability-layout-r11-summary.md"
   "scripts/profile_static.py"
   "scripts/count_tokens.py"
   "scripts/aggregate_eval.py"
+  "scripts/eval_skill_quickstart.md"
 )
 
-EXPECTED_REFS=5
-EXPECTED_SCRIPTS=3
+EXPECTED_REFS=8
+EXPECTED_SCRIPTS=4
 
 # ---------------------------------------------------------------------------
 # Globals (populated by parse_args)
@@ -107,7 +112,7 @@ print_version_info() {
 
 print_help() {
   cat <<'EOF'
-Si-Chip installer v0.2.0
+Si-Chip installer v0.3.0
 
 Usage:
   curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash
@@ -556,7 +561,7 @@ install_one() {
 
   log ""
   log "[OK] Installed Si-Chip ${SI_CHIP_VERSION} to ${install_dir}"
-  log "     SKILL.md (1) + references (${EXPECTED_REFS}) + scripts (${EXPECTED_SCRIPTS}) = 9 files"
+  log "     SKILL.md (1) + DESIGN.md (1) + references (${EXPECTED_REFS}) + scripts (${EXPECTED_SCRIPTS}) = $((1 + 1 + EXPECTED_REFS + EXPECTED_SCRIPTS)) files"
   log "     Verify: python3 ${install_dir}/scripts/count_tokens.py --file ${install_dir}/SKILL.md --both"
   log "     Note: count_tokens.py has a soft dependency on the 'tiktoken' Python package."
   log "           Install with: pip install tiktoken (optional; falls back to a heuristic)."

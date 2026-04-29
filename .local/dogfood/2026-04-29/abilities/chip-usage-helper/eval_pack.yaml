@@ -1,0 +1,54 @@
+# Trigger classification eval pack for chip-usage-helper.
+# Expanded to 40 prompts (20 should-trigger, 20 should-not-trigger with near-miss emphasis).
+# Harder near-miss set tests the discriminator: "cursor" + non-billing context should NOT trigger.
+
+should_trigger:
+  # Core EN
+  - "show me my cursor usage dashboard"
+  - "how much did I spend on cursor this month"
+  - "team ranking for cursor billing"
+  - "which model cost me the most this week"
+  - "what's my spend breakdown by model"
+  # Slash command
+  - "/usage-report"
+  - "/usage-report --window=30d"
+  # Core ZH — pure CJK
+  - "我的 cursor 用量?"
+  - "本月花了多少?"
+  - "这个月和上个月比多花了多少?"
+  - "agent 工时占比?"
+  - "我在团队里排第几?"
+  - "上个月 cursor 花了多少钱"
+  - "这周的模型分布"
+  - "哪个模型花的最多"
+  # Mixed / harder
+  - "show dashboard for last 14 days"
+  - "看下本周的开销"
+  - "列一下我的账单明细"
+  - "my agent 工时占比"
+  - "团队排名榜"
+
+should_not_trigger:
+  # Meta / tool questions — "cursor" present but not usage-related
+  - "how do I install a plugin?"
+  - "fix this typescript error in my file"
+  - "what's my current git branch?"
+  - "show me docker logs from the api container"
+  - "help me write a regex for email validation"
+  - "what is MCP?"
+  - "explain how Cursor Composer works"
+  - "how to open Cursor settings"
+  - "Cursor keybinding for rename"
+  - "update Cursor to latest version"
+  - "Cursor extension marketplace"
+  # Unrelated
+  - "fetch the weather API response"
+  - "how to debug a segfault"
+  - "send a feishu message"
+  - "list running docker containers"
+  - "generate a haiku about rust"
+  # Confusing — "spend/花" but not cursor-billing
+  - "how much time did we spend debugging last sprint"
+  - "不要浪费时间在这个问题上"
+  - "spend time reviewing the PR"
+  - "花时间想一下需求"

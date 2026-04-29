@@ -1,0 +1,30 @@
+round_id: round_15
+prior_round_id: round_14
+computed_at: '2026-04-29T10:05:30+00:00'
+spec_version: v0.1.0
+axis_status:
+  task_quality: { positive_axis: true, delta: 0.02, rationale: "+2 new tests (leaderboard-size assertions)" }
+  context_economy:
+    positive_axis: true
+    delta: 0.287                  # (4599-3281)/4599 payload-max reduction
+    rationale: "Payload max: 4599 -> 3281 compact tokens (-29%). Full-scenario top-20 collapsed to top-10, which is what the canvas template already renders by default."
+  latency_path: { positive_axis: false, delta: 0.0 }
+  generalizability: { positive_axis: false, delta: 0.0 }
+  usage_cost: { positive_axis: false, delta: 0.0 }
+  routing_cost: { positive_axis: false, delta: 0.0 }
+  governance_risk: { positive_axis: false, delta: 0.0 }
+v3_strict_threshold_check: { pass: true, blockers: [] }
+monotonicity_check_status:
+  pass_rate_no_regression: { r14: 0.97, r15: 0.97, pass: true }
+  per_metric:
+    R3_trigger_F1: { r14: 1.0, r15: 1.0, pass: true }
+    test_count: { r14: 99, r15: 101, pct_change: +2.0, pass: true, note: "+2 new tests" }
+    payload_max_compact: { r14: 4599, r15: 3281, pct_change: -28.7, pass: true, note: "IMPROVEMENT" }
+  overall_pass: true
+promotion_state: { current_gate: v3_strict, consecutive_v3_passes: 10 }
+headline:
+  primary_improvement_axis: context_economy
+  cumulative_token_delta_vs_v0_7_0: 0.279
+  rounds_completed_this_cycle: 5
+  cycle_2_complete: true
+provenance: { target_commit_base: dc667a4 }
