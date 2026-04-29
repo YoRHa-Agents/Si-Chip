@@ -1,0 +1,38 @@
+{
+  "round_id": "round_13",
+  "metric_id": "R4_near_miss_FP_rate",
+  "method": "Computed directly from prompt_outcomes (per-prompt verdicts present in result.json); per-case mean across 6 cases (Round 13 SHIP-PREP REVERT-ONLY restores 6-case baseline; the 7th case `reactivation_review.yaml` was reverted)",
+  "n_cases": 6,
+  "n_should_not_trigger_per_case": 10,
+  "n_should_not_trigger_total": 60,
+  "per_case": [
+    {"case_id": "docs_boundary",       "n_should_not_trigger": 10, "n_FP": 0, "fp_rate": 0.0},
+    {"case_id": "half_retire_review",  "n_should_not_trigger": 10, "n_FP": 0, "fp_rate": 0.0},
+    {"case_id": "metrics_gap",         "n_should_not_trigger": 10, "n_FP": 0, "fp_rate": 0.0},
+    {"case_id": "next_action_plan",    "n_should_not_trigger": 10, "n_FP": 2, "fp_rate": 0.2},
+    {"case_id": "profile_self",        "n_should_not_trigger": 10, "n_FP": 1, "fp_rate": 0.1},
+    {"case_id": "router_matrix",       "n_should_not_trigger": 10, "n_FP": 0, "fp_rate": 0.0}
+  ],
+  "n_FP_total": 3,
+  "mean_method": "mean of per-case fp_rates",
+  "mean_value": 0.05,
+  "v1_baseline_threshold": "<= 0.15",
+  "v1_baseline_check": "PASS (R4 = 0.05 <= 0.15; margin 0.10)",
+  "v2_tightened_threshold": "<= 0.10",
+  "v2_tightened_check": "PASS (R4 = 0.05 <= 0.10; margin 0.05)",
+  "v3_strict_threshold": "<= 0.05",
+  "v3_strict_check": "PASS (R4 = 0.05 <= 0.05 boundary)",
+  "round_11_round_13_byte_identical": true,
+  "note_round_12_comparison": "Round 12 had 7 cases (added reactivation_review.yaml with n_FP=0/10 = 0.0) yielding mean = 3/70 = 0.0429 (lower than Round 11/13 because the 7th case had perfect should-not-trigger negative-rejection in the deterministic simulator). Round 13 reverts to the 6-case mean = 0.05 = Round 11 byte-identical.",
+  "source_files_consulted": [
+    "evals/si-chip/baselines/with_si_chip_round4/docs_boundary/result.json",
+    "evals/si-chip/baselines/with_si_chip_round4/half_retire_review/result.json",
+    "evals/si-chip/baselines/with_si_chip_round4/metrics_gap/result.json",
+    "evals/si-chip/baselines/with_si_chip_round4/next_action_plan/result.json",
+    "evals/si-chip/baselines/with_si_chip_round4/profile_self/result.json",
+    "evals/si-chip/baselines/with_si_chip_round4/router_matrix/result.json"
+  ],
+  "deterministic": true,
+  "schema_version": "0.1.0",
+  "generator": "Round 13 dogfood — L3 Task Agent (SHIP-PREP REVERT-ONLY)"
+}

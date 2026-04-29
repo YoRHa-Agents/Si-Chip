@@ -2,7 +2,7 @@
 name: si-chip
 description: Persistent BasicAbility optimization factory. Use when profiling, evaluating, diagnosing, improving, router-testing, or half-retiring a skill/ability per Si-Chip spec v0.2.0-rc1.
 when_to_use: Whenever a Skill needs eval evidence, router_floor, or half-retire decision.
-version: 0.1.11
+version: 0.1.12
 license: Apache-2.0
 ---
 
