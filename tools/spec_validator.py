@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Static structural validator for the Si-Chip spec.
 
-Implements the eight machine-checkable invariants declared in spec
-§13.4 and frozen in ``tools/spec_validator.DESIGN.md``.
+Implements the **nine** machine-checkable invariants declared in spec
+§13.4 and frozen in ``tools/spec_validator.DESIGN.md``. Round 12
+(Si-Chip v0.1.11) added the 9th BLOCKER ``REACTIVATION_DETECTOR_EXISTS``
+which asserts that ``tools/reactivation_detector.py`` exists, references
+all 6 §6.4 trigger IDs verbatim, and ships with a sibling test file.
 
 Spec path defaults to ``.local/research/spec_v0.2.0-rc1.md`` (Round 11
 reconciliation, 2026-04-28): §13.4 prose counts are now aligned with
@@ -59,13 +62,13 @@ import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
 LOGGER = logging.getLogger("si_chip.spec_validator")
 
-SCRIPT_VERSION = "0.1.2"  # Round 11 — spec reconciliation (v0.1.0 → v0.2.0-rc1)
+SCRIPT_VERSION = "0.1.3"  # Round 12 — REACTIVATION_DETECTOR_EXISTS BLOCKER added
 
 # §5 router_test_matrix template accepts BOTH schema versions as of
 # Round 9 (Si-Chip v0.1.8). 0.1.0 = initial (mvp:8 + full:96); 0.1.1 =
@@ -185,6 +188,23 @@ EXPECTED_EVIDENCE_FILES = [
     "next_action_plan",
     "iteration_delta_report",
 ]
+
+# Round 12 §6.4 reactivation-detector invariant. The 9th BLOCKER asserts
+# that ``tools/reactivation_detector.py`` exists, references all 6 §6.4
+# trigger IDs verbatim, and that its sibling test file exists with at
+# least 1 test per trigger. The 6 IDs MUST appear byte-for-byte in the
+# detector source so an automated reader can map verdict trigger names
+# back to spec §6.4 prose.
+REACTIVATION_DETECTOR_PATH = "tools/reactivation_detector.py"
+REACTIVATION_DETECTOR_TEST_PATH = "tools/test_reactivation_detector.py"
+EXPECTED_REACTIVATION_TRIGGER_IDS: Tuple[str, ...] = (
+    "new_model_no_ability_baseline_gap",
+    "new_scenario_or_domain_match",
+    "router_test_requires_ability_for_cheap_model",
+    "efficiency_axis_becomes_significant",
+    "upstream_api_change_wrapper_stabilizes",
+    "manual_invocation_rebound",
+)
 
 # §11.1 forever-out items — keyword groups (any one keyword from a group
 # in the §11.1 block satisfies the item).
@@ -938,6 +958,127 @@ def check_dogfood_protocol(spec_text: str) -> AssertionResult:
     )
 
 
+def check_reactivation_detector_exists(
+    repo_root: Optional[Path] = None,
+) -> AssertionResult:
+    """Invariant 9 — REACTIVATION_DETECTOR_EXISTS: §6.4 detector + 6 IDs.
+
+    Round 12 (Si-Chip v0.1.11) BLOCKER. Asserts that:
+
+    * ``tools/reactivation_detector.py`` exists.
+    * Its source contains every one of the 6 §6.4 trigger IDs verbatim
+      (the runtime contract — automated readers map detector verdict
+      names back to spec §6.4 prose).
+    * Its sibling test file ``tools/test_reactivation_detector.py``
+      exists.
+    * The test file contains at least one test class / test name per
+      trigger ID (per workspace rule "Mandatory Verification" — every
+      new code path must carry tests).
+
+    The check operates against the repo's source tree on disk; missing
+    files OR a missing trigger ID OR a missing test reference is a
+    BLOCKER fail (no silent acceptance).
+
+    Args:
+        repo_root: Override the repo root. Defaults to the parent of
+            this file's parent (i.e. the workspace root).
+
+    Returns:
+        :class:`AssertionResult` with ``id="REACTIVATION_DETECTOR_EXISTS"``.
+    """
+
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+    detector = repo_root / REACTIVATION_DETECTOR_PATH
+    test = repo_root / REACTIVATION_DETECTOR_TEST_PATH
+
+    detector_exists = detector.exists() and detector.is_file()
+    test_exists = test.exists() and test.is_file()
+    missing_in_detector: List[str] = []
+    missing_in_tests: List[str] = []
+
+    detector_text = ""
+    test_text = ""
+    if detector_exists:
+        try:
+            detector_text = detector.read_text(encoding="utf-8")
+        except OSError as exc:
+            return AssertionResult(
+                id="REACTIVATION_DETECTOR_EXISTS",
+                name=(
+                    "tools/reactivation_detector.py exists and references "
+                    "all 6 §6.4 trigger IDs (Round 12)"
+                ),
+                passed=False,
+                severity="BLOCKER",
+                message=f"detector unreadable: {exc}",
+                evidence={"detector_path": str(detector)},
+            )
+        for tid in EXPECTED_REACTIVATION_TRIGGER_IDS:
+            if tid not in detector_text:
+                missing_in_detector.append(tid)
+    if test_exists:
+        try:
+            test_text = test.read_text(encoding="utf-8")
+        except OSError as exc:
+            return AssertionResult(
+                id="REACTIVATION_DETECTOR_EXISTS",
+                name=(
+                    "tools/reactivation_detector.py exists and references "
+                    "all 6 §6.4 trigger IDs (Round 12)"
+                ),
+                passed=False,
+                severity="BLOCKER",
+                message=f"test file unreadable: {exc}",
+                evidence={"test_path": str(test)},
+            )
+        for tid in EXPECTED_REACTIVATION_TRIGGER_IDS:
+            # Each trigger must be referenced in the test file SOMEWHERE
+            # (test class name, test method name, or test body) — at
+            # least 1 test per trigger.
+            if tid not in test_text:
+                missing_in_tests.append(tid)
+
+    passed = (
+        detector_exists
+        and test_exists
+        and not missing_in_detector
+        and not missing_in_tests
+    )
+    msg_parts: List[str] = []
+    if not detector_exists:
+        msg_parts.append(f"missing detector: {detector}")
+    if not test_exists:
+        msg_parts.append(f"missing tests: {test}")
+    if missing_in_detector:
+        msg_parts.append(f"trigger IDs missing in detector: {missing_in_detector}")
+    if missing_in_tests:
+        msg_parts.append(f"trigger IDs missing in tests: {missing_in_tests}")
+    msg = "; ".join(msg_parts) if msg_parts else (
+        f"detector + tests exist; all {len(EXPECTED_REACTIVATION_TRIGGER_IDS)} §6.4 "
+        "trigger IDs referenced verbatim in both"
+    )
+    return AssertionResult(
+        id="REACTIVATION_DETECTOR_EXISTS",
+        name=(
+            "tools/reactivation_detector.py exists and references "
+            "all 6 §6.4 trigger IDs (Round 12)"
+        ),
+        passed=passed,
+        severity="BLOCKER",
+        message=msg,
+        evidence={
+            "detector_path": str(detector),
+            "test_path": str(test),
+            "expected_trigger_ids": list(EXPECTED_REACTIVATION_TRIGGER_IDS),
+            "missing_in_detector": missing_in_detector,
+            "missing_in_tests": missing_in_tests,
+            "detector_exists": detector_exists,
+            "test_exists": test_exists,
+        },
+    )
+
+
 def check_forever_out_list(spec_text: str) -> AssertionResult:
     """Invariant 8 — FOREVER_OUT_LIST: §11.1 four items present."""
 
@@ -972,11 +1113,22 @@ def run_all(
     templates_dir: Path,
     *,
     strict_prose: bool,
+    repo_root: Optional[Path] = None,
 ) -> ValidationReport:
-    """Execute every invariant in declared order."""
+    """Execute every invariant in declared order.
+
+    Round 12 adds the 9th invariant ``REACTIVATION_DETECTOR_EXISTS``
+    which inspects the source tree at ``repo_root`` (defaults to the
+    parent of the templates directory) for ``tools/reactivation_detector.py``
+    and its sibling test file.
+    """
 
     spec_text = _read_text(spec_path)
     spec_version = detect_spec_version(spec_text)
+    if repo_root is None:
+        # Templates dir is conventionally at <repo_root>/templates;
+        # walk one level up to recover the repo root.
+        repo_root = templates_dir.resolve().parent
     results: List[AssertionResult] = [
         check_bap_schema(templates_dir),
         check_r6_keys(
@@ -995,6 +1147,7 @@ def run_all(
         check_platform_priority(spec_text),
         check_dogfood_protocol(spec_text),
         check_forever_out_list(spec_text),
+        check_reactivation_detector_exists(repo_root=repo_root),
     ]
     verdict = "PASS" if all(r.passed for r in results) else "FAIL"
     return ValidationReport(

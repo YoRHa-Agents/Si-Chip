@@ -1,0 +1,194 @@
+# Si-Chip v0.2.0 Ship Decision (machine-readable verdict)
+# Author: Round 12 dogfood — L3 Task Agent
+# Companion to: .local/dogfood/2026-04-28/v0.2.0_ship_report.md
+# Shape after .local/dogfood/2026-04-28/v0.1.0_ship_decision.yaml.
+spec_version: "v0.2.0-rc1"  # current spec rc; v0.2.0 final bump deferred per ship_eligible decision below
+decided_at: "2026-04-28T23:30:00+00:00"
+
+# v0.2.0 ship gate verdict
+verdict: "SHIP_BLOCKED"          # standard / v2_tightened gate not cleared (consecutive_v2_passes < 2)
+ship_eligible: false             # at gate v2_tightened
+ship_gate_attempted: "standard"  # = v2_tightened per spec §5.4
+ship_gate_alternative_available: "relaxed"   # = v1_baseline; both Round 11 and Round 12 pass v1_baseline; alternative path documented in v0.2.0_ship_report.md
+
+consecutive_v2_passes: 0
+consecutive_v1_passes: 12        # Rounds 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12
+
+# Two paths to v0.2.0 ship are documented in v0.2.0_ship_report.md.
+# L0 orchestrator chooses; this artifact emits ship_eligible=false at
+# gate v2_tightened with both paths' next_steps explicit.
+ship_paths_available:
+  path_A_recommended:
+    name: "Real-LLM runner upgrade + Round 13/14 v2_tightened verify"
+    eta_rounds: 2  # Round 13 + Round 14
+    blocker_unblock: "T2_pass_k 0.4950 -> >= 0.55 via real sampling at k=4 (currently pass_rate^4 PROXY)"
+    next_steps_after_round_13_14:
+      - "L0 spawns Round 13 (real-LLM runner swap; regenerate baselines)"
+      - "L0 spawns Round 14 (verification round; no new feature)"
+      - "Both Round 13 + Round 14 must clear every v2_tightened hard threshold"
+      - "Then emit v0.2.0_ship_decision.yaml v2 with verdict SHIP_ELIGIBLE at gate v2_tightened"
+      - "L0 bumps SKILL.md frontmatter to 0.2.0"
+      - "L0 builds docs/skills/si-chip-0.2.0.tar.gz"
+      - "L0 tags v0.2.0"
+      - "L0 updates CHANGELOG Unreleased -> [0.2.0]"
+      - "L0 regenerates mirrors"
+      - "L0 updates web/GitHub Pages"
+  path_B_alternative:
+    name: "Ship at v1_baseline as v0.2.0 with documentation"
+    eta_rounds: 1  # Round 13 = ship-prep only
+    blocker_unblock: "Accept that v2_tightened is not achievable with the deterministic SHA-256 simulator; ship at v1_baseline (12 consecutive passes) and document v2_tightened upgrade path"
+    next_steps_after_round_13:
+      - "L0 spawns Round 13 = ship-prep at v1_baseline"
+      - "L0 emits v0.2.0_ship_decision.yaml v2 with verdict SHIP_ELIGIBLE at gate RELAXED (= v1_baseline; same as v0.1.0 ship)"
+      - "L0 bumps SKILL.md frontmatter to 0.2.0"
+      - "L0 builds docs/skills/si-chip-0.2.0.tar.gz"
+      - "L0 tags v0.2.0"
+      - "L0 updates CHANGELOG Unreleased -> [0.2.0] (with explicit v2_tightened-upgrade-path note)"
+      - "L0 regenerates mirrors"
+      - "L0 updates web/GitHub Pages with v2_tightened upgrade path documentation"
+
+# Per-round v2_tightened threshold pass/fail trace
+v2_tightened_threshold_check:
+  round_11:
+    pass_rate: { threshold: ">= 0.82", observed: 0.85, pass: true, margin: "+0.03" }
+    pass_k:    { threshold: ">= 0.55", observed: 0.5478, pass: false, margin: "-0.0022", blocker: true }
+    trigger_F1: { threshold: ">= 0.85", observed: 0.8934, pass: true }
+    near_miss_FP_rate: { threshold: "<= 0.10", observed: 0.05, pass: true }
+    metadata_tokens: { threshold: "<= 100", observed: 85, pass: true }
+    per_invocation_footprint: { threshold: "<= 7000", observed: 3710, pass: true }
+    wall_clock_p95: { threshold: "<= 30 s", observed: 1.4693, pass: true }
+    routing_latency_p95: { threshold: "<= 1200 ms", observed: 1100, pass: true }
+    routing_token_overhead: { threshold: "<= 0.12", observed: 0.0233, pass: true }
+    iteration_delta_any_axis:
+      threshold: ">= +0.10"
+      observed: 0.05
+      pass: false
+      blocker: true
+      note: "Round 11 governance_risk drift-removal axis claimed at v1_baseline +0.05 bucket only"
+    blockers: ["T2_pass_k", "iteration_delta_any_axis"]
+    overall_pass: false
+  round_12:
+    pass_rate: { threshold: ">= 0.82", observed: 0.821429, pass: true, margin: "+0.001 (RAZOR-THIN)" }
+    pass_k:
+      threshold: ">= 0.55"
+      observed: 0.495019
+      pass: false
+      margin: "-0.055 (REGRESSION vs Round 11)"
+      blocker: true
+      regression_cause: "Honest 7th case `reactivation_review.yaml` added per Option A; per-case pass_rate=0.65 under deterministic SHA-256 with seed=42 dragged the cross-case mean down. Did NOT cherry-pick seed/case_id; did NOT edit prompt_outcomes; did NOT manually bump per-case pass_rate. Per L3 task brief: 'I want HONESTY here, not number-chasing.'"
+    trigger_F1: { threshold: ">= 0.85", observed: 0.8729, pass: true, margin: "+0.023" }
+    near_miss_FP_rate: { threshold: "<= 0.10", observed: 0.0429, pass: true }
+    metadata_tokens: { threshold: "<= 100", observed: 85, pass: true }
+    per_invocation_footprint: { threshold: "<= 7000", observed: 3710, pass: true }
+    wall_clock_p95: { threshold: "<= 30 s", observed: 1.4707, pass: true }
+    routing_latency_p95: { threshold: "<= 1200 ms", observed: 1100, pass: true }
+    routing_token_overhead: { threshold: "<= 0.12", observed: 0.0234, pass: true }
+    iteration_delta_any_axis:
+      threshold: ">= +0.10"
+      observed: 0.10
+      pass: true
+      note: "Round 12 governance_risk axis claimed at v2_tightened +0.10 bucket for the §6.4 reactivation-detector audit-gap-closure full-coverage flavour"
+    blockers: ["T2_pass_k"]
+    overall_pass: false
+
+# v1_baseline is fully cleared on both rounds (informational; v0.2.0 alternative
+# ship gate per path B above)
+v1_baseline_threshold_check:
+  round_11: { pass_rate: 0.85, pass_k: 0.5478, trigger_F1: 0.8934, near_miss_FP_rate: 0.05, metadata_tokens: 85, per_invocation_footprint: 3710, wall_clock_p95_s: 1.4693, routing_latency_p95_ms: 1100, routing_token_overhead: 0.0233, iteration_delta_any_axis: 0.05, all_pass: true }
+  round_12: { pass_rate: 0.8214, pass_k: 0.4950, trigger_F1: 0.8729, near_miss_FP_rate: 0.0429, metadata_tokens: 85, per_invocation_footprint: 3710, wall_clock_p95_s: 1.4707, routing_latency_p95_ms: 1100, routing_token_overhead: 0.0234, iteration_delta_any_axis: 0.10, all_pass: true }
+
+machine_checks:
+  spec_validator_default_mode_verdict: "PASS"
+  spec_validator_default_mode_count: "9/9 PASS (was 8/8 pre-Round-12; new BLOCKER REACTIVATION_DETECTOR_EXISTS added Round 12)"
+  spec_validator_default_mode_failed_invariants: []
+  spec_validator_strict_prose_mode_verdict: "PASS"  # against v0.2.0-rc1 (Round 11 reconciliation)
+  spec_validator_strict_prose_mode_count: "9/9 PASS"
+  spec_validator_strict_prose_mode_failed_invariants: []
+  spec_validator_v0_1_0_default_mode_verdict: "PASS"  # backward-compat preserved
+  reactivation_detector_cli_round_12: { triggered_count: 0, decision_action: "keep", cli_exit_code: 0 }
+
+multi_round_evidence:
+  round_1: { present: true, files: 6, gate: PASS }
+  round_2: { present: true, files: 6, gate: PASS }
+  round_3: { present: true, files: 6, gate: PASS }
+  round_4: { present: true, files: 6, gate: PASS }
+  round_5: { present: true, files: 6, gate: PASS }
+  round_6: { present: true, files: 6, gate: PASS }
+  round_7: { present: true, files: 6, gate: PASS }
+  round_8: { present: true, files: 6, gate: PASS }
+  round_9: { present: true, files: 6, gate: PASS }
+  round_10: { present: true, files: 6, gate: PASS }
+  round_11: { present: true, files: 6, gate: PASS, v2_pass: false }
+  round_12: { present: true, files: 6, gate: PASS, v2_pass: false }
+
+cross_platform_drift:
+  cursor: DRIFT_ZERO
+  claude: DRIFT_ZERO
+  three_tree: ALL_TREES_DRIFT_ZERO  # to be re-verified post-0.1.11 sync in step 9
+
+packaging_gate_three_trees:
+  source: { metadata_tokens: 85, body_tokens: 2125, pass: true }
+  cursor: { metadata_tokens: 85, body_tokens: 2125, pass: true }
+  claude: { metadata_tokens: 85, body_tokens: 2125, pass: true }
+
+round_12_deliverables:
+  reactivation_detector:
+    module: tools/reactivation_detector.py
+    triggers_implemented: 6
+    triggers_verbatim:
+      - new_model_no_ability_baseline_gap
+      - new_scenario_or_domain_match
+      - router_test_requires_ability_for_cheap_model
+      - efficiency_axis_becomes_significant
+      - upstream_api_change_wrapper_stabilizes
+      - manual_invocation_rebound
+    sibling_test_module: tools/test_reactivation_detector.py
+    n_unit_tests: 31
+    cli_check_against_round_12_keep_profile: { triggered_count: 0, exit_code: 0 }
+  spec_validator_extension:
+    new_invariant_id: REACTIVATION_DETECTOR_EXISTS
+    severity: BLOCKER
+    default_mode_count: "9/9 PASS"
+    script_version: "0.1.2 -> 0.1.3"
+  seventh_case:
+    file: evals/si-chip/cases/reactivation_review.yaml
+    case_id: reactivation_review
+    n_should_trigger: 10
+    n_should_not_trigger: 10
+    per_case_pass_rate: 0.65
+    per_case_pass_k_4: 0.1785
+    effect_on_T2_pass_k: "7-case mean = 0.4950 (was 6-case mean 0.5478); REGRESSION of -0.0528 (HONESTLY documented)"
+
+evidence:
+  - .local/dogfood/2026-04-28/round_11/metrics_report.yaml
+  - .local/dogfood/2026-04-28/round_12/metrics_report.yaml
+  - .local/dogfood/2026-04-28/round_12/raw/v2_readiness_verdict.md
+  - .local/dogfood/2026-04-28/round_12/raw/v2_tightened_round_11_check.md
+  - .local/dogfood/2026-04-28/round_12/raw/v2_tightened_round_12_check.md
+  - .local/dogfood/2026-04-28/round_12/raw/v2_tightened_approach.md
+  - .local/dogfood/2026-04-28/round_12/raw/reactivation_check.json
+  - .local/dogfood/2026-04-28/round_12/raw/spec_validator.json
+  - tools/reactivation_detector.py
+  - tools/test_reactivation_detector.py
+  - tools/spec_validator.py
+
+# Spec §11 forever-out compliance
+spec_11_forever_out_check:
+  marketplace: UNCHANGED
+  router_model_training: UNCHANGED        # The new tools/reactivation_detector.py is pure-Python deterministic — no learned weights; no inference model.
+  ide_compat: UNCHANGED
+  md_to_cli: UNCHANGED
+  verdict: ALL_4_FOREVER_OUT_PRESERVED
+
+next_steps:
+  # ALL of these happen in Round 13+ (whichever path L0 chooses); L0 owns
+  # the spec-version bump and tarball regeneration.
+  - "L0 chooses PATH A (real-LLM runner; Round 13 + Round 14) or PATH B (v1_baseline ship; Round 13)"
+  - "L0 spawns the appropriate Round 13 with the chosen path"
+  - "L0 bumps SKILL.md frontmatter to 0.2.0 (after path completes)"
+  - "L0 builds docs/skills/si-chip-0.2.0.tar.gz"
+  - "L0 tags v0.2.0"
+  - "L0 updates CHANGELOG Unreleased -> [0.2.0]"
+  - "L0 regenerates mirrors (.cursor + .claude)"
+  - "L0 updates web/GitHub Pages with v0.2.0 release banner"
+  - "L0 emits v0.2.0_ship_decision.yaml v2 with verdict=SHIP_ELIGIBLE at the gate that the chosen path achieved"

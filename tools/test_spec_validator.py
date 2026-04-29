@@ -281,9 +281,11 @@ class CheckRouterMatrixCellsSchema011NegativeTests(unittest.TestCase):
 
 
 class SpecValidatorJsonCliPassesTests(unittest.TestCase):
-    """End-to-end: ``tools/spec_validator.py --json`` still exits 0 (8/8 PASS)."""
+    """End-to-end: ``tools/spec_validator.py --json`` still exits 0 (9/9 PASS)."""
 
-    def test_default_mode_8_of_8_pass(self) -> None:
+    def test_default_mode_9_of_9_pass(self) -> None:
+        """Round 12 added the 9th invariant REACTIVATION_DETECTOR_EXISTS."""
+
         proc = subprocess.run(
             [
                 sys.executable,
@@ -297,16 +299,92 @@ class SpecValidatorJsonCliPassesTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        self.assertEqual(len(payload["results"]), 8)
-        # All 8 invariants must pass in default mode.
+        self.assertEqual(len(payload["results"]), 9)
         for r in payload["results"]:
             with self.subTest(invariant=r["id"]):
                 self.assertTrue(r["passed"], msg=r["message"])
-        # ROUTER_MATRIX_CELLS result explicitly reports schema 0.1.1 now.
         matrix = next(
             r for r in payload["results"] if r["id"] == "ROUTER_MATRIX_CELLS"
         )
         self.assertEqual(matrix["evidence"]["schema_version"], "0.1.1")
+        # The 9th invariant must be REACTIVATION_DETECTOR_EXISTS.
+        ids = [r["id"] for r in payload["results"]]
+        self.assertIn("REACTIVATION_DETECTOR_EXISTS", ids)
+
+
+class CheckReactivationDetectorExistsTests(unittest.TestCase):
+    """Round 12 §6.4 invariant — REACTIVATION_DETECTOR_EXISTS."""
+
+    def test_real_repo_passes_invariant(self) -> None:
+        """The shipped detector + tests must satisfy the BLOCKER."""
+
+        result = sv.check_reactivation_detector_exists(repo_root=_REPO_ROOT)
+        self.assertEqual(result.id, "REACTIVATION_DETECTOR_EXISTS")
+        self.assertEqual(result.severity, "BLOCKER")
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(
+            result.evidence["expected_trigger_ids"],
+            list(sv.EXPECTED_REACTIVATION_TRIGGER_IDS),
+        )
+        self.assertEqual(result.evidence["missing_in_detector"], [])
+        self.assertEqual(result.evidence["missing_in_tests"], [])
+
+    def test_missing_detector_fails_blocker(self) -> None:
+        """An empty repo without the detector file must FAIL the BLOCKER."""
+
+        with tempfile.TemporaryDirectory() as td:
+            empty_root = Path(td)
+            (empty_root / "tools").mkdir()
+            result = sv.check_reactivation_detector_exists(repo_root=empty_root)
+            self.assertFalse(result.passed)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("missing detector", result.message)
+
+    def test_missing_trigger_id_in_detector_fails_blocker(self) -> None:
+        """A detector that omits one trigger ID must FAIL the BLOCKER."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            # Omit "manual_invocation_rebound" deliberately.
+            kept = [
+                tid for tid in sv.EXPECTED_REACTIVATION_TRIGGER_IDS
+                if tid != "manual_invocation_rebound"
+            ]
+            (root / "tools" / "reactivation_detector.py").write_text(
+                "# detector stub\n"
+                + "\n".join(f"# {tid}" for tid in kept)
+                + "\n",
+                encoding="utf-8",
+            )
+            (root / "tools" / "test_reactivation_detector.py").write_text(
+                "# test stub\n"
+                + "\n".join(
+                    f"# test for {tid}"
+                    for tid in sv.EXPECTED_REACTIVATION_TRIGGER_IDS
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            result = sv.check_reactivation_detector_exists(repo_root=root)
+            self.assertFalse(result.passed)
+            self.assertIn(
+                "manual_invocation_rebound", result.evidence["missing_in_detector"]
+            )
+
+    def test_missing_test_file_fails_blocker(self) -> None:
+        """A detector with no sibling test file must FAIL the BLOCKER."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            (root / "tools" / "reactivation_detector.py").write_text(
+                "\n".join(f"# {tid}" for tid in sv.EXPECTED_REACTIVATION_TRIGGER_IDS),
+                encoding="utf-8",
+            )
+            result = sv.check_reactivation_detector_exists(repo_root=root)
+            self.assertFalse(result.passed)
+            self.assertIn("missing tests", result.message)
 
 
 if __name__ == "__main__":

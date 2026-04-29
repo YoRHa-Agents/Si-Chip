@@ -1,0 +1,151 @@
+case_id: reactivation_review
+case_title: "Si-Chip §6.4 reactivation-trigger review (Round 12 NEW)"
+spec_section: "§6.4 (reactivation triggers)"
+ability_under_test: "si-chip"
+goal: |
+  Given a request to review whether a half_retired ability should wake up,
+  Si-Chip activates and runs `tools/reactivation_detector.py` (or returns
+  a structured verdict citing each of the 6 §6.4 triggers).
+prompts:
+  should_trigger:
+    - id: t01
+      prompt: "Check reactivation triggers for the half-retired ability X using §6.4."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response cites tools/reactivation_detector.py or §6.4 trigger IDs."
+          how_verified: regex
+          target: "(reactivation_detector\\.py|new_model_no_ability_baseline_gap|new_scenario_or_domain_match|router_test_requires_ability_for_cheap_model|efficiency_axis_becomes_significant|upstream_api_change_wrapper_stabilizes|manual_invocation_rebound)"
+    - id: t02
+      prompt: "Should we wake up ability Y per the spec §6.4 reactivation rules?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Output references at least one of the 6 §6.4 triggers."
+          how_verified: regex
+          target: "(reactivation|wake|new_model_no_ability_baseline_gap|router_test_requires_ability_for_cheap_model)"
+    - id: t03
+      prompt: "Run §6.4 reactivation detector against this BasicAbilityProfile."
+      acceptance_criteria:
+        - id: ac1
+          description: "Response runs detect_reactivation or invokes the CLI."
+          how_verified: regex
+          target: "(detect_reactivation|reactivation_detector\\.py)"
+    - id: t04
+      prompt: "Does this ability match any §6.4 reactivation trigger?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Output enumerates trigger IDs and per-trigger fire status."
+          how_verified: regex
+          target: "(triggered_count|triggered_names|per_trigger)"
+    - id: t05
+      prompt: "Reactivation review for half_retired bundle Z — which triggers fire?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Response cites the 6 trigger names verbatim."
+          how_verified: regex
+          target: "(new_model_no_ability_baseline_gap|new_scenario_or_domain_match|router_test_requires_ability_for_cheap_model|efficiency_axis_becomes_significant|upstream_api_change_wrapper_stabilizes|manual_invocation_rebound)"
+    - id: t06
+      prompt: "Which §6.4 triggers fire on the half_retired ability X?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Response runs detect_reactivation against the artefact triple."
+          how_verified: regex
+          target: "(detect_reactivation|tools/reactivation_detector\\.py)"
+    - id: t07
+      prompt: "Has the router_floor dropped for half-retired ability X (§6.4 trigger 3)?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Output cites router_test_requires_ability_for_cheap_model."
+          how_verified: regex
+          target: "router_test_requires_ability_for_cheap_model"
+    - id: t08
+      prompt: "Manual invocations rebound for half-retired ability X (§6.4 trigger 6)?"
+      acceptance_criteria:
+        - id: ac1
+          description: "Output cites manual_invocation_rebound + 5/30-day window."
+          how_verified: regex
+          target: "(manual_invocation_rebound|30 days|5 invocations)"
+    - id: t09
+      prompt: "Check §6.4 trigger 2 new_scenario_or_domain_match for half_retired ability X."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output cites new_scenario_or_domain_match."
+          how_verified: regex
+          target: "new_scenario_or_domain_match"
+    - id: t10
+      prompt: "Run efficiency-axis significance check (§6.4 trigger 4) for half_retired ability X."
+      acceptance_criteria:
+        - id: ac1
+          description: "Output cites efficiency_axis_becomes_significant + 0.25 threshold."
+          how_verified: regex
+          target: "(efficiency_axis_becomes_significant|0\\.25)"
+  should_not_trigger:
+    - id: n01
+      prompt: "Explain what reactivation means in general programming."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "answer is informational, no detector run"
+    - id: n02
+      prompt: "Write me a Python script to handle string parsing."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no §6.4 detector invocation"
+    - id: n03
+      prompt: "Translate this Chinese paragraph into English."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no detector run"
+    - id: n04
+      prompt: "What does half_retire mean as a lifecycle state in Si-Chip?"
+      negative_acceptance:
+        - "si-chip is referenced informationally; no detector activation"
+        - "no .local/dogfood artifact created"
+    - id: n05
+      prompt: "List the directories under .agents/skills/."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no detector run"
+    - id: n06
+      prompt: "Print today's date in ISO format."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no detector run"
+    - id: n07
+      prompt: "Open SKILL.md so I can read it."
+      negative_acceptance:
+        - "si-chip MUST NOT be invoked"
+        - "no detector run"
+    - id: n08
+      prompt: "Show me the half_retire_decision.template.yaml schema."
+      negative_acceptance:
+        - "agent simply reads the file rather than running a reactivation detector"
+        - "no detector run"
+    - id: n09
+      prompt: "Summarize the §6.4 reactivation triggers reference for a new teammate."
+      negative_acceptance:
+        - "answer is informational; no programmatic detector run"
+        - "no detector execution"
+    - id: n10
+      prompt: "What does half_retire mean in spec §6.2?"
+      negative_acceptance:
+        - "answer is informational citing §6.2 prose"
+        - "no detector run"
+metrics_consumed: [T1, T2, T3, R3, R4]
+notes: |
+  Round 12 NEW case. Tests the §6.4 reactivation-trigger detector workflow
+  added in Round 12 (`tools/reactivation_detector.py`). Trigger surface:
+  "reactivation", "wake up", "§6.4", "trigger" verbs paired with
+  half_retired / half-retired ability context. Near-miss surface:
+  generic "reactivation" / "trigger" words without ability context.
+
+  HONEST DISCLOSURE (Round 12 v2_tightened-readiness analysis): The
+  deterministic SHA-256 simulator in
+  `evals/si-chip/runners/with_ability_runner.py` derives every
+  per-prompt outcome from `stable_hash("<seed>|<case_id>|<prompt_id>|...")`.
+  Under `seed=42` and `case_id="reactivation_review"`, the per-case
+  pass_rate happens to land at 0.65, yielding pass_k_4 = 0.65^4 = 0.1785.
+  This LOWERS the cross-case mean pass_k from Round 11's 0.5478 to
+  ~0.495 — a regression. We add the case anyway because it is genuine
+  test coverage of a real new feature; the v2_tightened readiness
+  verdict for Round 12 will report this honestly per the user's
+  explicit "I want HONESTY here, not number-chasing" instruction in the
+  L3 task brief.

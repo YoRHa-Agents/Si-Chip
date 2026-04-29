@@ -1,0 +1,283 @@
+# Si-Chip Next-Action Plan — round_12 -> round_13 (or v0.2.0 ship at v1_baseline)
+# Conforms to templates/next_action_plan.template.yaml (spec §8.1 step 4 / §8.2 evidence #5).
+#
+# ROUND 12 v2_TIGHTENED VERDICT: BLOCKED (consecutive_v2_passes = 0).
+#
+# Two HONEST paths to v0.2.0 ship are open:
+#   1. Round 13 + Round 14 = real-LLM runner upgrade, regenerate baselines,
+#      verify two-consecutive v2 passes. RECOMMENDED for full §4.2
+#      promotion compliance.
+#   2. Ship at v1_baseline as v0.2.0 with documentation. ALTERNATIVE
+#      that bypasses v2_tightened entirely and ships the Round 12
+#      deliverables (§6.4 detector + spec_validator extension + 7th
+#      eval case) as the v0.2.0 release.
+#
+# This file pre-specifies BOTH paths. L0 orchestrator chooses which to
+# execute. Round 13 plan defaults to path (1).
+round_id: round_13
+generated_at: '2026-04-28T23:30:00+00:00'
+basis_metrics_report: .local/dogfood/2026-04-28/round_12/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-28/round_12/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-28/round_12/iteration_delta_report.yaml
+target_gate: relaxed  # Per-round work continues at v1_baseline; v2 readiness verify is end-of-round check.
+
+# Path A (RECOMMENDED): Round 13 = real-LLM runner upgrade + Round 14 verify.
+# Path B (ALTERNATIVE): Round 13 = ship-prep at v1_baseline.
+# Both paths are documented; L0 picks one.
+
+actions:
+  - id: a1
+    title: '[PATH A] Replace deterministic SHA-256 simulator with a real-LLM runner'
+    owner: Implement
+    applies_to_metric: T2_pass_k
+    primitive: implement
+    exit_criterion: |
+      evals/si-chip/runners/with_ability_runner.py and no_ability_runner.py
+      replace stable_hash-based per-prompt outcomes with real LLM
+      invocations. The runner produces a REAL pass_k_4 by sampling k=4
+      independent runs per prompt (currently pass_k_4 = pass_rate^4 is
+      a documented PROXY — a lower bound). Real sampling at k=4 should
+      produce a higher pass_k for the same skill (the proxy is
+      pessimistic). Round 13 metrics_report.yaml T2_pass_k >= 0.55
+      under v2_tightened.
+    notes: |
+      Spec §11.1 forever-out compliance: a real-LLM runner is NOT a
+      router model and is NOT a marketplace. It is the upgrade from
+      the deterministic simulator that v0.1.x has carried since
+      Round 1 (master plan defers this to v0.3.x but v0.2.0 ship gate
+      forces the upgrade EARLIER if v2_tightened is the target).
+      The runner SCHEMA stays stable (every result.json field is the
+      same shape); only the per-prompt simulator function is swapped
+      for an LLM call. aggregator_eval.py needs no change. Workspace
+      rule "Mandatory Verification": runner tests must cover
+      (a) deterministic mocked LLM happy path, (b) network failure
+      degenerate path, (c) timeout degenerate path, (d) backward-compat
+      proxy fallback when LLM creds are missing.
+
+  - id: a2
+    title: '[PATH A] Round 13 + Round 14 v2_tightened verify (consecutive)'
+    owner: Verify
+    applies_to_metric:                     # All v2_tightened hard threshold rows
+      - T1_pass_rate
+      - T2_pass_k
+      - C1_metadata_tokens
+      - C4_per_invocation_footprint
+      - L2_wall_clock_p95
+      - R3_trigger_F1
+      - R4_near_miss_FP_rate
+      - R6_routing_latency_p95
+      - R7_routing_token_overhead
+    primitive: verify
+    exit_criterion: |
+      Round 13 metrics_report.yaml AND Round 14 metrics_report.yaml
+      BOTH pass every v2_tightened hard threshold. Emit
+      v0.2.0_ship_decision.yaml v2 with verdict SHIP_ELIGIBLE at
+      gate v2_tightened, consecutive_v2_passes >= 2.
+    notes: |
+      Per spec §4.2 promotion rule, v2_tightened ship requires
+      CONSECUTIVE TWO ROUNDS passing every v2 hard threshold. With
+      Round 13 = real-LLM runner upgrade, Round 13 will produce a
+      real T2_pass_k. Round 14 = verification (no new feature) to
+      satisfy the consecutive-two-rounds rule.
+
+  - id: a3
+    title: '[PATH B ALTERNATIVE] Ship at v1_baseline as v0.2.0 with documentation'
+    owner: Implement
+    applies_to_metric: null
+    primitive: implement
+    exit_criterion: |
+      v0.2.0_ship_decision.yaml v2 (PATH B) with verdict SHIP_ELIGIBLE
+      at gate RELAXED (= v1_baseline; same as v0.1.0 ship). v0.2.0
+      ship report explicitly documents the v2_tightened upgrade path
+      as a known limitation, citing T2_pass_k=0.4950 (current
+      deterministic proxy bound) and the real-LLM-runner upgrade as
+      the closure. Spec stays at v0.2.0-rc1 -> v0.2.0 final (no
+      Normative semantic changes; only the project version bumps).
+    notes: |
+      This path SHIPS the Round 12 deliverables (§6.4 detector +
+      spec_validator extension + 7th eval case + all R6 27/37 sub-
+      metric coverage) as v0.2.0 at the v1_baseline gate. It honours
+      the master plan's "ship_eligible" gate from v0.1.0 (which was
+      relaxed/v1_baseline) and recognises that v2_tightened is a
+      goal not a hard gate for v0.2.0 — the v0.2.0 ship gate was
+      ASPIRATIONAL standard/v2_tightened per master plan
+      .local/.agent/active/v0.2.0-iteration-plan.yaml#aggregation.ship_gate_for_v0.2.0,
+      not Normative-mandated. v0.2.0 at v1_baseline still satisfies
+      spec §8.3 multi-round requirement (12 consecutive v1_baseline
+      passes through Round 12).
+
+  - id: a4
+    title: 'Round 13 metrics_report + provenance + 6 evidence files (whichever PATH)'
+    owner: Implement
+    applies_to_metric:
+      - T1_pass_rate
+      - T2_pass_k
+      - L2_wall_clock_p95
+      - R3_trigger_F1
+    primitive: implement
+    exit_criterion: |
+      All 6 evidence files at .local/dogfood/<DATE>/round_13/:
+      basic_ability_profile.yaml, metrics_report.yaml, router_floor_report.yaml,
+      half_retire_decision.yaml, next_action_plan.yaml,
+      iteration_delta_report.yaml. spec §8.2 minimum evidence set.
+      All test suites exit 0; spec_validator --json 9/9 PASS still
+      holds.
+    notes: |
+      Standard per-round closing. T1_pass_rate >= 0.85 (path A) OR
+      >= 0.75 (path B v1_baseline). C1/C2/C4 stay within v1_baseline
+      ceilings.
+
+  - id: a5
+    title: 'Mirror sync + tarball + install.sh + CHANGELOG bump (whichever PATH)'
+    owner: Implement
+    applies_to_metric: V3_drift_signal
+    primitive: implement
+    exit_criterion: |
+      SKILL.md frontmatter + 3 mirrors at version 0.2.0 (path A or B);
+      install.sh + docs/install.sh + docs/_install_body.md
+      SI_CHIP_VERSION_DEFAULT bumped v0.1.11 -> v0.2.0;
+      docs/skills/si-chip-0.2.0.tar.gz deterministic tarball generated;
+      CHANGELOG.md v0.2.0 entry added. V3_drift_signal re-verified =
+      0.0 (3/3 mirror byte-equality).
+    notes: |
+      Standard ship-prep. Path A vs B affects the ship report wording
+      but not the artifact shape.
+
+expected_iteration_delta_axes:
+  - task_quality           # path A: real-LLM runner produces T1/T2 movement; path B: stays at v1_baseline
+  - governance_risk        # path A or B: §6.4 detector audit-gap closure already claimed in Round 12; further closures (real-LLM runner = governance_risk axis: removes the "deterministic simulator known limitation" from v0.1.0 ship report) earn additional bonus
+
+# Pre-commitment: round_13 must satisfy spec §4.2 promotion rule (path A:
+# v2_tightened consecutive_v2_passes >= 2) OR satisfy the v0.2.0 ship gate
+# at v1_baseline (path B: explicit ship-decision artifact).
+
+deferred_from_round_12:
+  - id: t2_pass_k_v2_margin
+    title: 'T2_pass_k v2_tightened margin (currently 0.4950 vs 0.55; delta -0.055)'
+    deferral_reason: |
+      Round 12 honestly reported the regression after adding the 7th
+      case. Recommended fix path = real-LLM runner upgrade (path A)
+      or ship at v1_baseline (path B). The deterministic SHA-256
+      simulator under seed=42 cannot honestly clear v2_tightened
+      on T2_pass_k without cherry-picking — neither acceptable per
+      L3 task brief.
+    refer_to: '.local/dogfood/2026-04-28/round_12/raw/v2_readiness_verdict.md'
+  - id: g1_full_96_cell_upgrade
+    title: 'G1 full 96-cell matrix from real-LLM runner'
+    deferral_reason: |
+      Round 12 carries G1 byte-identical from Round 10/11 (2-model ×
+      2-pack PARTIAL PROXY collapsed from mvp 8-cell sweep). Authoritative
+      G1 requires real-LLM runs against the full 96-cell profile
+      (§5.3 full: 6 model × 4 depth × 4 pack). Path A real-LLM runner
+      upgrade is the natural closure; path B ships at v1_baseline
+      where the partial proxy is informationally acceptable.
+    refer_to: '.local/dogfood/2026-04-28/round_12/basic_ability_profile.yaml#decision.risk_flags'
+  - id: g2_g3_g4_out_of_scope_v01x
+    title: 'G2/G3/G4 remain null for v0.1.x (cross_domain / OOD / model_version_stability)'
+    deferral_reason: |
+      Spec §3.1 D4 G2/G3/G4 require real-LLM runs against a cross-domain
+      prompt bank + OOD robustness suite + multi-model-version stability
+      baseline. All three are v0.3.x+ work or a post-v0.2.0 real-LLM-runner
+      milestone. Path A real-LLM runner upgrade may close some of
+      these in Round 13 if the runner has the capacity.
+    refer_to: '.local/.agent/active/v0.2.0-iteration-plan.yaml#round_10.risk_flags'
+  - id: golden_set_real_llm_eval
+    title: 'evals/si-chip/golden_set/ real-LLM eval consumption'
+    deferral_reason: |
+      Round 10 seeds golden_set/ with 12+12 prompts as an opt-in source.
+      The deterministic runner does NOT consume it. Real-LLM eval via
+      nines --golden-dir is part of path A real-LLM runner upgrade.
+    refer_to: 'evals/si-chip/golden_set/README.md'
+  - id: r1_r2_out_of_scope_v01x
+    title: 'R1_trigger_precision + R2_trigger_recall remain null for v0.1.x'
+    deferral_reason: |
+      Neither has a §4.1 hard threshold. Populating them requires a
+      real-LLM runner emitting per-prompt routing-descriptor-match
+      scores (not the deterministic simulator's per-prompt correctness
+      bool). Path A real-LLM runner upgrade closes this naturally.
+    refer_to: '.local/dogfood/2026-04-28/round_12/basic_ability_profile.yaml#decision.risk_flags'
+  - id: full_96_cell_profile_stays_v2_only
+    title: 'Full 96-cell router-test profile stays gated to v2_tightened+ pre-real-LLM'
+    deferral_reason: |
+      Round 9 added the INTERMEDIATE profile (16 cells) as a v1_baseline
+      widening; the FULL 96-cell profile still requires v2_tightened+
+      per spec §5.3. 4 of the 6 full-profile models (haiku_4_5,
+      sonnet_4_6, opus_4_7, gpt_5_mini) require real-LLM invocation.
+      Path A real-LLM runner upgrade is the unblocker.
+    refer_to: 'templates/router_test_matrix.template.yaml#profiles.full'
+  - id: l5_l6_l7_deferred
+    title: 'Populate L5/L6/L7 (D3 latency_path completion to 7/7)'
+    deferral_reason: |
+      D3 stays at 4/7; L5_detour_index, L6_replanning_rate,
+      L7_think_act_split require a real-LLM run. Path A natural
+      closure; path B accepts the 4/7 partial as v0.2.0 ship state.
+    refer_to: 'evals/si-chip/runners/with_ability_runner.py docstring "DETERMINISTIC SIMULATED BASELINE" section'
+  - id: u4_live_wall_clock
+    title: 'U4 live wall-clock (dry_run=False) sampling for p50 + p95'
+    deferral_reason: |
+      Round 12 U4 = 0.0079 s LIVE-derived dry-run floor estimate.
+      Real wall-clock sampling adds network + tarball extraction
+      overhead. Path A real-LLM runner upgrade adds this naturally.
+    refer_to: 'round_6/metrics_report.yaml provenance.u4_derivation.interpretation_note'
+  - id: c5_heuristic_proxy
+    title: 'C5_context_rot_risk is currently a HEURISTIC PROXY (not ground-truth)'
+    deferral_reason: |
+      Round 12 C5 = 0.260625 LIVE-derived heuristic proxy. Full
+      ground-truth requires path A real-LLM runner that measures
+      actual context-rot under real model invocation.
+    refer_to: '.local/dogfood/2026-04-28/round_7/raw/c5_derivation.json'
+  - id: v2_pattern_coverage
+    title: 'V2 credential-surface scanner is PATTERN-BASED; entropy-based scan deferred'
+    deferral_reason: |
+      Round 8 V2 scanner covers 4 canonical patterns. Full coverage
+      would integrate truffleHog / gitleaks-style entropy scanning —
+      out of scope for Round 12/13.
+    refer_to: '.local/dogfood/2026-04-28/round_8/basic_ability_profile.yaml#decision.risk_flags'
+  - id: scenario_catalog_for_trigger_2
+    title: '§6.4 trigger 2 scenario catalog (parameterised off in v0.1.11)'
+    deferral_reason: |
+      tools/reactivation_detector.py trigger 2 (new_scenario_or_domain_match)
+      requires a JSON scenario catalog at .local/scenario_catalog/.
+      For v0.1.11 no catalog exists yet. Round 13+ may seed an initial
+      catalog; the detector will then automatically check trigger 2
+      on every dogfood round.
+    refer_to: 'tools/reactivation_detector.py::trigger_new_scenario_or_domain_match'
+  - id: wrapper_stability_log_for_trigger_5
+    title: '§6.4 trigger 5 wrapper-stability log (parameterised off in v0.1.11)'
+    deferral_reason: |
+      tools/reactivation_detector.py trigger 5 (upstream_api_change_wrapper_stabilizes)
+      requires a JSON log of dependency-API change events. For v0.1.11
+      no such log exists. Round 13+ may seed the log alongside any
+      future dependency upgrade event.
+    refer_to: 'tools/reactivation_detector.py::trigger_upstream_api_change'
+  - id: invocation_log_for_trigger_6
+    title: '§6.4 trigger 6 manual-invocation log (parameterised off in v0.1.11)'
+    deferral_reason: |
+      tools/reactivation_detector.py trigger 6 (manual_invocation_rebound)
+      requires a JSON log of manual invocations. For v0.1.11 no log
+      exists. Round 13+ may seed the log via DevolaFlow feedback
+      capture or similar.
+    refer_to: 'tools/reactivation_detector.py::trigger_manual_invocation_rebound'
+
+continuing_through_master_plan:
+  - 'Round 13: choose PATH A (real-LLM runner upgrade + Round 14 verify) or PATH B (ship at v1_baseline as v0.2.0)'
+  - 'Round 14 (path A only): v2_tightened verification round; produce SHIP_ELIGIBLE at v2_tightened'
+  - 'v0.2.0 ship: emit v0.2.0_ship_decision.yaml + v0.2.0_ship_report.md (path A: at v2_tightened; path B: at v1_baseline)'
+
+provenance:
+  generator: 'Round 12 dogfood — L3 Task Agent'
+  spec_version: v0.2.0-rc1                                      # Round 12 stays at v0.2.0-rc1; v0.2.0 final bump deferred (ship gate BLOCKED at v2_tightened).
+  basis_round: round_12
+  cites:
+    - .local/dogfood/2026-04-28/round_12/raw/v2_readiness_verdict.md
+    - .local/dogfood/2026-04-28/round_12/raw/v2_tightened_approach.md
+    - .local/dogfood/2026-04-28/round_12/raw/v2_tightened_round_11_check.md
+    - .local/dogfood/2026-04-28/round_12/raw/v2_tightened_round_12_check.md
+    - .local/dogfood/2026-04-28/round_12/metrics_report.yaml
+    - .local/dogfood/2026-04-28/round_11/metrics_report.yaml
+    - .local/dogfood/2026-04-28/round_11/next_action_plan.yaml  # carry-forward audit
+    - .local/.agent/active/v0.2.0-iteration-plan.yaml           # master plan
+    - .local/research/spec_v0.2.0-rc1.md                        # §3/§4/§5/§6/§7/§8/§11 Normative + §13.4 reconciled prose; §4.1 thresholds, §4.2 promotion rule, §6.4 reactivation triggers
+    - .agents/skills/si-chip/references/half-retirement-r9-summary.md
+    - tools/reactivation_detector.py                             # NEW Round 12; all 6 §6.4 triggers
+    - tools/test_reactivation_detector.py                        # NEW Round 12; 31 unit tests
