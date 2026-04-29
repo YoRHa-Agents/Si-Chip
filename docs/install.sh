@@ -24,7 +24,7 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-SI_CHIP_VERSION_DEFAULT="v0.1.12"
+SI_CHIP_VERSION_DEFAULT="v0.2.0"
 SOURCE_URL_DEFAULT="https://yorha-agents.github.io/Si-Chip"
 
 MANIFEST=(
@@ -107,7 +107,7 @@ print_version_info() {
 
 print_help() {
   cat <<'EOF'
-Si-Chip installer v0.1.0
+Si-Chip installer v0.2.0
 
 Usage:
   curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash

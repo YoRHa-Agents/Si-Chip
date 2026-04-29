@@ -7,11 +7,14 @@ Implements the **nine** machine-checkable invariants declared in spec
 which asserts that ``tools/reactivation_detector.py`` exists, references
 all 6 §6.4 trigger IDs verbatim, and ships with a sibling test file.
 
-Spec path defaults to ``.local/research/spec_v0.2.0-rc1.md`` (Round 11
-reconciliation, 2026-04-28): §13.4 prose counts are now aligned with
-the §3.1 / §4.1 TABLES (37 sub-metrics / 30 threshold cells). Spec
-v0.1.0 remains accepted via ``--spec .local/research/spec_v0.1.0.md``
-for backward-compat verification of Rounds 1–10 artefacts.
+Spec path defaults to ``.local/research/spec_v0.2.0.md`` (Si-Chip v0.2.0
+ship, 2026-04-28; promoted from v0.2.0-rc1 with no Normative semantic
+change). §13.4 prose counts remain aligned with the §3.1 / §4.1 TABLES
+(37 sub-metrics / 30 threshold cells). Spec v0.2.0-rc1 is also accepted
+via ``--spec .local/research/spec_v0.2.0-rc1.md`` (pinned historical
+record). Spec v0.1.0 remains accepted via
+``--spec .local/research/spec_v0.1.0.md`` for backward-compat
+verification of Rounds 1–10 artefacts.
 
 The validator does NOT execute the dogfood loop, the router test, or any
 metric collection. It only verifies that the spec markdown plus the six
@@ -24,7 +27,7 @@ CLI::
         [--strict-prose-count]
 
 ``--spec PATH`` selects the spec markdown (default
-``.local/research/spec_v0.2.0-rc1.md``).
+``.local/research/spec_v0.2.0.md``).
 
 ``--strict`` treats WARNING findings as failures.
 
@@ -33,18 +36,20 @@ CLI::
 ``--strict-prose-count`` enforces the spec §13.4 prose number for two
 invariants:
 
-* Against v0.2.0-rc1 (default spec): prose == 37 sub-metrics + 30
-  threshold cells (matches the §3.1 / §4.1 TABLES) → PASS.
+* Against v0.2.0 (default spec) and v0.2.0-rc1 (pinned historical
+  record): prose == 37 sub-metrics + 30 threshold cells (matches the
+  §3.1 / §4.1 TABLES) → PASS.
 * Against v0.1.0 (``--spec .local/research/spec_v0.1.0.md``): prose ==
   28 + 21 → also PASS (v0.1.0 prose was self-consistent at those
   legacy numbers).
 * Against a mixed / drifted spec: FAIL, exposing reconciliation drift.
 
-The mode auto-detects v0.1.0 vs v0.2.0-rc1 from the spec's frontmatter
-``version:`` field and the ``# Si-Chip Spec v…`` H1 header. This keeps
-Round 1–10 artefact verification working (they reference v0.1.0 by
-``spec_version``) while the live post-Round-11 checks target
-v0.2.0-rc1.
+The mode auto-detects v0.1.0 / v0.2.0-rc1 / v0.2.0 from the spec's
+frontmatter ``version:`` field and the ``# Si-Chip Spec v…`` H1 header.
+This keeps Round 1–10 artefact verification working (they reference
+v0.1.0 by ``spec_version``), Rounds 11–13 ship-prep verification
+working (they reference v0.2.0-rc1), while the live post-ship checks
+target v0.2.0.
 
 Exit code is 0 when every BLOCKER assertion passes (and, with
 ``--strict``, when no WARNING fired). Exit code is 1 otherwise. Any
@@ -68,7 +73,7 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.spec_validator")
 
-SCRIPT_VERSION = "0.1.3"  # Round 12 — REACTIVATION_DETECTOR_EXISTS BLOCKER added
+SCRIPT_VERSION = "0.1.4"  # v0.2.0 ship — accept spec v0.2.0 alongside v0.2.0-rc1 and v0.1.0
 
 # §5 router_test_matrix template accepts BOTH schema versions as of
 # Round 9 (Si-Chip v0.1.8). 0.1.0 = initial (mvp:8 + full:96); 0.1.1 =
@@ -80,15 +85,17 @@ SUPPORTED_ROUTER_TEMPLATE_SCHEMAS = {"0.1.0", "0.1.1"}
 EXPECTED_INTERMEDIATE_CELLS = 16
 EXPECTED_INTERMEDIATE_GATE_BINDING = "relaxed"
 
-# Round 11 (2026-04-28): spec reconciliation v0.1.0 → v0.2.0-rc1. The
-# default spec path now points to v0.2.0-rc1; v0.1.0 is still accepted
-# via --spec for backward-compat verification of Rounds 1-10 artefacts.
-DEFAULT_SPEC = ".local/research/spec_v0.2.0-rc1.md"
+# v0.2.0 ship (2026-04-28): spec v0.2.0-rc1 promoted to v0.2.0 (frozen).
+# The default spec path now points to v0.2.0; v0.2.0-rc1 stays accepted
+# via --spec as a pinned historical record (Rounds 11-13 evidence
+# references v0.2.0-rc1 by spec_version). v0.1.0 also stays accepted via
+# --spec for backward-compat verification of Rounds 1-10 artefacts.
+DEFAULT_SPEC = ".local/research/spec_v0.2.0.md"
 DEFAULT_TEMPLATES_DIR = "templates"
 
 # Supported spec versions (validator accepts any; strict-prose-count
 # auto-adjusts expected numbers based on spec version).
-SUPPORTED_SPEC_VERSIONS = {"v0.1.0", "v0.2.0-rc1"}
+SUPPORTED_SPEC_VERSIONS = {"v0.1.0", "v0.2.0-rc1", "v0.2.0"}
 
 # §2.1 frozen field set under basic_ability.
 EXPECTED_BAP_KEYS = {
@@ -118,17 +125,19 @@ EXPECTED_R6_TABLE_COUNTS = {
 }
 EXPECTED_R6_TABLE_TOTAL = sum(EXPECTED_R6_TABLE_COUNTS.values())  # 37
 
-# §13.4 prose total — depends on spec version after Round 11:
+# §13.4 prose total — depends on spec version:
 #   v0.1.0:      prose claimed 28 (legacy; misaligned with §3.1 TABLE=37)
-#   v0.2.0-rc1:  prose claimed 37 (reconciled with §3.1 TABLE)
+#   v0.2.0-rc1:  prose claimed 37 (reconciled with §3.1 TABLE; Round 11)
+#   v0.2.0:      prose claimed 37 (inherits v0.2.0-rc1 reconciliation; ship)
 # strict-prose-count mode picks the correct expected value from this map
 # using the spec's own version frontmatter.
 EXPECTED_R6_PROSE_BY_SPEC = {
     "v0.1.0": 28,
     "v0.2.0-rc1": 37,
+    "v0.2.0": 37,
 }
-# Default fallback (when spec version cannot be detected): v0.2.0-rc1.
-EXPECTED_R6_PROSE_DEFAULT = EXPECTED_R6_PROSE_BY_SPEC["v0.2.0-rc1"]
+# Default fallback (when spec version cannot be detected): v0.2.0 (ship default).
+EXPECTED_R6_PROSE_DEFAULT = EXPECTED_R6_PROSE_BY_SPEC["v0.2.0"]
 
 # §4.1 threshold table — 10 metrics × 3 profiles = 30 cells.
 # This is the RUNTIME CONTRACT. Unchanged across v0.1.0 and v0.2.0-rc1.
@@ -149,12 +158,14 @@ EXPECTED_THRESHOLD_CELLS_TABLE = len(THRESHOLD_METRICS) * 3  # 30
 
 # §13.4 threshold-cell prose count — depends on spec version:
 #   v0.1.0:      prose claimed 21 (legacy; misaligned with §4.1 TABLE=30)
-#   v0.2.0-rc1:  prose claimed 30 (reconciled with §4.1 TABLE)
+#   v0.2.0-rc1:  prose claimed 30 (reconciled with §4.1 TABLE; Round 11)
+#   v0.2.0:      prose claimed 30 (inherits v0.2.0-rc1 reconciliation; ship)
 EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC = {
     "v0.1.0": 21,
     "v0.2.0-rc1": 30,
+    "v0.2.0": 30,
 }
-EXPECTED_THRESHOLD_CELLS_PROSE_DEFAULT = EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC["v0.2.0-rc1"]
+EXPECTED_THRESHOLD_CELLS_PROSE_DEFAULT = EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC["v0.2.0"]
 
 # §6.1 frozen 7-axis value vector.
 EXPECTED_VALUE_VECTOR_AXES = {
@@ -1181,9 +1192,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--strict-prose-count",
         action="store_true",
         help=(
-            "Enforce spec §13.4 prose counts: v0.2.0-rc1 expects 37 sub-metrics + 30 threshold cells "
-            "(passes post-Round-11); v0.1.0 expects 28 + 21 (legacy; validator preserves the mode for "
-            "historical regression). Spec version is auto-detected from frontmatter."
+            "Enforce spec §13.4 prose counts: v0.2.0 (and v0.2.0-rc1) expect 37 sub-metrics + 30 "
+            "threshold cells (passes post-Round-11; ship default); v0.1.0 expects 28 + 21 (legacy; "
+            "validator preserves the mode for historical regression). Spec version is auto-detected "
+            "from frontmatter."
         ),
     )
     parser.add_argument(

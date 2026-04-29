@@ -1,21 +1,22 @@
 ---
 name: si-chip-spec
-version: v0.2.0-rc1
-status: release_candidate
+version: v0.2.0
+status: frozen
 effective_date: 2026-04-28
+promoted_from: v0.2.0-rc1
 supersedes: v0.1.0
-source: .local/research/spec_v0.2.0-rc1.md
+source: .local/research/spec_v0.2.0.md
 alwaysApply: true
 compiled_into: AGENTS.md
 language: zh-CN
 reconciliation_only: true
 ---
 
-# Si-Chip Spec v0.2.0-rc1（Frozen Rule Layer — 仅 §13.4 prose-count reconciliation）
+# Si-Chip Spec v0.2.0（Frozen Rule Layer — 仅 §13.4 prose-count reconciliation, promoted from v0.2.0-rc1）
 
 > 本规则为 Si-Chip 仓库 Agent 的强约束。`§3 / §4 / §5 / §6 / §7 / §8 / §11` 为 **Normative**，违反即视为越界。
-> 相对 v0.1.0，本 RC 仅做 §13.4 prose 与 §3.1 / §4.1 table 的计数对齐（"28 子指标" → "37 子指标"、"21 个数" → "30 个数"）；Normative 段的语义（sub-metric 集合、阈值数值、步骤顺序、平台优先级、value-vector 轴、forever-out 项）与 v0.1.0 逐字节等价。
-> 完整论证见 `.local/research/spec_v0.2.0-rc1.md`，本文件只承载冻结约束。
+> 相对 v0.1.0，本规范仅做 §13.4 prose 与 §3.1 / §4.1 table 的计数对齐（"28 子指标" → "37 子指标"、"21 个数" → "30 个数"）；Normative 段的语义（sub-metric 集合、阈值数值、步骤顺序、平台优先级、value-vector 轴、forever-out 项）与 v0.1.0 逐字节等价。
+> 完整论证见 `.local/research/spec_v0.2.0.md`（promoted from `.local/research/spec_v0.2.0-rc1.md`，pinned 历史快照保留）；本文件只承载冻结约束。
 
 ---
 
