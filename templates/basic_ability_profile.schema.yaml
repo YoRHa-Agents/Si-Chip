@@ -1,13 +1,19 @@
 # Si-Chip BasicAbilityProfile Schema
-# Source of truth for §2 BasicAbility object, spec v0.1.0
+# Source of truth for §2 BasicAbility object, spec v0.3.0-rc1 (additive — preserves v0.2.0 §2.1 byte-identical)
 # This file enumerates every §2.1 field, every §2.2 stage enum value,
 # every §3.1 R6 7-dimension / 28 sub-metric key, and the §6.1 7-axis value_vector.
 # MVP-8 sub-metrics (T1, T2, T3, C1, C4, L2, R3, R5) are marked required: true.
 # All other 20 sub-metric keys are required: false with default: null
 # per spec §3.2 frozen constraint #2 (explicit null placeholder, key cannot be omitted).
+#
+# v0.3.0-rc1 §14 add-on: core_goal block (REQUIRED) — never-regress functional contract per spec §14.1.
+# Backward-compat: legacy profiles authored before spec v0.3.0-rc1 (provenance.spec_version < v0.3.0-rc1)
+# may omit `core_goal` and remain valid for historical-record purposes; spec_validator.py (Stage 4 Wave 2)
+# will treat absence of core_goal as a WARNING (not BLOCKER) for any such legacy artifact.
 
-$schema_version: "0.1.0"
+$schema_version: "0.2.0"
 $spec_section: "§2"
+$spec_section_v0_3_0: "§2 + §14"
 $source_of_truth: ".agents/skills/si-chip/"
 
 $schema: "http://json-schema.org/draft-07/schema#"
@@ -25,6 +31,7 @@ properties:
     required:
       - id
       - intent
+      - core_goal
       - current_surface
       - packaging
       - lifecycle
@@ -43,6 +50,40 @@ properties:
       intent:
         type: "string"
         description: "What this ability solves."
+
+      # ── §14.1 core_goal (v0.3.0-rc1 add-on; REQUIRED) ──────────
+      # Legacy profiles authored before v0.3.0-rc1 may omit this block and remain
+      # valid for historical-record purposes. Stage 4 Wave 2 spec_validator.py
+      # will treat absence of core_goal as a WARNING (not BLOCKER) when the
+      # owning artifact's provenance.spec_version < v0.3.0-rc1.
+      core_goal:
+        type: "object"
+        description: |
+          §14.1 core_goal — the persistent, never-regress functional outcome
+          this BasicAbility delivers. Distinct from `intent` (narrative) and
+          from `description` (router metadata). Spec v0.3.0 §14.
+        required: [statement, test_pack_path, minimum_pass_rate]
+        additionalProperties: false
+        properties:
+          statement:
+            type: "string"
+            description: "One-sentence functional contract; passes the 'if removed, would user notice immediately?' test (§14.1)."
+            minLength: 16
+          test_pack_path:
+            type: "string"
+            description: "Repo-relative path to YAML pack with >= 3 prompt + expected_shape cases (§14.2)."
+            pattern: "^.+\\.ya?ml$"
+          minimum_pass_rate:
+            type: "number"
+            description: "C0_core_goal_pass_rate floor. Spec v0.3.0 §14.3 locks this to 1.0; any value < 1.0 is a spec violation."
+            const: 1.0
+          test_pack_version:
+            type: "string"
+            description: "Optional semver (§14.5). Bumped MAJOR when core_goal semantics change intentionally."
+            pattern: "^\\d+\\.\\d+\\.\\d+$"
+          last_passed_round:
+            type: ["string", "null"]
+            description: "Optional latest round_id where C0 = 1.0 was last verified. Used by reactivation triggers (§14.7)."
 
       # ── §2.1 current_surface ───────────────────────────────────
       current_surface:

@@ -1,20 +1,25 @@
 # Si-Chip Next-Action Plan Template
+# Schema v0.2.0 (additive — v0.1.0 fields unchanged; spec v0.3.0-rc1 §15 add-on)
 # Spec source: §8.1 step 4 output (improve); §8.2 evidence #5;
 #              target_gate bound to §4 / §5.4 gate-profile triple.
+# v0.3.0-rc1 §15.1 add-on: round_kind + round_kind_rationale fields — Agent must classify each round.
+# v0.3.0-rc1 §14 add-on: C0 test-pack action template commented inline under `actions:`.
 # Instance template (NOT a DevolaFlow WorkflowTemplate).
 
-$schema_version: "0.1.0"
+$schema_version: "0.2.0"
 $spec_section: "§8.1 step 4"
+$spec_section_v0_3_0: "§8.1 + §15.1"
 $source_of_truth: ".agents/skills/si-chip/"
 
 metadata:
   name: "si-chip-next-action-plan"
-  version: "0.1.0"
-  description: "Skeleton for the next round's action plan. Each improve step writes one instance into .local/dogfood/<date>/<round_id>/next_action_plan.yaml."
+  version: "0.2.0"
+  description: "Skeleton for the next round's action plan. Each improve step writes one instance into .local/dogfood/<date>/<round_id>/next_action_plan.yaml. v0.3.0-rc1: adds §15 round_kind classification."
 
 required_fields:
   - round_id
   - generated_at
+  - round_kind
   - basis_metrics_report
   - basis_router_floor_report
   - prior_iteration_delta
@@ -32,6 +37,27 @@ schema:
     required: true
     format: "date-time"
     description: "ISO-8601 timestamp when the plan was generated."
+  round_kind:
+    type: string
+    required: true
+    enum:
+      - code_change
+      - measurement_only
+      - ship_prep
+      - maintenance
+    description: |
+      Spec v0.3.0-rc1 §15.1 enum: code_change | measurement_only | ship_prep | maintenance.
+      Drives §15.2 iteration_delta clause and §15.4 promotion-counter eligibility.
+      Agent picks exactly one value per §15.1.2 decision tree.
+  round_kind_rationale:
+    type: string
+    required: false
+    description: |
+      Human-readable rationale for the chosen round_kind per §15.1 decision tree:
+        - code_change: this round modifies ability source files (§15.1)
+        - measurement_only: adds metric coverage WITHOUT touching ability source (§15.1)
+        - ship_prep: finalization (mirror sync, version bumps, tarball) (§15.1)
+        - maintenance: post-ship review at 30/60/90-day cadence per §6.4 (§15.1)
   basis_metrics_report:
     type: string
     required: true
@@ -117,6 +143,13 @@ schema:
 example_instance:
   round_id: "r1"
   generated_at: "2026-04-28T00:00:00Z"
+  round_kind: code_change           # Spec v0.3.0 §15.1 enum: code_change | measurement_only | ship_prep | maintenance
+  round_kind_rationale: |
+    Why this round is classified as code_change:
+      - code_change: this round modifies ability source files (§15.1)
+      - measurement_only: adds metric coverage WITHOUT touching ability source (§15.1)
+      - ship_prep: finalization (mirror sync, version bumps, tarball) (§15.1)
+      - maintenance: post-ship review at 30/60/90-day cadence per §6.4 (§15.1)
   basis_metrics_report: ".local/dogfood/2026-04-28/r0/metrics_report.yaml"
   basis_router_floor_report: ".local/dogfood/2026-04-28/r0/router_floor_report.yaml"
   prior_iteration_delta: null
@@ -128,5 +161,12 @@ example_instance:
       applies_to_metric: "C1_metadata_tokens"
       primitive: refine
       exit_criterion: "C1_metadata_tokens <= 100 against Anthropic tokenizer."
+    # Example v0.3.0 action targeting core_goal (§14):
+    # - action_id: c0_test_pack_grow
+    #   priority: P1
+    #   targets_metric: C0_core_goal_pass_rate
+    #   description: |
+    #     Add 1 case to core_goal_test_pack.yaml capturing the regression bug fixed this round.
+    #     Per spec §14.5, the pack grows monotonically; new cases become permanent change-detectors.
   expected_iteration_delta_axes:
     - context_economy
