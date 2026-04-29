@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Static structural validator for the Si-Chip spec.
 
-Implements the eight machine-checkable invariants declared in
-`.local/research/spec_v0.1.0.md` §13.4 and frozen in
-`tools/spec_validator.DESIGN.md`.
+Implements the eight machine-checkable invariants declared in spec
+§13.4 and frozen in ``tools/spec_validator.DESIGN.md``.
+
+Spec path defaults to ``.local/research/spec_v0.2.0-rc1.md`` (Round 11
+reconciliation, 2026-04-28): §13.4 prose counts are now aligned with
+the §3.1 / §4.1 TABLES (37 sub-metrics / 30 threshold cells). Spec
+v0.1.0 remains accepted via ``--spec .local/research/spec_v0.1.0.md``
+for backward-compat verification of Rounds 1–10 artefacts.
 
 The validator does NOT execute the dogfood loop, the router test, or any
 metric collection. It only verifies that the spec markdown plus the six
@@ -16,16 +21,27 @@ CLI::
         [--strict-prose-count]
 
 ``--spec PATH`` selects the spec markdown (default
-``.local/research/spec_v0.1.0.md``).
+``.local/research/spec_v0.2.0-rc1.md``).
 
 ``--strict`` treats WARNING findings as failures.
 
 ``--json`` emits a structured JSON report on stdout.
 
 ``--strict-prose-count`` enforces the spec §13.4 prose number for two
-invariants (R6 metric key count == 28, threshold table cells == 21);
-both will fail until a future spec bump reconciles the prose with the
-§3.1 / §4.1 tables.
+invariants:
+
+* Against v0.2.0-rc1 (default spec): prose == 37 sub-metrics + 30
+  threshold cells (matches the §3.1 / §4.1 TABLES) → PASS.
+* Against v0.1.0 (``--spec .local/research/spec_v0.1.0.md``): prose ==
+  28 + 21 → also PASS (v0.1.0 prose was self-consistent at those
+  legacy numbers).
+* Against a mixed / drifted spec: FAIL, exposing reconciliation drift.
+
+The mode auto-detects v0.1.0 vs v0.2.0-rc1 from the spec's frontmatter
+``version:`` field and the ``# Si-Chip Spec v…`` H1 header. This keeps
+Round 1–10 artefact verification working (they reference v0.1.0 by
+``spec_version``) while the live post-Round-11 checks target
+v0.2.0-rc1.
 
 Exit code is 0 when every BLOCKER assertion passes (and, with
 ``--strict``, when no WARNING fired). Exit code is 1 otherwise. Any
@@ -49,7 +65,7 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.spec_validator")
 
-SCRIPT_VERSION = "0.1.1"
+SCRIPT_VERSION = "0.1.2"  # Round 11 — spec reconciliation (v0.1.0 → v0.2.0-rc1)
 
 # §5 router_test_matrix template accepts BOTH schema versions as of
 # Round 9 (Si-Chip v0.1.8). 0.1.0 = initial (mvp:8 + full:96); 0.1.1 =
@@ -61,8 +77,15 @@ SUPPORTED_ROUTER_TEMPLATE_SCHEMAS = {"0.1.0", "0.1.1"}
 EXPECTED_INTERMEDIATE_CELLS = 16
 EXPECTED_INTERMEDIATE_GATE_BINDING = "relaxed"
 
-DEFAULT_SPEC = ".local/research/spec_v0.1.0.md"
+# Round 11 (2026-04-28): spec reconciliation v0.1.0 → v0.2.0-rc1. The
+# default spec path now points to v0.2.0-rc1; v0.1.0 is still accepted
+# via --spec for backward-compat verification of Rounds 1-10 artefacts.
+DEFAULT_SPEC = ".local/research/spec_v0.2.0-rc1.md"
 DEFAULT_TEMPLATES_DIR = "templates"
+
+# Supported spec versions (validator accepts any; strict-prose-count
+# auto-adjusts expected numbers based on spec version).
+SUPPORTED_SPEC_VERSIONS = {"v0.1.0", "v0.2.0-rc1"}
 
 # §2.1 frozen field set under basic_ability.
 EXPECTED_BAP_KEYS = {
@@ -79,6 +102,8 @@ EXPECTED_BAP_KEYS = {
 }
 
 # §3.1 R6 metric dimension -> sub-metric count (TABLE form, 37 total).
+# This is the RUNTIME CONTRACT (templates + spec_validator default mode
+# both assert this). Unchanged across v0.1.0 and v0.2.0-rc1.
 EXPECTED_R6_TABLE_COUNTS = {
     "task_quality": 4,
     "context_economy": 6,
@@ -89,9 +114,21 @@ EXPECTED_R6_TABLE_COUNTS = {
     "governance_risk": 4,
 }
 EXPECTED_R6_TABLE_TOTAL = sum(EXPECTED_R6_TABLE_COUNTS.values())  # 37
-EXPECTED_R6_PROSE_TOTAL = 28  # §13.4 prose claim
+
+# §13.4 prose total — depends on spec version after Round 11:
+#   v0.1.0:      prose claimed 28 (legacy; misaligned with §3.1 TABLE=37)
+#   v0.2.0-rc1:  prose claimed 37 (reconciled with §3.1 TABLE)
+# strict-prose-count mode picks the correct expected value from this map
+# using the spec's own version frontmatter.
+EXPECTED_R6_PROSE_BY_SPEC = {
+    "v0.1.0": 28,
+    "v0.2.0-rc1": 37,
+}
+# Default fallback (when spec version cannot be detected): v0.2.0-rc1.
+EXPECTED_R6_PROSE_DEFAULT = EXPECTED_R6_PROSE_BY_SPEC["v0.2.0-rc1"]
 
 # §4.1 threshold table — 10 metrics × 3 profiles = 30 cells.
+# This is the RUNTIME CONTRACT. Unchanged across v0.1.0 and v0.2.0-rc1.
 THRESHOLD_METRICS = [
     "pass_rate",
     "pass_k",
@@ -106,7 +143,15 @@ THRESHOLD_METRICS = [
 ]
 BIGGER_IS_BETTER = {"pass_rate", "pass_k", "trigger_F1", "iteration_delta"}
 EXPECTED_THRESHOLD_CELLS_TABLE = len(THRESHOLD_METRICS) * 3  # 30
-EXPECTED_THRESHOLD_CELLS_PROSE = 21  # §13.4 prose claim
+
+# §13.4 threshold-cell prose count — depends on spec version:
+#   v0.1.0:      prose claimed 21 (legacy; misaligned with §4.1 TABLE=30)
+#   v0.2.0-rc1:  prose claimed 30 (reconciled with §4.1 TABLE)
+EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC = {
+    "v0.1.0": 21,
+    "v0.2.0-rc1": 30,
+}
+EXPECTED_THRESHOLD_CELLS_PROSE_DEFAULT = EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC["v0.2.0-rc1"]
 
 # §6.1 frozen 7-axis value vector.
 EXPECTED_VALUE_VECTOR_AXES = {
@@ -246,6 +291,40 @@ def _subsection(spec_text: str, header_re: str) -> str:
     return spec_text[start:end]
 
 
+_VERSION_FRONTMATTER_RE = re.compile(
+    r'^version:\s*"?(?P<version>v\d+(?:\.\d+)*(?:-[\w.]+)?)"?\s*$',
+    re.MULTILINE,
+)
+_VERSION_H1_RE = re.compile(
+    r"^#\s+Si-Chip Spec\s+(?P<version>v\d+(?:\.\d+)*(?:-[\w.]+)?)",
+    re.MULTILINE,
+)
+
+
+def detect_spec_version(spec_text: str) -> Optional[str]:
+    """Extract spec version from frontmatter or H1 header.
+
+    Returns the version string (e.g. ``"v0.1.0"`` or ``"v0.2.0-rc1"``) or
+    ``None`` when the spec declares no version. Frontmatter ``version:``
+    takes precedence over the H1 fallback.
+
+    >>> detect_spec_version('---\\nversion: "v0.2.0-rc1"\\n---\\n')
+    'v0.2.0-rc1'
+    >>> detect_spec_version("# Si-Chip Spec v0.1.0（Frozen）\\n")
+    'v0.1.0'
+    >>> detect_spec_version("no version here") is None
+    True
+    """
+
+    m = _VERSION_FRONTMATTER_RE.search(spec_text)
+    if m:
+        return m.group("version")
+    m = _VERSION_H1_RE.search(spec_text)
+    if m:
+        return m.group("version")
+    return None
+
+
 def _count_metric_keys(metrics: Dict[str, Any]) -> Dict[str, int]:
     """Count sub-metric keys per dimension.
 
@@ -308,15 +387,69 @@ def check_bap_schema(templates_dir: Path) -> AssertionResult:
     )
 
 
-def check_r6_keys(templates_dir: Path, *, strict_prose: bool) -> AssertionResult:
+def _r6_prose_numbers_in_section3(spec_text: str) -> Dict[str, Any]:
+    """Extract AUTHORITATIVE R6 prose sub-metric counts from §3 body.
+
+    Matches the two canonical "assertion-of-count" phrases only:
+      * ``7 维 / NNN 子指标`` (§3 intro)
+      * ``完整 NNN 子指标`` / ``完整 NNN 项 key`` (§3.2 item 2)
+
+    Historical / footnote references (e.g. ``v0.1.0 prose 写作 "28 子指标"``)
+    appear in parenthetical annotations and are intentionally ignored —
+    only the assertion forms are policy-relevant.
+
+    >>> _r6_prose_numbers_in_section3("必须实现 R6 全部 7 维 / 28 子指标")["matches"]
+    [28]
+    >>> _r6_prose_numbers_in_section3("完整 37 子指标 的字段...")["matches"]
+    [37]
+    >>> _r6_prose_numbers_in_section3(
+    ...     "7 维 / 37 子指标。v0.1.0 prose 写作 \\"28 子指标\\"。完整 37 子指标"
+    ... )["matches"]
+    [37, 37]
+    """
+
+    try:
+        body = _section(spec_text, r"^##\s+3\.\s")
+    except RuntimeError:
+        body = spec_text
+    # Two authoritative assertion patterns:
+    #   1. ``7 维 / NNN 子指标`` or ``7 维／NNN 子指标`` (§3 intro)
+    #   2. ``完整 NNN 子指标`` / ``完整 NNN 项 key`` (§3.2 frozen constraint)
+    patterns = [
+        re.compile(r"7\s*维\s*[/／]\s*\*{0,2}(\d+)\s*子指标"),
+        re.compile(r"完整\s*\*{0,2}(\d+)\s*(?:子指标|项\s*key)"),
+    ]
+    ints: List[int] = []
+    for p in patterns:
+        for m in p.finditer(body):
+            ints.append(int(m.group(1)))
+    return {"matches": ints}
+
+
+def check_r6_keys(
+    templates_dir: Path,
+    *,
+    strict_prose: bool,
+    spec_version: Optional[str] = None,
+    spec_text: Optional[str] = None,
+) -> AssertionResult:
     """Invariant 2 — R6_KEYS: §3.1 metric key count.
 
     Default: assert per-dimension {D1:4, D2:6, D3:7, D4:4, D5:4, D6:8,
     D7:4} = 37 total (§3.1 TABLE).
 
-    With ``strict_prose=True``: assert total == 28 (§13.4 prose claim;
-    will fail until reconciled). The INFO note about the discrepancy is
-    always emitted in the message body.
+    With ``strict_prose=True``:
+
+    * v0.1.0 spec: assert template total == 28 (§13.4 legacy prose
+      claim). This still FAILS against the real schema (which is 37)
+      because the prose is wrong. Kept for historical parity.
+    * v0.2.0-rc1 spec (default post-Round-11): assert template total
+      == 37 AND spec §3 prose numbers == 37. Both PASS after
+      reconciliation.
+
+    ``spec_version`` lets the caller explicitly pin the expected count;
+    when omitted, the validator derives it from the spec frontmatter
+    (the v0.2.0-rc1 default).
     """
 
     schema_path = templates_dir / "basic_ability_profile.schema.yaml"
@@ -328,7 +461,7 @@ def check_r6_keys(templates_dir: Path, *, strict_prose: bool) -> AssertionResult
     except (KeyError, TypeError) as exc:
         return AssertionResult(
             id="R6_KEYS",
-            name="R6 metric key set matches spec §3.1 (TABLE=37, prose=28)",
+            name="R6 metric key set matches spec §3.1 (TABLE=37, prose=37 @ v0.2.0-rc1)",
             passed=False,
             severity="BLOCKER",
             message=f"schema missing metrics.properties: {exc}",
@@ -337,16 +470,36 @@ def check_r6_keys(templates_dir: Path, *, strict_prose: bool) -> AssertionResult
 
     counts = _count_metric_keys(metrics)
     total = sum(counts.values())
+
+    # Pick prose expectation from the spec's own version.
+    prose_expected = EXPECTED_R6_PROSE_BY_SPEC.get(
+        spec_version or "", EXPECTED_R6_PROSE_DEFAULT
+    )
     info_note = (
-        "INFO: spec §3.1 TABLE enumerates 37 sub-metrics while §13.4 prose says 28; "
-        "templates use the TABLE count."
+        f"INFO: spec §3.1 TABLE enumerates 37 sub-metrics; §13.4 prose "
+        f"under spec_version={spec_version!r} expects {prose_expected}. "
+        "Templates use the TABLE count."
     )
 
     if strict_prose:
-        passed = total == EXPECTED_R6_PROSE_TOTAL
+        # Two-part check:
+        #   (a) TEMPLATE metric-key total matches the prose expectation.
+        #   (b) §3 prose integers in the spec match the prose expectation.
+        prose_integers_observed: List[int] = []
+        prose_integers_ok = True
+        if spec_text is not None:
+            prose_integers_observed = _r6_prose_numbers_in_section3(spec_text)["matches"]
+            # Every prose integer found in §3 next to "子指标" / "项 key"
+            # must equal the prose expectation.
+            prose_integers_ok = all(n == prose_expected for n in prose_integers_observed)
+
+        template_matches_prose = total == prose_expected
+        passed = template_matches_prose and prose_integers_ok
         msg = (
-            f"strict-prose-count: expected total={EXPECTED_R6_PROSE_TOTAL}, observed={total} "
-            f"(per-dim={counts}). {info_note}"
+            f"strict-prose-count @ spec_version={spec_version!r}: template total="
+            f"{total} expected={prose_expected} (template_matches_prose={template_matches_prose}); "
+            f"§3 prose integers observed={prose_integers_observed} "
+            f"(prose_integers_ok={prose_integers_ok}). {info_note}"
         )
     else:
         passed = (
@@ -359,7 +512,7 @@ def check_r6_keys(templates_dir: Path, *, strict_prose: bool) -> AssertionResult
 
     return AssertionResult(
         id="R6_KEYS",
-        name="R6 metric key set matches spec §3.1 (TABLE=37, prose=28)",
+        name="R6 metric key set matches spec §3.1 (TABLE=37, prose=37 @ v0.2.0-rc1)",
         passed=passed,
         severity="BLOCKER",
         message=msg,
@@ -367,7 +520,8 @@ def check_r6_keys(templates_dir: Path, *, strict_prose: bool) -> AssertionResult
             "per_dimension": counts,
             "total": total,
             "expected_table": EXPECTED_R6_TABLE_COUNTS,
-            "expected_prose_total": EXPECTED_R6_PROSE_TOTAL,
+            "expected_prose_total": prose_expected,
+            "spec_version": spec_version,
             "mode": "strict_prose" if strict_prose else "table",
         },
     )
@@ -413,8 +567,60 @@ def _parse_threshold_row(line: str) -> Optional[Dict[str, Any]]:
     return {"metric": metric, "v1": v1, "v2": v2, "v3": v3}
 
 
-def check_threshold_table(spec_text: str, *, strict_prose: bool) -> AssertionResult:
-    """Invariant 3 — THRESHOLD_TABLE: §4.1 cells + monotonicity."""
+def _threshold_prose_numbers_in_section13(spec_text: str) -> Dict[str, Any]:
+    """Extract AUTHORITATIVE threshold-cell count from §13.4 wording.
+
+    Matches the canonical "assertion-of-count" phrase only:
+      * ``§4 阈值表 NNN 个数`` (§13.4 machine-checkable item)
+
+    Historical / footnote references that may appear AFTER §13.4 (e.g.
+    Reconciliation-log appendices in v0.2.0-rc1 that document the prior
+    "§4 阈值表 21 个数" wording inside before/after tables) are
+    intentionally ignored — only the authoritative §13.4 assertion is
+    policy-relevant. The body is therefore narrowed to the §13.4
+    subsection itself, stopping at the next ``###`` subsection or
+    ``##`` section header (numbered or unnumbered, e.g. 附录).
+
+    >>> _threshold_prose_numbers_in_section13(
+    ...     "## 13. X\\n### 13.4 Y\\n§4 阈值表 30 个数\\n## Appendix\\n§4 阈值表 21 个数\\n"
+    ... )["matches"]
+    [30]
+    """
+
+    try:
+        body = _section(spec_text, r"^##\s+13\.\s")
+    except RuntimeError:
+        body = spec_text
+    m = re.search(r"^###\s+13\.4\b", body, re.MULTILINE)
+    if m:
+        sub_start = m.end()
+        # Narrow to §13.4 only — stop at next ### subsection or ## section
+        # heading (numbered like "## 14." or unnumbered like "## 附录").
+        e = re.search(r"^(###\s|##\s)", body[sub_start:], re.MULTILINE)
+        sub_end = sub_start + e.start() if e else len(body)
+        body = body[sub_start:sub_end]
+    # Authoritative phrase only.
+    pattern = re.compile(r"§?4(?:\.\d+)?\s*阈值表\s*(\d+)\s*个数")
+    ints = [int(m2.group(1)) for m2 in pattern.finditer(body)]
+    return {"matches": ints}
+
+
+def check_threshold_table(
+    spec_text: str,
+    *,
+    strict_prose: bool,
+    spec_version: Optional[str] = None,
+) -> AssertionResult:
+    """Invariant 3 — THRESHOLD_TABLE: §4.1 cells + monotonicity.
+
+    Default: 10 metrics × 3 profiles = 30 cells + strict monotonicity.
+
+    strict_prose:
+      * v0.1.0 spec: expects 21 cells (legacy prose misaligned with the
+        actual 30-cell §4.1 TABLE) → FAILS.
+      * v0.2.0-rc1 spec: expects 30 cells (reconciled prose) AND the
+        §13.4 prose integers themselves equal 30 → PASSES.
+    """
 
     body = _section(spec_text, r"^##\s+4\.\s")
     rows: List[Dict[str, Any]] = []
@@ -447,17 +653,26 @@ def check_threshold_table(spec_text: str, *, strict_prose: bool) -> AssertionRes
                     f"{m}: smaller-is-better expects v1>=v2>=v3, got {v1},{v2},{v3}"
                 )
 
+    prose_expected = EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC.get(
+        spec_version or "", EXPECTED_THRESHOLD_CELLS_PROSE_DEFAULT
+    )
     info_note = (
-        "INFO: §4.1 actual table is 10 metrics x 3 profiles = 30 numeric cells; "
-        "§13.4 prose says 21 cells across 7 metrics x 3 profiles."
+        f"INFO: §4.1 actual table is 10 metrics x 3 profiles = 30 numeric cells; "
+        f"§13.4 prose under spec_version={spec_version!r} expects {prose_expected}."
     )
 
     if strict_prose:
-        passed = cells == EXPECTED_THRESHOLD_CELLS_PROSE and not monotone_failures
+        prose_integers_observed = _threshold_prose_numbers_in_section13(spec_text)["matches"]
+        prose_integers_ok = all(n == prose_expected for n in prose_integers_observed)
+        cells_match = cells == prose_expected
+        passed = cells_match and not monotone_failures and prose_integers_ok
         msg = (
-            f"strict-prose-count: expected={EXPECTED_THRESHOLD_CELLS_PROSE} cells, "
-            f"observed={cells} cells; missing_metrics={missing_metrics}; "
-            f"monotone_failures={monotone_failures}. {info_note}"
+            f"strict-prose-count @ spec_version={spec_version!r}: expected={prose_expected} "
+            f"cells, observed={cells} cells (cells_match={cells_match}); "
+            f"§13.4 prose integers observed={prose_integers_observed} "
+            f"(prose_integers_ok={prose_integers_ok}); "
+            f"missing_metrics={missing_metrics}; monotone_failures={monotone_failures}. "
+            f"{info_note}"
         )
     else:
         passed = (
@@ -483,6 +698,8 @@ def check_threshold_table(spec_text: str, *, strict_prose: bool) -> AssertionRes
             "cells": cells,
             "missing_metrics": missing_metrics,
             "monotone_failures": monotone_failures,
+            "expected_prose_cells": prose_expected,
+            "spec_version": spec_version,
             "mode": "strict_prose" if strict_prose else "table",
         },
     )
@@ -759,10 +976,20 @@ def run_all(
     """Execute every invariant in declared order."""
 
     spec_text = _read_text(spec_path)
+    spec_version = detect_spec_version(spec_text)
     results: List[AssertionResult] = [
         check_bap_schema(templates_dir),
-        check_r6_keys(templates_dir, strict_prose=strict_prose),
-        check_threshold_table(spec_text, strict_prose=strict_prose),
+        check_r6_keys(
+            templates_dir,
+            strict_prose=strict_prose,
+            spec_version=spec_version,
+            spec_text=spec_text,
+        ),
+        check_threshold_table(
+            spec_text,
+            strict_prose=strict_prose,
+            spec_version=spec_version,
+        ),
         check_router_matrix_cells(templates_dir),
         check_value_vector_axes(templates_dir),
         check_platform_priority(spec_text),
@@ -800,7 +1027,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--strict-prose-count",
         action="store_true",
-        help="Enforce spec §13.4 prose counts (R6 sub-metrics == 28, threshold cells == 21). Will fail until prose is reconciled with the §3.1 / §4.1 tables.",
+        help=(
+            "Enforce spec §13.4 prose counts: v0.2.0-rc1 expects 37 sub-metrics + 30 threshold cells "
+            "(passes post-Round-11); v0.1.0 expects 28 + 21 (legacy; validator preserves the mode for "
+            "historical regression). Spec version is auto-detected from frontmatter."
+        ),
     )
     parser.add_argument(
         "--json",

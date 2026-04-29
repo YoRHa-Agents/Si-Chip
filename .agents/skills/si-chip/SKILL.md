@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: Persistent BasicAbility optimization factory. Use when profiling, evaluating, diagnosing, improving, router-testing, or half-retiring a skill/ability per Si-Chip spec v0.1.0.
+description: Persistent BasicAbility optimization factory. Use when profiling, evaluating, diagnosing, improving, router-testing, or half-retiring a skill/ability per Si-Chip spec v0.2.0-rc1.
 when_to_use: Whenever a Skill needs eval evidence, router_floor, or half-retire decision.
-version: 0.1.9
+version: 0.1.10
 license: Apache-2.0
 ---
 
@@ -15,7 +15,8 @@ on functionality, context, latency, path, routing, and governance. Each
 `BasicAbility` is the unit of measurement; every round must drop machine-
 readable evidence so the next round can compute deltas. Si-Chip dogfoods
 itself before guiding any other skill, and refuses to ship without two
-consecutive passing rounds (spec v0.1.0 §1.1, §8.3).
+consecutive passing rounds (spec v0.2.0-rc1 §1.1, §8.3; §11 forever-out and
+Normative semantics byte-identical to v0.1.0).
 
 ## Core Object: BasicAbility
 
@@ -39,8 +40,9 @@ semantics, validators, and stage flow, read:
   every field plus the stage diagram.
 
 MVP-8 sub-metrics (`T1`, `T2`, `T3`, `C1`, `C4`, `L2`, `R3`, `R5`) must be
-filled every round; the remaining 20 sub-metric keys must be present with
-explicit `null` placeholders (spec §3.2 frozen constraint #2). The 7-axis
+filled every round; the remaining 29 sub-metric keys must be present with
+explicit `null` placeholders (spec §3.2 frozen constraint #2; 37 total in
+§3.1 TABLE, reconciled with §13.4 prose at v0.2.0-rc1). The 7-axis
 `value_vector` drives §6 half-retire decisions.
 
 ## When To Trigger
@@ -61,7 +63,7 @@ half-retire decision.
 - User says: "generate a `BasicAbilityProfile` for ..." → Trigger Si-Chip
   step 1 (`scripts/profile_static.py`).
 - User says: "diagnose why this skill is slow / costly / off-trigger" →
-  Trigger Si-Chip's diagnose step against R6's 7 dim / 28 sub-metrics.
+  Trigger Si-Chip's diagnose step against R6's 7 dim / 37 sub-metrics.
 - User says: "draft next round's plan" → Trigger Si-Chip step 4 and emit a
   `next_action_plan.yaml`.
 
@@ -75,7 +77,7 @@ half-retire decision.
   forever-out: Markdown-to-CLI converter).
 - User says: "make Si-Chip support OpenCode / Copilot CLI / Gemini CLI" →
   reject (spec §11.1 forever-out: generic IDE compatibility layer; native
-  Codex SKILL.md runtime is §11.2 deferred — bridge only at v0.1.0).
+  Codex SKILL.md runtime is §11.2 deferred — bridge only at v0.2.0-rc1).
 - User says: "just write this Python file" → not Si-Chip; no BasicAbility
   loop is needed. Use a direct edit instead.
 - User says: "explain what BPE tokens are" → not Si-Chip; informational
@@ -90,8 +92,8 @@ scripts, templates, and references are in
 `references/self-dogfood-protocol.md`.
 
 1. **profile** → `basic_ability_profile.yaml` (schema §2.1).
-2. **evaluate** → `metrics_report.yaml` (MVP-8 + 28-key null placeholders).
-3. **diagnose** → bottleneck scan across R6's 7 dim / 28 sub-metrics.
+2. **evaluate** → `metrics_report.yaml` (MVP-8 + 37-key null placeholders).
+3. **diagnose** → bottleneck scan across R6's 7 dim / 37 sub-metrics.
 4. **improve** → `next_action_plan.yaml` (each action targets one R6 key).
 5. **router-test** → `router_floor_report.yaml` (8-cell MVP, 96-cell at v2+); no router-model training (§5.2).
 6. **half-retire-review** → `half_retire_decision.yaml` (7-axis value vector, §6.1).
@@ -111,7 +113,7 @@ hard threshold (§8.3).
 |---|---|
 | `references/basic-ability-profile.md` | Reader walkthrough of §2.1 fields and §2.2 stage enum. |
 | `references/self-dogfood-protocol.md` | The 8-step protocol, 6 evidence files, and multi-round rule. |
-| `references/metrics-r6-summary.md` | R6 7 dim / 28 sub-metrics + the §4.1 three-gate threshold table. |
+| `references/metrics-r6-summary.md` | R6 7 dim / 37 sub-metrics + the §4.1 three-gate threshold table. |
 | `references/router-test-r8-summary.md` | §5 router paradigm, MVP 8-cell vs Full 96-cell harness, profile↔gate binding. |
 | `references/half-retirement-r9-summary.md` | §6 7-axis value vector, 4 decision rules, 6 reactivation triggers. |
 
@@ -139,8 +141,8 @@ Forever-out per spec §11.1:
 - Markdown-to-CLI auto-converter.
 
 Reject any request that pushes Si-Chip into these. Codex native SKILL.md
-runtime is §11.2 deferred — bridge only at v0.1.0.
+runtime is §11.2 deferred — bridge only at v0.2.0-rc1.
 
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.1.0.md` ; Compiled into: `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.2.0-rc1.md` (reconciled with v0.1.0; §11 forever-out and Normative semantics byte-identical; §13.4 prose aligned to §3.1/§4.1 TABLES) ; Compiled into: `AGENTS.md` via `.rules/si-chip-spec.mdc`.
