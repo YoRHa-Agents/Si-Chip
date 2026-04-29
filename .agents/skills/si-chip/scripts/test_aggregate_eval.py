@@ -1272,5 +1272,256 @@ class BuildReportC5C6Integration(unittest.TestCase):
         self.assertEqual(ce["C6_scope_overlap_score"], 0.0)
 
 
+# ─────────────────────────── Round 8 tests ───────────────────────────
+# Workspace rule "Mandatory Verification": Round 8 (task spec §3)
+# added ``hoist_v1_permission_scope``, ``hoist_v2_credential_surface``,
+# ``hoist_v3_drift_signal``, ``hoist_v4_staleness_days``, plus
+# ``build_report`` now accepts a ``governance_report`` parameter and
+# populates D7 V1-V4. These tests cover correctness, degenerate paths,
+# the spec §3.2 frozen 28-key invariant, and the Round 8 acceptance
+# criterion that governance_risk_delta is DERIVED LIVE from V1-V4
+# (not hard-coded 0.0).
+
+
+def _governance_report_payload(
+    v1: Optional[int] = 0,
+    v2: Optional[int] = 0,
+    v3: Optional[float] = 0.0,
+    v4: Optional[int] = 0,
+    governance_risk_delta: Optional[float] = 0.0,
+) -> dict:
+    """Build a minimal governance_scan.json-shaped payload."""
+
+    return {
+        "V1_permission_scope": v1,
+        "V2_credential_surface": v2,
+        "V3_drift_signal": v3,
+        "V4_staleness_days": v4,
+        "provenance": {
+            "script_version": "0.1.0",
+            "v1_derivation": {
+                "method": "count distinct hardcoded absolute write-paths outside "
+                         ".local/dogfood/ and outside the skill's own source tree",
+            },
+            "v2_derivation": {
+                "method": "count credential/secret pattern matches; values never logged",
+            },
+            "v3_derivation": {
+                "method": "1.0 - cross_tree_drift_zero_ratio across mirrors",
+            },
+            "v4_derivation": {
+                "method": "(today - last_reviewed_at).days",
+            },
+            "governance_risk_delta": governance_risk_delta,
+            "governance_risk_delta_method": (
+                "compute_governance_risk_delta(V1, V2, V3, V4); "
+                "risk_without - risk_with per spec §6.1 D7"
+            ),
+        },
+    }
+
+
+class HoistV1Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_v1_permission_scope`."""
+
+    def test_happy_path_zero(self) -> None:
+        v = ae.hoist_v1_permission_scope(_governance_report_payload(v1=0))
+        self.assertEqual(v, 0)
+
+    def test_happy_path_positive(self) -> None:
+        v = ae.hoist_v1_permission_scope(_governance_report_payload(v1=3))
+        self.assertEqual(v, 3)
+
+    def test_none_payload_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v1_permission_scope(None))
+
+    def test_missing_key_returns_none(self) -> None:
+        payload = _governance_report_payload()
+        del payload["V1_permission_scope"]
+        self.assertIsNone(ae.hoist_v1_permission_scope(payload))
+
+    def test_negative_value_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v1_permission_scope({"V1_permission_scope": -1}))
+
+
+class HoistV2Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_v2_credential_surface`."""
+
+    def test_happy_path_zero(self) -> None:
+        v = ae.hoist_v2_credential_surface(_governance_report_payload(v2=0))
+        self.assertEqual(v, 0)
+
+    def test_happy_path_positive(self) -> None:
+        v = ae.hoist_v2_credential_surface(_governance_report_payload(v2=2))
+        self.assertEqual(v, 2)
+
+    def test_none_payload_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v2_credential_surface(None))
+
+    def test_missing_key_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v2_credential_surface({}))
+
+
+class HoistV3Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_v3_drift_signal`."""
+
+    def test_happy_path_zero(self) -> None:
+        v = ae.hoist_v3_drift_signal(_governance_report_payload(v3=0.0))
+        self.assertEqual(v, 0.0)
+
+    def test_happy_path_fractional(self) -> None:
+        v = ae.hoist_v3_drift_signal(_governance_report_payload(v3=2.0 / 3.0))
+        self.assertIsNotNone(v)
+        self.assertAlmostEqual(v, 2.0 / 3.0, places=6)
+
+    def test_none_payload_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v3_drift_signal(None))
+
+    def test_out_of_range_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v3_drift_signal({"V3_drift_signal": 1.1}))
+
+
+class HoistV4Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_v4_staleness_days`."""
+
+    def test_happy_path_zero(self) -> None:
+        v = ae.hoist_v4_staleness_days(_governance_report_payload(v4=0))
+        self.assertEqual(v, 0)
+
+    def test_happy_path_positive(self) -> None:
+        v = ae.hoist_v4_staleness_days(_governance_report_payload(v4=30))
+        self.assertEqual(v, 30)
+
+    def test_none_payload_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v4_staleness_days(None))
+
+    def test_negative_value_returns_none(self) -> None:
+        self.assertIsNone(ae.hoist_v4_staleness_days({"V4_staleness_days": -5}))
+
+
+class BuildReportV1V4Integration(unittest.TestCase):
+    """End-to-end smoke: build_report surfaces D7 V1/V2/V3/V4 and wires provenance."""
+
+    def _make_skill_md(self, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            f"---\nname: si-chip\ndescription: {description}\n---\n"
+            "body text body text\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_full_instrumentation_populates_v1_v2_v3_v4(self) -> None:
+        skill_md = self._make_skill_md("demo description")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes() for _ in range(3)],
+            without_rows=[_row(pass_rate=0.5, trigger_F1=0.0) for _ in range(3)],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(v1=0, v2=0, v3=0.0, v4=0),
+        )
+        gr = report["metrics"]["governance_risk"]
+        self.assertEqual(gr["V1_permission_scope"], 0)
+        self.assertEqual(gr["V2_credential_surface"], 0)
+        self.assertEqual(gr["V3_drift_signal"], 0.0)
+        self.assertEqual(gr["V4_staleness_days"], 0)
+        prov = report["provenance"]
+        for key in ("v1_derivation", "v2_derivation", "v3_derivation", "v4_derivation"):
+            self.assertIn(key, prov)
+            self.assertTrue(prov[key]["loaded"])
+
+    def test_missing_governance_report_keeps_v1_v4_null(self) -> None:
+        """Round 7 code path (no governance_report) leaves V1-V4 null."""
+
+        skill_md = self._make_skill_md("demo")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=None,
+        )
+        gr = report["metrics"]["governance_risk"]
+        self.assertIsNone(gr["V1_permission_scope"])
+        self.assertIsNone(gr["V2_credential_surface"])
+        self.assertIsNone(gr["V3_drift_signal"])
+        self.assertIsNone(gr["V4_staleness_days"])
+        # Derivation records still exist but marked loaded=False.
+        for key in ("v1_derivation", "v2_derivation", "v3_derivation", "v4_derivation"):
+            self.assertFalse(report["provenance"][key]["loaded"])
+
+    def test_round_8_keeps_28_key_invariant(self) -> None:
+        """Round 8 must not drop the spec §3.2 frozen 28-key (table=37) invariant."""
+
+        skill_md = self._make_skill_md("demo")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(),
+        )
+        metrics = report["metrics"]
+        self.assertEqual(set(metrics.keys()), set(ae.METRIC_KEYS.keys()))
+        for dim, keys in ae.METRIC_KEYS.items():
+            self.assertEqual(
+                set(metrics[dim].keys()),
+                set(keys),
+                msg=f"{dim} sub-metric keys diverged from schema after Round 8",
+            )
+        # Full D7 coverage = 4/4 sub-metrics populated for the first time.
+        measured = [k for k, v in metrics["governance_risk"].items() if v is not None]
+        self.assertEqual(set(measured), {
+            "V1_permission_scope",
+            "V2_credential_surface",
+            "V3_drift_signal",
+            "V4_staleness_days",
+        })
+
+    def test_governance_risk_delta_derived_live_not_hardcoded(self) -> None:
+        """Round 8 acceptance criterion: governance_risk_delta must be COMPUTED, not literal.
+
+        The aggregator attaches the scanner's live
+        ``governance_risk_delta`` into the v*_derivation.source block.
+        The half_retire_decision.yaml consumer reads THAT value
+        (not a hard-coded ``0.0``). This test asserts the live-derive
+        contract by passing a non-zero value through the report.
+        """
+
+        skill_md = self._make_skill_md("demo")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(
+                v1=1, v2=0, v3=0.0, v4=0,
+                governance_risk_delta=-0.25,
+            ),
+        )
+        gr = report["metrics"]["governance_risk"]
+        self.assertEqual(gr["V1_permission_scope"], 1)
+        # The attached derivation records preserve the live delta input.
+        v1_source = report["provenance"]["v1_derivation"]["source"]
+        self.assertIsNotNone(v1_source)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

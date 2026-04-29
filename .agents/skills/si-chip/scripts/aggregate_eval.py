@@ -55,7 +55,7 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.aggregate_eval")
 
-SCRIPT_VERSION = "0.1.3"
+SCRIPT_VERSION = "0.1.4"
 
 REQUIRED_KEYS: Tuple[str, ...] = (
     "pass_rate",
@@ -887,6 +887,156 @@ def hoist_c6_scope_overlap_score(
     return float(value), derivation
 
 
+# ─────────── Round 8 D7 governance_risk hoists (V1 + V2 + V3 + V4) ───────────
+#
+# Spec §3.1 D7:
+#   V1_permission_scope   = count of hardcoded write paths outside
+#     .local/dogfood/ and outside the skill's own source tree.
+#   V2_credential_surface = count of credential/secret pattern matches
+#     across skill artifact bodies (MUST NOT log the values).
+#   V3_drift_signal       = 1.0 - cross_tree_drift_zero_ratio across the
+#     3 SKILL.md mirrors.
+#   V4_staleness_days     = days since
+#     basic_ability_profile.lifecycle.last_reviewed_at.
+#
+# All four values are sourced from ``tools/governance_scan.py``
+# (see build_governance_report()) and surfaced via the new Round 8
+# ``governance_report`` parameter on :func:`build_report`. When the
+# parameter is ``None`` (Round 7 and earlier code paths), V1-V4 stay
+# ``null`` per spec §3.2 frozen constraint #2 — the aggregator MUST
+# NOT silently substitute zeros (workspace rule "No Silent Failures").
+#
+# NOTE: the half_retire_decision.yaml governance_risk_delta is
+# derived live from these V1-V4 inputs starting with Round 8 (Round 8
+# task spec §3 — "remove hard-coding of governance_risk_delta = 0.0").
+# The numerical value stays 0.0 when V1-V4 are all zero (clean
+# baseline), but it is COMPUTED by
+# :func:`governance_scan.compute_governance_risk_delta` rather than a
+# literal.
+
+
+def _hoist_v_metric(
+    governance_report: Optional[Dict[str, Any]], key: str
+) -> Any:
+    """Return ``governance_report[key]`` or ``None`` on any failure.
+
+    Shared helper for the four V1-V4 hoists. Preserves the
+    ``no silent substitution`` rule by returning ``None`` whenever the
+    report is missing, malformed, or the key is absent.
+    """
+
+    if governance_report is None:
+        return None
+    if not isinstance(governance_report, dict):
+        return None
+    if key not in governance_report:
+        return None
+    return governance_report[key]
+
+
+def hoist_v1_permission_scope(
+    governance_report: Optional[Dict[str, Any]],
+) -> Optional[int]:
+    """Hoist V1 from a ``build_governance_report`` dict.
+
+    Returns the integer value or ``None`` when the report is missing /
+    the key is absent (documented degenerate path — §3.2 explicit-null).
+
+    >>> hoist_v1_permission_scope({"V1_permission_scope": 0}) == 0
+    True
+    >>> hoist_v1_permission_scope(None) is None
+    True
+    """
+
+    raw = _hoist_v_metric(governance_report, "V1_permission_scope")
+    if raw is None:
+        return None
+    try:
+        v = int(raw)
+    except (TypeError, ValueError):
+        LOGGER.warning("V1 is not int-coercible: %r", raw)
+        return None
+    if v < 0:
+        LOGGER.warning("V1 must be >= 0, got %d", v)
+        return None
+    return v
+
+
+def hoist_v2_credential_surface(
+    governance_report: Optional[Dict[str, Any]],
+) -> Optional[int]:
+    """Hoist V2 from a ``build_governance_report`` dict.
+
+    >>> hoist_v2_credential_surface({"V2_credential_surface": 0}) == 0
+    True
+    >>> hoist_v2_credential_surface(None) is None
+    True
+    """
+
+    raw = _hoist_v_metric(governance_report, "V2_credential_surface")
+    if raw is None:
+        return None
+    try:
+        v = int(raw)
+    except (TypeError, ValueError):
+        LOGGER.warning("V2 is not int-coercible: %r", raw)
+        return None
+    if v < 0:
+        LOGGER.warning("V2 must be >= 0, got %d", v)
+        return None
+    return v
+
+
+def hoist_v3_drift_signal(
+    governance_report: Optional[Dict[str, Any]],
+) -> Optional[float]:
+    """Hoist V3 from a ``build_governance_report`` dict.
+
+    >>> hoist_v3_drift_signal({"V3_drift_signal": 0.0}) == 0.0
+    True
+    >>> hoist_v3_drift_signal(None) is None
+    True
+    """
+
+    raw = _hoist_v_metric(governance_report, "V3_drift_signal")
+    if raw is None:
+        return None
+    try:
+        v = float(raw)
+    except (TypeError, ValueError):
+        LOGGER.warning("V3 is not float-coercible: %r", raw)
+        return None
+    if not (0.0 <= v <= 1.0):
+        LOGGER.warning("V3 out of [0.0, 1.0]: %s", v)
+        return None
+    return v
+
+
+def hoist_v4_staleness_days(
+    governance_report: Optional[Dict[str, Any]],
+) -> Optional[int]:
+    """Hoist V4 from a ``build_governance_report`` dict.
+
+    >>> hoist_v4_staleness_days({"V4_staleness_days": 0}) == 0
+    True
+    >>> hoist_v4_staleness_days(None) is None
+    True
+    """
+
+    raw = _hoist_v_metric(governance_report, "V4_staleness_days")
+    if raw is None:
+        return None
+    try:
+        v = int(raw)
+    except (TypeError, ValueError):
+        LOGGER.warning("V4 is not int-coercible: %r", raw)
+        return None
+    if v < 0:
+        LOGGER.warning("V4 must be >= 0, got %d", v)
+        return None
+    return v
+
+
 def hoist_u4_time_to_first_success(
     install_telemetry: Optional[Dict[str, Any]],
 ) -> Tuple[Optional[float], Dict[str, Any]]:
@@ -1025,6 +1175,7 @@ def build_report(
     install_telemetry: Optional[Dict[str, Any]] = None,
     references_dir: Optional[Path] = None,
     neighbor_skill_md_paths: Optional[Iterable[Path]] = None,
+    governance_report: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Compute the metrics_report dict from collected rows.
 
@@ -1074,6 +1225,17 @@ def build_report(
       literally references by filename. Range ``[0.0, 1.0]``.
     * C6_scope_overlap_score = max Jaccard across neighbor SKILL.md
       description pairs (token-set overlap). Range ``[0.0, 1.0]``.
+
+    Round 8 (task spec §3) hoists D7 V1 / V2 / V3 / V4:
+
+    * V1_permission_scope   = count of hardcoded write paths outside
+      ``.local/dogfood/`` and outside the skill's own source tree.
+    * V2_credential_surface = count of credential / secret pattern
+      matches across skill artifact bodies (values never logged).
+    * V3_drift_signal       = ``1.0 - cross_tree_drift_zero_ratio``
+      across the 3 SKILL.md mirrors.
+    * V4_staleness_days     = days since
+      ``basic_ability_profile.lifecycle.last_reviewed_at``.
 
     All hoisted fields stay ``null`` when their data source is
     degenerate; the aggregator MUST NOT silently substitute a
@@ -1151,6 +1313,52 @@ def build_report(
     )
     metrics["context_economy"]["C6_scope_overlap_score"] = c6_value
 
+    # Round 8 (task spec §3): hoist D7 V1 / V2 / V3 / V4 from the
+    # governance scan payload (produced by tools/governance_scan.py).
+    v1_value = hoist_v1_permission_scope(governance_report)
+    v2_value = hoist_v2_credential_surface(governance_report)
+    v3_value = hoist_v3_drift_signal(governance_report)
+    v4_value = hoist_v4_staleness_days(governance_report)
+    metrics["governance_risk"]["V1_permission_scope"] = v1_value
+    metrics["governance_risk"]["V2_credential_surface"] = v2_value
+    metrics["governance_risk"]["V3_drift_signal"] = v3_value
+    metrics["governance_risk"]["V4_staleness_days"] = v4_value
+
+    # Derivation records for V1-V4 hoists. These surface the raw
+    # scanner output (via ``governance_report['provenance']``) plus
+    # a per-metric ``hoisted_value``, so the metrics_report.yaml can
+    # be audited end-to-end without consulting the raw
+    # ``governance_scan.json``.
+    governance_provenance = (
+        governance_report.get("provenance")
+        if isinstance(governance_report, dict)
+        else None
+    ) or {}
+    v1_derivation = {
+        "method": "aggregate_eval.hoist_v1_permission_scope(governance_report)",
+        "hoisted_value": v1_value,
+        "source": governance_provenance.get("v1_derivation"),
+        "loaded": governance_report is not None,
+    }
+    v2_derivation = {
+        "method": "aggregate_eval.hoist_v2_credential_surface(governance_report)",
+        "hoisted_value": v2_value,
+        "source": governance_provenance.get("v2_derivation"),
+        "loaded": governance_report is not None,
+    }
+    v3_derivation = {
+        "method": "aggregate_eval.hoist_v3_drift_signal(governance_report)",
+        "hoisted_value": v3_value,
+        "source": governance_provenance.get("v3_derivation"),
+        "loaded": governance_report is not None,
+    }
+    v4_derivation = {
+        "method": "aggregate_eval.hoist_v4_staleness_days(governance_report)",
+        "hoisted_value": v4_value,
+        "source": governance_provenance.get("v4_derivation"),
+        "loaded": governance_report is not None,
+    }
+
     devolaflow_version = _safe_devolaflow_version()
 
     report = {
@@ -1180,6 +1388,10 @@ def build_report(
             "u4_derivation": u4_derivation,
             "c5_derivation": c5_derivation,
             "c6_derivation": c6_derivation,
+            "v1_derivation": v1_derivation,
+            "v2_derivation": v2_derivation,
+            "v3_derivation": v3_derivation,
+            "v4_derivation": v4_derivation,
         },
     }
     return report
@@ -1222,6 +1434,30 @@ def _maybe_load_install_telemetry(path: Optional[Path]) -> Optional[Dict[str, An
             raise RuntimeError(f"failed to parse {path}: {exc}") from exc
     if not isinstance(data, dict):
         raise ValueError(f"{path}: install_telemetry must be a JSON object")
+    return data
+
+
+def _maybe_load_governance_report(path: Optional[Path]) -> Optional[Dict[str, Any]]:
+    """Load a governance_scan.json when ``path`` is provided.
+
+    Produced by ``tools/governance_scan.py --json`` (Round 8). Raises
+    ``FileNotFoundError`` when ``path`` is set but missing (workspace
+    rule "No Silent Failures"). Returns ``None`` when ``path`` is
+    ``None`` (caller has not requested V1-V4 hoisting; Round 7 and
+    earlier code paths take this branch).
+    """
+
+    if path is None:
+        return None
+    if not path.exists():
+        raise FileNotFoundError(f"--governance-report path not found: {path}")
+    with path.open("r", encoding="utf-8") as fp:
+        try:
+            data = json.load(fp)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"failed to parse {path}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{path}: governance_report must be a JSON object")
     return data
 
 
@@ -1316,6 +1552,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             "Set to an empty string to disable C6 hoisting (Round 7)."
         ),
     )
+    parser.add_argument(
+        "--governance-report",
+        default=None,
+        help=(
+            "Optional governance_scan.json path (emitted by "
+            "tools/governance_scan.py --json). When set, V1/V2/V3/V4 "
+            "are hoisted into metrics.governance_risk (Round 8)."
+        ),
+    )
     parser.add_argument("--verbose", action="store_true", help="Set log level to INFO.")
     args = parser.parse_args(argv)
 
@@ -1353,6 +1598,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     skill_md_meta = _maybe_skill_md_metadata_tokens(skill_md)
     router_floor_report = _maybe_load_router_floor_report(router_floor_path)
     install_telemetry = _maybe_load_install_telemetry(install_telemetry_path)
+    governance_report_path = (
+        Path(args.governance_report).resolve() if args.governance_report else None
+    )
+    governance_report = _maybe_load_governance_report(governance_report_path)
     report = build_report(
         with_rows,
         without_rows,
@@ -1364,6 +1613,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         install_telemetry=install_telemetry,
         references_dir=references_dir,
         neighbor_skill_md_paths=neighbor_paths,
+        governance_report=governance_report,
     )
 
     template_metrics = _load_template_metrics(Path(args.templates_dir).resolve())
