@@ -55,7 +55,7 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.aggregate_eval")
 
-SCRIPT_VERSION = "0.1.4"
+SCRIPT_VERSION = "0.1.5"
 
 REQUIRED_KEYS: Tuple[str, ...] = (
     "pass_rate",
@@ -887,6 +887,160 @@ def hoist_c6_scope_overlap_score(
     return float(value), derivation
 
 
+# ─────────── Round 9 D6 routing_cost hoist (R8 description_competition_index) ───────────
+#
+# Spec §3.1 D6 R8:
+#   R8_description_competition_index = formal across-matrix description
+#     -competition index between Si-Chip's SKILL.md description and the
+#     neighbor skill SKILL.md descriptions. Computed by
+#     count_tokens.skill_md_description_competition_index with two
+#     supported methods:
+#
+#       * method="max_jaccard"  (default) — R8 = max Jaccard across
+#         neighbors. SAME formula family as C6 but exposed under a
+#         distinct D6 slot; surfaces the WORST single offender (the
+#         neighbor most likely to steal a routing invocation).
+#       * method="tfidf_cosine_mean" — R8 = MEAN TF-IDF cosine across
+#         neighbors. Surfaces AVERAGE competition; complementary
+#         signal.
+#
+# Both methods are DETERMINISTIC (sorted vocab; no RNG). The hoist is
+# metadata-retrieval per spec §5.1 — NOT router model training (§5.2
+# forbidden). See .local/dogfood/2026-04-28/round_9/raw/r8_derivation.json
+# for the per-neighbor trace.
+
+
+def hoist_r8_description_competition_index(
+    skill_md_path: Optional[Path],
+    neighbor_skill_md_paths: Optional[Iterable[Path]],
+    *,
+    method: str = "max_jaccard",
+    strict: bool = False,
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist R8 from a SKILL.md vs a neighbor SKILL.md list.
+
+    Spec §3.1 D6 R8 ``description_competition_index`` (float in
+    ``[0.0, 1.0]``): formal across-matrix similarity between Si-Chip's
+    SKILL.md description and every neighbor skill's description.
+    Computed by :func:`count_tokens.skill_md_description_competition_index`.
+
+    Returns ``(value, derivation_dict)``. ``value`` is ``None`` in the
+    documented degenerate paths:
+      * ``skill_md_path`` is ``None``
+      * neighbor list is empty (ValueError from helper → recorded)
+      * unknown method (ValueError from helper → recorded)
+
+    Permissive default: unexpected exceptions are caught, logged, and
+    mapped to ``(None, {"error": ...})`` so the aggregator does NOT
+    silently substitute a zero. Pass ``strict=True`` to re-raise.
+
+    >>> v, d = hoist_r8_description_competition_index(None, None)
+    >>> v is None and "error" in d
+    True
+    """
+
+    if skill_md_path is None:
+        return None, {
+            "error": "no --skill-md provided",
+            "remediation": "pass --skill-md to aggregate_eval.py",
+        }
+
+    neighbor_list: List[Path] = list(neighbor_skill_md_paths or [])
+    if not neighbor_list:
+        LOGGER.warning(
+            "hoist_r8: no neighbor SKILL.md paths supplied; R8 left null"
+        )
+        return None, {
+            "error": "no neighbor SKILL.md paths supplied",
+            "method": method,
+            "remediation": (
+                "pass --neighbor-skills-glob with at least one match "
+                "to aggregate_eval.py"
+            ),
+        }
+
+    from count_tokens import (  # local import
+        skill_md_description_competition_index,
+    )
+
+    try:
+        value, pairs = skill_md_description_competition_index(
+            skill_md_path, neighbor_list, method=method
+        )
+    except FileNotFoundError:
+        raise  # explicit missing-base-path bubbles per "No Silent Failures".
+    except ValueError as exc:
+        LOGGER.warning("hoist_r8 rejected: %s", exc)
+        if strict:
+            raise
+        return None, {
+            "error": f"hoist_r8 rejected: {exc}",
+            "skill_md_path": str(skill_md_path),
+            "method": method,
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        LOGGER.warning("hoist_r8 unexpected error: %s", exc)
+        if strict:
+            raise
+        return None, {
+            "error": f"hoist_r8 failed: {exc}",
+            "skill_md_path": str(skill_md_path),
+            "method": method,
+        }
+
+    if not (0.0 <= value <= 1.0):  # pragma: no cover - should not happen
+        LOGGER.warning("R8 out of range: %s", value)
+        if strict:
+            raise ValueError(f"R8 out of [0.0, 1.0]: {value}")
+        return None, {
+            "error": f"R8 out of [0.0, 1.0]: {value}",
+            "pairs": pairs,
+            "method": method,
+        }
+
+    scored_pairs = [
+        p for p in pairs if isinstance(p.get("similarity"), (int, float))
+    ]
+    skipped_pairs = [
+        p for p in pairs if not isinstance(p.get("similarity"), (int, float))
+    ]
+    method_note = {
+        "max_jaccard": (
+            "R8 == max(Jaccard(base_tokens, neighbor_tokens)) across neighbor "
+            "set. Same formula family as C6; surfaces the WORST single "
+            "offender (the neighbor most likely to steal a routing "
+            "invocation). Default method."
+        ),
+        "tfidf_cosine_mean": (
+            "R8 == mean(cosine(tfidf(base_tokens, corpus), tfidf(neighbor_tokens, "
+            "corpus))) across neighbor set. Surfaces AVERAGE competition "
+            "(complementary signal to max-Jaccard WORST-offender)."
+        ),
+    }[method]
+    derivation: Dict[str, Any] = {
+        "method": (
+            f"count_tokens.skill_md_description_competition_index("
+            f"skill_md, neighbors, method={method!r})"
+        ),
+        "method_note": method_note,
+        "method_name": method,
+        "skill_md_path": str(skill_md_path),
+        "neighbor_paths": [str(p) for p in neighbor_list],
+        "n_neighbors_attempted": len(neighbor_list),
+        "n_neighbors_scored": len(scored_pairs),
+        "n_neighbors_skipped": len(skipped_pairs),
+        "pairs": pairs,
+        "chosen_value": value,
+        "range_sanity_check": f"PASS (R8 {value} in [0.0, 1.0])",
+        "v1_baseline_gate": "n/a (R8 has no §4.1 hard threshold; informational)",
+        "spec_section_compliance": (
+            "§5.1 metadata-retrieval surface (kNN/heuristic baseline); "
+            "NOT §5.2 router-model training (forbidden)"
+        ),
+    }
+    return float(value), derivation
+
+
 # ─────────── Round 8 D7 governance_risk hoists (V1 + V2 + V3 + V4) ───────────
 #
 # Spec §3.1 D7:
@@ -1176,6 +1330,7 @@ def build_report(
     references_dir: Optional[Path] = None,
     neighbor_skill_md_paths: Optional[Iterable[Path]] = None,
     governance_report: Optional[Dict[str, Any]] = None,
+    r8_method: str = "max_jaccard",
 ) -> Dict[str, Any]:
     """Compute the metrics_report dict from collected rows.
 
@@ -1313,6 +1468,14 @@ def build_report(
     )
     metrics["context_economy"]["C6_scope_overlap_score"] = c6_value
 
+    # Round 9 (task spec §3): hoist D6 R8 description_competition_index.
+    # Re-uses the neighbor list supplied for C6 by default so a single
+    # --neighbor-skills-glob drives both metrics consistently.
+    r8_value, r8_derivation = hoist_r8_description_competition_index(
+        skill_md_path, neighbor_skill_md_paths, method=r8_method
+    )
+    metrics["routing_cost"]["R8_description_competition_index"] = r8_value
+
     # Round 8 (task spec §3): hoist D7 V1 / V2 / V3 / V4 from the
     # governance scan payload (produced by tools/governance_scan.py).
     v1_value = hoist_v1_permission_scope(governance_report)
@@ -1388,6 +1551,7 @@ def build_report(
             "u4_derivation": u4_derivation,
             "c5_derivation": c5_derivation,
             "c6_derivation": c6_derivation,
+            "r8_derivation": r8_derivation,
             "v1_derivation": v1_derivation,
             "v2_derivation": v2_derivation,
             "v3_derivation": v3_derivation,
@@ -1561,6 +1725,19 @@ def main(argv: Optional[List[str]] = None) -> int:
             "are hoisted into metrics.governance_risk (Round 8)."
         ),
     )
+    parser.add_argument(
+        "--r8-method",
+        default="max_jaccard",
+        choices=["max_jaccard", "tfidf_cosine_mean"],
+        help=(
+            "Method for R8 description_competition_index (Round 9). "
+            "'max_jaccard' (default) reuses Round 7's C6 infra and "
+            "surfaces the WORST-competition neighbor; "
+            "'tfidf_cosine_mean' surfaces AVERAGE competition across "
+            "the neighbor set. Spec §5.1 metadata-retrieval surface "
+            "(NOT §5.2 router-model training)."
+        ),
+    )
     parser.add_argument("--verbose", action="store_true", help="Set log level to INFO.")
     args = parser.parse_args(argv)
 
@@ -1614,6 +1791,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         references_dir=references_dir,
         neighbor_skill_md_paths=neighbor_paths,
         governance_report=governance_report,
+        r8_method=args.r8_method,
     )
 
     template_metrics = _load_template_metrics(Path(args.templates_dir).resolve())

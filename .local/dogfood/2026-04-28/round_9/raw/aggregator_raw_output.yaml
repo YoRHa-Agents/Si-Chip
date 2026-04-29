@@ -1,0 +1,634 @@
+metrics:
+  task_quality:
+    T1_pass_rate: 0.85
+    T2_pass_k: 0.5477708333333333
+    T3_baseline_delta: 0.35
+    T4_error_recovery_rate: null
+  context_economy:
+    C1_metadata_tokens: 82
+    C2_body_tokens: null
+    C3_resolved_tokens: null
+    C4_per_invocation_footprint: 3602.0
+    C5_context_rot_risk: 0.2601
+    C6_scope_overlap_score: 0.043478260869565216
+  latency_path:
+    L1_wall_clock_p50: 1.2153333333333334
+    L2_wall_clock_p95: 1.4693333333333334
+    L3_step_count: 20
+    L4_redundant_call_ratio: 0.0
+    L5_detour_index: null
+    L6_replanning_rate: null
+    L7_think_act_split: null
+  generalizability:
+    G1_cross_model_pass_matrix: null
+    G2_cross_domain_transfer_pass: null
+    G3_OOD_robustness: null
+    G4_model_version_stability: null
+  usage_cost:
+    U1_description_readability: 19.580000000000002
+    U2_first_time_success_rate: 0.75
+    U3_setup_steps_count: 1
+    U4_time_to_first_success: 0.007293148897588253
+  routing_cost:
+    R1_trigger_precision: null
+    R2_trigger_recall: null
+    R3_trigger_F1: 0.8933952528379773
+    R4_near_miss_FP_rate: null
+    R5_router_floor: composer_2/fast
+    R6_routing_latency_p95: 1100.0
+    R7_routing_token_overhead: 0.023295454545454546
+    R8_description_competition_index: 0.043478260869565216
+  governance_risk:
+    V1_permission_scope: 0
+    V2_credential_surface: 0
+    V3_drift_signal: 0.0
+    V4_staleness_days: 0
+summary:
+  with_ability_runs: 6
+  no_ability_runs: 6
+  pass_rate_with: 0.85
+  pass_rate_without: 0.5
+  baseline_delta: 0.35
+provenance:
+  runs_dir: /home/agent/workspace/Si-Chip/evals/si-chip/baselines/with_si_chip_round4
+  baseline_dir: /home/agent/workspace/Si-Chip/evals/si-chip/baselines/no_ability
+  computed_at: '2026-04-29T04:29:07.811629+00:00'
+  script_version: 0.1.5
+  devolaflow_version: 9.1.0
+  metadata_tokens_source: skill_md
+  r6_derivation:
+    method: min(latency_p95_ms across cells where pass_rate >= threshold)
+    pass_threshold: 0.8
+    n_cells_total: 8
+    n_cells_passing: 6
+    passing_cells:
+    - &id001
+      model: composer_2
+      thinking_depth: fast
+      scenario_pack: trigger_basic
+      pass_rate: 0.86
+      latency_p95_ms: 1100.0
+    - model: composer_2
+      thinking_depth: default
+      scenario_pack: trigger_basic
+      pass_rate: 0.9
+      latency_p95_ms: 1480.0
+    - model: composer_2
+      thinking_depth: default
+      scenario_pack: near_miss
+      pass_rate: 0.83
+      latency_p95_ms: 1560.0
+    - model: sonnet_shallow
+      thinking_depth: fast
+      scenario_pack: trigger_basic
+      pass_rate: 0.83
+      latency_p95_ms: 1340.0
+    - model: sonnet_shallow
+      thinking_depth: default
+      scenario_pack: trigger_basic
+      pass_rate: 0.88
+      latency_p95_ms: 1820.0
+    - model: sonnet_shallow
+      thinking_depth: default
+      scenario_pack: near_miss
+      pass_rate: 0.81
+      latency_p95_ms: 1900.0
+    chosen_cell: *id001
+    loaded: true
+  r7_derivation:
+    method: sum(routing_stage_tokens_total) / sum(body_invocation_tokens_total) across
+      with-ability rows
+    sum_routing_stage_tokens: 9840
+    sum_body_invocation_tokens: 422400
+    n_rows_counted: 6
+    n_rows_skipped: 0
+    n_rows_total: 6
+  l1_derivation:
+    method: mean(latency_p50_s across with-ability rows)
+    n_rows_counted: 6
+    n_rows_skipped: 0
+    n_rows_total: 6
+    per_row_values:
+    - 1.228
+    - 1.25
+    - 1.1560000000000001
+    - 1.145
+    - 1.274
+    - 1.239
+  l3_derivation:
+    method: round(mean(step_count across with-ability rows))
+    n_rows_counted: 6
+    n_rows_skipped: 0
+    n_rows_total: 6
+    per_row_values:
+    - 20
+    - 20
+    - 20
+    - 20
+    - 20
+    - 20
+    mean_value: 20.0
+  l4_derivation:
+    method: mean(redundant_call_ratio across with-ability rows) clamped to [0,1]
+    n_rows_counted: 6
+    n_rows_skipped: 0
+    n_rows_total: 6
+    per_row_values:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  u1_derivation:
+    method: Flesch-Kincaid grade level of SKILL.md description frontmatter field;
+      formula = 0.39*(words/sentences) + 11.8*(syllables/words) - 15.59; helper =
+      count_tokens.skill_md_description_fk_grade
+    skill_md_path: /home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md
+    words: 20
+    sentences: 2
+    syllables: 53
+    raw_grade: 19.580000000000002
+    grade: 19.580000000000002
+    formula: 0.39 * (words/sentences) + 11.8 * (syllables/words) - 15.59
+    description_text: Persistent BasicAbility optimization factory. Use when profiling,
+      evaluating, diagnosing, improving, router-testing, or half-retiring a skill/ability
+      per Si-Chip spec v0.1.0.
+    path: /home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md
+  u2_derivation:
+    method: sum(correct for o in prompt_outcomes if o.expected == 'trigger') / sum(1
+      for o in prompt_outcomes if o.expected == 'trigger') across with-ability rows
+    total_should_trigger: 60
+    total_first_time_success: 45
+    n_rows_total: 6
+    n_rows_with_outcomes: 6
+    n_rows_skipped: 0
+    per_row_counts:
+    - case_id: docs_boundary
+      should_trigger: 10
+      first_time_success: 9
+    - case_id: half_retire_review
+      should_trigger: 10
+      first_time_success: 7
+    - case_id: metrics_gap
+      should_trigger: 10
+      first_time_success: 9
+    - case_id: next_action_plan
+      should_trigger: 10
+      first_time_success: 7
+    - case_id: profile_self
+      should_trigger: 10
+      first_time_success: 7
+    - case_id: router_matrix
+      should_trigger: 10
+      first_time_success: 6
+  u3_derivation:
+    method: 'install_telemetry.count_setup_steps(install.sh); parses # SI_CHIP_INSTALLER_STEPS=N
+      header (fallback: unguarded ''read -p''/''read -r'' count).'
+    value: 1
+    v1_baseline_gate: <= 2 (matches CHANGELOG v0.1.1 one-line installer claim)
+    install_script_path: /home/agent/workspace/Si-Chip/install.sh
+    telemetry_derivation: &id002
+      u3_method: 'count_setup_steps via self-reported # SI_CHIP_INSTALLER_STEPS=N
+        header (fallback: count unguarded ''read -p''/''read -r'' prompts)'
+      u4_method: wall_clock seconds from bash install.sh invocation to first '[OK]
+        Installed' stdout line (dry_run=True short-circuits network + destructive
+        writes — floor estimate).
+      u4_timeout_s: 60.0
+      script_version: 0.1.0
+  u4_derivation:
+    method: install_telemetry.time_first_success(install.sh, dry_run=<mode>); wall-clock
+      seconds from bash invocation to first '[OK] Installed' line.
+    value_s: 0.007293148897588253
+    dry_run: true
+    v1_baseline_gate: <= 60 s (sanity ceiling for one-line install)
+    install_script_path: /home/agent/workspace/Si-Chip/install.sh
+    telemetry_derivation: *id002
+  c5_derivation:
+    method: context_rot_risk(body_tokens, fanout_depth, typical_window=200_000); formula
+      = clip(body_tokens/typical_window + 0.05*fanout_depth, 0, 1)
+    body_tokens: 2020
+    body_tokens_backend: tiktoken
+    typical_window: 200000
+    fanout_depth: 5
+    referenced_files:
+    - basic-ability-profile.md
+    - half-retirement-r9-summary.md
+    - metrics-r6-summary.md
+    - router-test-r8-summary.md
+    - self-dogfood-protocol.md
+    references_dir: /home/agent/workspace/Si-Chip/.agents/skills/si-chip/references
+    references_dir_exists: true
+    skill_md_path: /home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md
+    value_c5: 0.2601
+    range_sanity_check: PASS (C5 0.2601 in [0.0, 1.0])
+    v1_baseline_gate: n/a (C5 has no §4.1 hard threshold; informational)
+  c6_derivation:
+    method: max(jaccard_similarity(tokenize(base_desc), tokenize(neighbor_desc)))
+      across neighbor SKILL.md set; helper = count_tokens.skill_md_scope_overlap_score
+    skill_md_path: /home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md
+    n_neighbors_attempted: 23
+    n_neighbors_scored: 23
+    n_neighbors_skipped: 0
+    pairs:
+    - neighbor_path: /root/.claude/skills/lark-whiteboard-cli/SKILL.md
+      jaccard: 0.043478260869565216
+      neighbor_tokens_count: 3
+    - neighbor_path: /root/.claude/skills/lark-doc/SKILL.md
+      jaccard: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-openapi-explorer/SKILL.md
+      jaccard: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-skill-maker/SKILL.md
+      jaccard: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-whiteboard/SKILL.md
+      jaccard: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-vc/SKILL.md
+      jaccard: 0.04
+      neighbor_tokens_count: 5
+    - neighbor_path: /root/.claude/skills/lark-base/SKILL.md
+      jaccard: 0.037037037037037035
+      neighbor_tokens_count: 7
+    - neighbor_path: /root/.claude/skills/lark-minutes/SKILL.md
+      jaccard: 0.03125
+      neighbor_tokens_count: 12
+    - neighbor_path: /root/.claude/skills/lark-approval/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 1
+    - neighbor_path: /root/.claude/skills/lark-attendance/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-calendar/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 11
+    - neighbor_path: /root/.claude/skills/lark-contact/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 2
+    - neighbor_path: /root/.claude/skills/lark-drive/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 11
+    - neighbor_path: /root/.claude/skills/lark-event/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 5
+    - neighbor_path: /root/.claude/skills/lark-im/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-mail/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 21
+    - neighbor_path: /root/.claude/skills/lark-shared/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 12
+    - neighbor_path: /root/.claude/skills/lark-sheets/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-slides/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-task/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-wiki/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-workflow-meeting-summary/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-workflow-standup-report/SKILL.md
+      jaccard: 0.0
+      neighbor_tokens_count: 6
+    max_jaccard: 0.043478260869565216
+    range_sanity_check: PASS (C6 0.043478260869565216 in [0.0, 1.0])
+    v1_baseline_gate: n/a (C6 has no §4.1 hard threshold; informational)
+  r8_derivation:
+    method: count_tokens.skill_md_description_competition_index(skill_md, neighbors,
+      method='max_jaccard')
+    method_note: R8 == max(Jaccard(base_tokens, neighbor_tokens)) across neighbor
+      set. Same formula family as C6; surfaces the WORST single offender (the neighbor
+      most likely to steal a routing invocation). Default method.
+    method_name: max_jaccard
+    skill_md_path: /home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md
+    neighbor_paths:
+    - /root/.claude/skills/lark-approval/SKILL.md
+    - /root/.claude/skills/lark-attendance/SKILL.md
+    - /root/.claude/skills/lark-base/SKILL.md
+    - /root/.claude/skills/lark-calendar/SKILL.md
+    - /root/.claude/skills/lark-contact/SKILL.md
+    - /root/.claude/skills/lark-doc/SKILL.md
+    - /root/.claude/skills/lark-drive/SKILL.md
+    - /root/.claude/skills/lark-event/SKILL.md
+    - /root/.claude/skills/lark-im/SKILL.md
+    - /root/.claude/skills/lark-mail/SKILL.md
+    - /root/.claude/skills/lark-minutes/SKILL.md
+    - /root/.claude/skills/lark-openapi-explorer/SKILL.md
+    - /root/.claude/skills/lark-shared/SKILL.md
+    - /root/.claude/skills/lark-sheets/SKILL.md
+    - /root/.claude/skills/lark-skill-maker/SKILL.md
+    - /root/.claude/skills/lark-slides/SKILL.md
+    - /root/.claude/skills/lark-task/SKILL.md
+    - /root/.claude/skills/lark-vc/SKILL.md
+    - /root/.claude/skills/lark-whiteboard-cli/SKILL.md
+    - /root/.claude/skills/lark-whiteboard/SKILL.md
+    - /root/.claude/skills/lark-wiki/SKILL.md
+    - /root/.claude/skills/lark-workflow-meeting-summary/SKILL.md
+    - /root/.claude/skills/lark-workflow-standup-report/SKILL.md
+    n_neighbors_attempted: 23
+    n_neighbors_scored: 23
+    n_neighbors_skipped: 0
+    pairs:
+    - neighbor_path: /root/.claude/skills/lark-whiteboard-cli/SKILL.md
+      tokens:
+      - skill
+      - whiteboard
+      - cli
+      similarity: 0.043478260869565216
+      neighbor_tokens_count: 3
+    - neighbor_path: /root/.claude/skills/lark-doc/SKILL.md
+      tokens:
+      - markdown
+      - skill
+      - docs
+      - search
+      similarity: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-openapi-explorer/SKILL.md
+      tokens:
+      - lark
+      - openapi
+      - cli
+      - openapi
+      - lark
+      - skill
+      - lark
+      - cli
+      - openapi
+      similarity: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-skill-maker/SKILL.md
+      tokens:
+      - lark
+      - cli
+      - skill
+      - api
+      - skill
+      - api
+      similarity: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-whiteboard/SKILL.md
+      tokens:
+      - plantuml
+      - mermaid
+      - openapi
+      - skill
+      similarity: 0.041666666666666664
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-vc/SKILL.md
+      tokens:
+      - '1'
+      - lark
+      - calendar
+      - '2'
+      - '3'
+      similarity: 0.04
+      neighbor_tokens_count: 5
+    - neighbor_path: /root/.claude/skills/lark-base/SKILL.md
+      tokens:
+      - lark
+      - cli
+      - base
+      - table
+      - field
+      - record
+      - skill
+      similarity: 0.037037037037037035
+      neighbor_tokens_count: 7
+    - neighbor_path: /root/.claude/skills/lark-minutes/SKILL.md
+      tokens:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - ai
+      - url
+      - http
+      - s
+      - host
+      - minutes
+      - minute
+      - token
+      similarity: 0.03125
+      neighbor_tokens_count: 12
+    - neighbor_path: /root/.claude/skills/lark-approval/SKILL.md
+      tokens:
+      - api
+      similarity: 0.0
+      neighbor_tokens_count: 1
+    - neighbor_path: /root/.claude/skills/lark-attendance/SKILL.md
+      tokens: []
+      similarity: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-calendar/SKILL.md
+      tokens:
+      - calendar
+      - references
+      - lark
+      - calendar
+      - schedule
+      - meeting
+      - md
+      - shortcuts
+      - agenda
+      - create
+      - freebusy
+      - rsvp
+      - rsvp
+      similarity: 0.0
+      neighbor_tokens_count: 11
+    - neighbor_path: /root/.claude/skills/lark-contact/SKILL.md
+      tokens:
+      - open
+      - id
+      similarity: 0.0
+      neighbor_tokens_count: 2
+    - neighbor_path: /root/.claude/skills/lark-drive/SKILL.md
+      tokens:
+      - docx
+      - sheet
+      - bitable
+      - file
+      - folder
+      - wiki
+      - word
+      - markdown
+      - excel
+      - csv
+      - docx
+      - sheet
+      - bitable
+      - base
+      similarity: 0.0
+      neighbor_tokens_count: 11
+    - neighbor_path: /root/.claude/skills/lark-event/SKILL.md
+      tokens:
+      - websocket
+      - ndjson
+      - stdout
+      - compact
+      - agent
+      similarity: 0.0
+      neighbor_tokens_count: 5
+    - neighbor_path: /root/.claude/skills/lark-im/SKILL.md
+      tokens: []
+      similarity: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-mail/SKILL.md
+      tokens:
+      - draft
+      - compose
+      - send
+      - reply
+      - forward
+      - read
+      - search
+      - emails
+      - manage
+      - drafts
+      - folders
+      - labels
+      - contacts
+      - attachments
+      - mail
+      - rules
+      - user
+      - mentions
+      - draft
+      - compose
+      - send
+      - email
+      - reply
+      - forward
+      - inbox
+      - mail
+      - thread
+      - mail
+      - rules
+      similarity: 0.0
+      neighbor_tokens_count: 21
+    - neighbor_path: /root/.claude/skills/lark-shared/SKILL.md
+      tokens:
+      - lark
+      - cli
+      - auth
+      - login
+      - as
+      - user
+      - bot
+      - scope
+      - permission
+      - denied
+      - lark
+      - cli
+      - config
+      - init
+      - lark
+      - cli
+      - auth
+      - login
+      - user
+      - bot
+      - scope
+      - lark
+      - cli
+      similarity: 0.0
+      neighbor_tokens_count: 12
+    - neighbor_path: /root/.claude/skills/lark-sheets/SKILL.md
+      tokens:
+      - lark
+      - doc
+      - docs
+      - search
+      similarity: 0.0
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-slides/SKILL.md
+      tokens:
+      - xml
+      - ppt
+      - create
+      - xml
+      - api
+      - ppt
+      - ppt
+      - ppt
+      similarity: 0.0
+      neighbor_tokens_count: 4
+    - neighbor_path: /root/.claude/skills/lark-task/SKILL.md
+      tokens: []
+      similarity: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-wiki/SKILL.md
+      tokens: []
+      similarity: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-workflow-meeting-summary/SKILL.md
+      tokens: []
+      similarity: 0.0
+      neighbor_tokens_count: 0
+    - neighbor_path: /root/.claude/skills/lark-workflow-standup-report/SKILL.md
+      tokens:
+      - calendar
+      - agenda
+      - task
+      - get
+      - my
+      - tasks
+      similarity: 0.0
+      neighbor_tokens_count: 6
+    chosen_value: 0.043478260869565216
+    range_sanity_check: PASS (R8 0.043478260869565216 in [0.0, 1.0])
+    v1_baseline_gate: n/a (R8 has no §4.1 hard threshold; informational)
+    spec_section_compliance: §5.1 metadata-retrieval surface (kNN/heuristic baseline);
+      NOT §5.2 router-model training (forbidden)
+  v1_derivation:
+    method: aggregate_eval.hoist_v1_permission_scope(governance_report)
+    hoisted_value: 0
+    source:
+      method: count distinct hardcoded absolute write-paths outside .local/dogfood/
+        and outside the skill's own source tree
+      allowed_prefixes:
+      - .local/dogfood/
+      - .agents/skills/si-chip/
+      - .cursor/skills/si-chip/
+      - .claude/skills/si-chip/
+      n_skill_paths_scanned: 1
+    loaded: true
+  v2_derivation:
+    method: aggregate_eval.hoist_v2_credential_surface(governance_report)
+    hoisted_value: 0
+    source:
+      method: count credential/secret pattern matches across skill artifacts; MUST
+        NOT log matched values
+      patterns_used:
+      - aws_access_key
+      - generic_high_entropy_40
+      - pem_private_key
+      - credential_assignment
+    loaded: true
+  v3_derivation:
+    method: aggregate_eval.hoist_v3_drift_signal(governance_report)
+    hoisted_value: 0.0
+    source:
+      method: 1.0 - cross_tree_drift_zero_ratio; pairs that are SHA-256 byte-equal
+        / total pairs
+      n_mirrors: 3
+      total_pairs: 3
+    loaded: true
+  v4_derivation:
+    method: aggregate_eval.hoist_v4_staleness_days(governance_report)
+    hoisted_value: 0
+    source:
+      method: (today - basic_ability_profile.lifecycle.last_reviewed_at).days
+      profile_path: .local/dogfood/2026-04-28/round_8/basic_ability_profile.yaml
+    loaded: true

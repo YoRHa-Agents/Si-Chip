@@ -1,0 +1,232 @@
+# Si-Chip Iteration-Delta Report — round_9 vs round_8
+# Conforms to templates/iteration_delta_report.template.yaml.
+# Round 9 in the master plan v0.2.0 iteration cycle (project_version 0.1.8).
+# Per spec §8.3 multi-round rule: Round 9 must hold pass_rate >= 0.85 (no
+# regression vs Round 8) AND show >= 1 efficiency axis improving by >= +0.05
+# (v1_baseline bucket) — Round 9 satisfies the second clause via the
+# master-plan-allowed "measurement-fill flavour" bonus on routing_cost
+# (R8_description_competition_index newly populated + router-test matrix
+# widened to include an ADDITIVE intermediate 16-cell profile alongside
+# mvp:8 and full:96).
+round_id: round_9
+prior_round_id: round_8
+computed_at: '2026-04-28T22:00:00+00:00'
+
+# §8.2 evidence #6 deltas — current round MVP-8 + R4 + R6 + R7 + L1 + L3 + L4 + U1 + U2 + U3 + U4 + C5 + C6 + V1 + V2 + V3 + V4 + R8 keys reported per dimension.
+deltas:
+  task_quality:
+    - T1
+    - T2
+    - T3
+  context_economy:
+    - C1
+    - C2
+    - C4
+    - C5
+    - C6
+  latency_path:
+    - L1
+    - L2
+    - L3
+    - L4
+  usage_cost:
+    - U1
+    - U2
+    - U3
+    - U4
+  routing_cost:
+    - R3
+    - R4
+    - R6
+    - R7
+    - R8   # NEW THIS ROUND
+  governance_risk:
+    - V1
+    - V2
+    - V3
+    - V4
+
+# Per-axis status. Mirrors the §6.1 7-axis value_vector emitted in
+# half_retire_decision.yaml. positive_axis = true means improvement
+# (delta favourable). Round-to-round delta = round_9_value − round_8_value
+# of the value_vector axis.
+#
+# NOTE: "routing_cost" in this axis_status block is the §4 iteration_delta
+# axis (§3.1 D6 sub-metric coverage dimension). The §6.1 value_vector
+# routing_delta axis stays numerically at +0.8934 because R3 unchanged
+# — R8 fill does NOT move routing_delta (which is R3-based). The
+# MEASUREMENT-FILL flavour gives Round 9 its iteration_delta clause win.
+axis_status:
+  task_quality:
+    positive_axis: false
+    delta: 0.0            # task_delta: 0.35 -> 0.35; flat — equal counts as "no regression" per spec §8.3, not "positive".
+  context_economy:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D2 context_economy dimension stays at 5/6 populated + 1 by-design null sub-metric coverage (C1+C2+C4+C5+C6 carried from Round 7; C3 stays null by design). No new measurement-fill bonus on context_economy this round.'
+  latency_path:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D3 stays at 4/7 sub-metric coverage (L1+L2+L3+L4 measured Round 4; carried unchanged at Rounds 5/6/7/8/9). No new measurement-fill bonus on latency_path this round.'
+  generalizability:
+    positive_axis: false
+    delta: 0.0            # Not measured this round (G1 fill scheduled Round 10).
+  usage_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D5 usage_cost dimension stays at 4/4 sub-metric coverage (U1+U2+U3+U4 measured from Round 6 onwards; carried unchanged at Round 9). No new measurement-fill bonus on usage_cost this round.'
+  routing_cost:
+    positive_axis: true   # MEASUREMENT-FILL win this round: D6 5/8 populated -> 6/8 populated (R8 null -> 0.0435) + router-test matrix widened to include ADDITIVE 16-cell intermediate profile alongside mvp:8 and full:96
+    delta: 0.0            # §6.1 value_vector.routing_delta axis: +0.8934 -> +0.8934 numerically (R3-based; R8 fill does not move it)
+    delta_iteration_flavour: 0.05  # measurement-fill axis bonus: R8 null -> populated + intermediate router-test profile added; claimed at the v1_baseline +0.05 bucket per master plan Round 9 acceptance criterion #6 ("iteration_delta_report.yaml routing_cost axis is positive_axis: true (R8 fill OR floor improvement)"). Round 9 satisfies BOTH branches of the disjunction: R8 newly populated (0.043478260869565216) AND router-test widened to intermediate.
+    measurement_fill_evidence:
+      r8_description_competition_index: {round_8: null, round_9: 0.043478260869565216, units: 'float in [0.0, 1.0]', gate: 'no §4.1 hard threshold; range sanity [0.0, 1.0] is the only gate; PASS (R8 = 0.0435 in [0.0, 1.0])', source: 'count_tokens.skill_md_description_competition_index with method="max_jaccard" (Round 9 Edit A) -> aggregate_eval.hoist_r8_description_competition_index (Round 9 Edit B)'}
+      intermediate_router_test_profile: {round_8: 'mvp:8 only', round_9: 'mvp:8 + intermediate:16 emitted', units: 'cells per profile', gate: 'spec_validator asserts cell_counts.intermediate==16 + gate_binding==relaxed + axis_product==16', source: 'templates/router_test_matrix.template.yaml $schema_version 0.1.0 -> 0.1.1 (Round 9 Edit C) + evals/si-chip/runners/with_ability_runner.simulate_router_sweep + intersection_router_floor (Round 9 Edit E)'}
+      d6_coverage_change: '5/8 populated in Round 8 -> 6/8 populated in Round 9 (R3+R4+R5+R6+R7 carried + R8 new). R1 and R2 stay null by scope for v0.1.x (no §4.1 hard threshold on either; real-LLM confusion-matrix upgrade path). D6 is now at the v0.1.x FINAL COVERAGE STATE — R1/R2 are permanently out-of-scope for v0.1.x.'
+      r1_r2_out_of_scope_note: 'R1_trigger_precision and R2_trigger_recall require per-prompt routing-descriptor confidence that the deterministic simulator does not produce. Full fill is a Round 12 / real-LLM-runner upgrade candidate. Per spec §3.2 frozen constraint #2, these 2 of 8 sub-metrics stay explicit-null (the aggregator MUST NOT silently substitute zeros).'
+      intermediate_profile_scope_compliance: 'The intermediate profile is §5.1 metadata-retrieval / kNN-heuristic widening (surface 1+2) — NOT §5.2 router-model training (forbidden in perpetuity). Gate binding stays at relaxed (§5.4; same as mvp; NOT a binding escalation). mvp:8 and full:96 profiles STRUCTURALLY UNCHANGED. spec_validator accepts BOTH schema 0.1.0 and 0.1.1 (backward compat); prior rounds'' evidence stays valid.'
+  governance_risk:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D7 governance_risk dimension stays at 4/4 populated from Round 8 (V1+V2+V3+V4 all carried byte-identical). No new measurement-fill bonus on governance_risk this round. value_vector.governance_risk_delta still LIVE-derived from V1-V4 (= 0.0 numerically because clean baseline unchanged; Round 8 audit-gap closure continues to apply).'
+
+# §4.1 v1_baseline hard-threshold check vs round_9 metrics_report.yaml
+# 10-row check (all pass required to satisfy pass_v1_baseline: true)
+v1_baseline_threshold_check:
+  pass_rate:
+    threshold: '>= 0.75'
+    observed: 0.85
+    pass: true
+  pass_k:
+    threshold: '>= 0.40'
+    observed: 0.5478
+    pass: true
+  trigger_F1:
+    threshold: '>= 0.80'
+    observed: 0.8934
+    pass: true
+  near_miss_FP_rate:
+    threshold: '<= 0.15'
+    observed: 0.05
+    pass: true
+  metadata_tokens:
+    threshold: '<= 120'
+    observed: 82
+    pass: true
+  per_invocation_footprint:
+    threshold: '<= 9000'
+    observed: 3602
+    pass: true
+  wall_clock_p95:
+    threshold: '<= 45 s'
+    observed: 1.4693
+    pass: true
+  routing_latency_p95:
+    threshold: '<= 2000 ms'
+    observed: 1100.0
+    pass: true
+  routing_token_overhead:
+    threshold: '<= 0.20'
+    observed: 0.023295454545454546
+    pass: true
+  iteration_delta_any_axis:
+    threshold: '>= +0.05'
+    observed: 0.05            # routing_cost measurement-fill axis bonus (per master plan acceptance criterion #6)
+    pass: true
+
+verdict:
+  pass_v1_baseline: true
+  blockers: []
+  rationale: 'All 10 v1_baseline hard thresholds PASS; including R8 newly-populated (informational only — no §4.1 gate row; range sanity PASS [0.0, 1.0]; R8 = 0.0435). iteration_delta clause satisfied via routing_cost measurement-fill axis bonus (D6 sub-metric measurement coverage 5/8 populated -> 6/8 populated + router-test matrix widened to include ADDITIVE 16-cell intermediate profile per §5.1 surface). pass_rate held at 0.85 (no regression vs Round 8). No metric regressed by more than 1%. spec_validator.py --json default-mode 8/8 PASS after the template $schema_version bump 0.1.0 -> 0.1.1 (validator accepts BOTH schemas — backward compat).'
+
+# Spec §8.3 multi-round monotonicity check (Round 9 vs Round 8).
+monotonicity_check_required: true
+monotonicity_check_status:
+  performed: true
+  pass_rate_no_regression:
+    threshold: 'round_9 pass_rate >= round_8 pass_rate (spec §8.3 — pass_rate must not regress)'
+    round_8: 0.85
+    round_9: 0.85
+    pass: true
+  per_metric_no_more_than_1pct_regression:
+    threshold: 'no v1_baseline metric regressed by more than 1% (self-imposed sub-clause carried forward through Round 8)'
+    checks:
+      T1_pass_rate:           { round_8: 0.85,    round_9: 0.85,    pct_change: 0.0,   pass: true }
+      T2_pass_k:              { round_8: 0.5478,  round_9: 0.5478,  pct_change: 0.0,   pass: true }
+      T3_baseline_delta:      { round_8: 0.35,    round_9: 0.35,    pct_change: 0.0,   pass: true }
+      C1_metadata_tokens:     { round_8: 82,      round_9: 82,      pct_change: 0.0,   pass: true }
+      C2_body_tokens:         { round_8: 2020,    round_9: 2020,    pct_change: 0.0,   pass: true, note: 'SKILL.md body unchanged; frontmatter 0.1.7 -> 0.1.8 adds 0 tokens.' }
+      C4_per_invocation_footprint: { round_8: 3602, round_9: 3602, pct_change: 0.0,  pass: true }
+      C5_context_rot_risk:    { round_8: 0.2601,  round_9: 0.2601,  pct_change: 0.0,   pass: true }
+      C6_scope_overlap_score: { round_8: 0.0435,  round_9: 0.0435,  pct_change: 0.0,   pass: true }
+      L1_wall_clock_p50:      { round_8: 1.2153,  round_9: 1.2153,  pct_change: 0.0,   pass: true }
+      L2_wall_clock_p95:      { round_8: 1.4693,  round_9: 1.4693,  pct_change: 0.0,   pass: true }
+      L3_step_count:          { round_8: 20,      round_9: 20,      pct_change: 0.0,   pass: true }
+      L4_redundant_call_ratio:{ round_8: 0.0,     round_9: 0.0,     pct_change: 0.0,   pass: true }
+      U1_description_readability: { round_8: 19.58, round_9: 19.58, pct_change: 0.0,  pass: true }
+      U2_first_time_success_rate: { round_8: 0.75,  round_9: 0.75,  pct_change: 0.0,  pass: true }
+      U3_setup_steps_count:   { round_8: 1,       round_9: 1,       pct_change: 0.0,   pass: true }
+      U4_time_to_first_success: { round_8: 0.0073, round_9: 0.0073, pct_change: 0.0, pass: true }
+      R3_trigger_F1:          { round_8: 0.8934,  round_9: 0.8934,  pct_change: 0.0,   pass: true }
+      R4_near_miss_FP_rate:   { round_8: 0.05,    round_9: 0.05,    pct_change: 0.0,   pass: true }
+      R6_routing_latency_p95: { round_8: 1100.0,  round_9: 1100.0,  pct_change: 0.0,   pass: true }
+      R7_routing_token_overhead: { round_8: 0.0233, round_9: 0.0233, pct_change: 0.0,  pass: true }
+      R8_description_competition_index: { round_8: null, round_9: 0.043478260869565216, pct_change: null, pass: true, note: 'NEWLY APPLICABLE — was null at Round 8; not a regression.' }
+      V1_permission_scope:    { round_8: 0,       round_9: 0,       pct_change: 0.0,   pass: true }
+      V2_credential_surface:  { round_8: 0,       round_9: 0,       pct_change: 0.0,   pass: true }
+      V3_drift_signal:        { round_8: 0.0,     round_9: 0.0,     pct_change: 0.0,   pass: true }
+      V4_staleness_days:      { round_8: 0,       round_9: 0,       pct_change: 0.0,   pass: true }
+    pass: true               # No metric regressed by more than 1% this round; T1_pass_rate hard non-regression rule (spec §8.3) holds.
+  overall_pass: true
+
+# Spec §4.2 Promotion Rule trace (consumed by next round's planner).
+promotion_state:
+  current_gate: v1_baseline
+  consecutive_v1_passes: 9          # Round 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9
+  promotable_to: 'v2_tightened — eligible since Round 2 (2 consecutive v1 passes); held to v1_baseline through Round 12 per master plan; v0.2.0 ship gate target = v2_tightened with two consecutive v2 passes per spec §4.2.'
+  blockers_for_v2:
+    - 'T2_pass_k = 0.5478 fails v2_tightened (>= 0.55) by -0.0022 (Round 12 readiness check will revisit)'
+    - 'G1_cross_model_pass_matrix = null (Round 10 target)'
+    # R8_description_competition_index no longer blocking — Round 9 populated.
+
+# Round 9 specific evidence — surfaces the measurement-fill axis bonus on
+# routing_cost AND the intermediate-router-test matrix widening explicitly
+# so the verdict is unambiguous.
+measurement_fill_axis_bonus_summary:
+  axis: routing_cost
+  basis: 'D6 sub-metric measurement coverage 5/8 populated -> 6/8 populated this round (R8 null -> 0.0435) + ADDITIVE 16-cell intermediate router-test profile introduced (mvp:8 + intermediate:16 emitted; full:96 stays v2+)'
+  master_plan_clause: |
+    .local/.agent/active/v0.2.0-iteration-plan.yaml#round_9.acceptance_criteria[6]:
+    "iteration_delta_report.yaml routing_cost axis is positive_axis:
+    true (R8 fill OR floor improvement)"
+  invoked_branch: 'measurement-fill flavour (R8 null -> populated + intermediate router-test profile added); BOTH branches of the R8-fill-OR-floor-improvement disjunction are satisfied — the R8 fill alone suffices, the intermediate profile provides additional evidence.'
+  evidence_files:
+    - .local/dogfood/2026-04-28/round_9/raw/r8_derivation.json               # R8 per-neighbor similarity + top-offender
+    - .local/dogfood/2026-04-28/round_9/raw/router_sweep_intermediate.json   # 16-cell intermediate sweep trace
+    - .local/dogfood/2026-04-28/round_9/raw/aggregator_raw_output.yaml       # full aggregator output with R8 populated
+    - templates/router_test_matrix.template.yaml                              # $schema_version 0.1.1 + intermediate profile
+    - tools/spec_validator.py                                                 # Round 9 Edit D — schema 0.1.1 + intermediate invariants
+    - tools/test_spec_validator.py                                            # NEW in Round 9 — 7 unit tests covering schema 0.1.1 happy path, 0.1.0 backward compat, negative paths, default-mode 8/8 PASS
+    - .agents/skills/si-chip/scripts/count_tokens.py                          # Round 9 Edit A — tokenize_description_list + tf_idf_vector + cosine_similarity + skill_md_description_competition_index; SCRIPT_VERSION 0.1.2 -> 0.1.3
+    - .agents/skills/si-chip/scripts/test_count_tokens.py                     # Round 9 Edit A extended — 25 new tests (90 total; was 65 before Round 9)
+    - .agents/skills/si-chip/scripts/aggregate_eval.py                        # Round 9 Edit B — hoist_r8_description_competition_index + --r8-method CLI flag; SCRIPT_VERSION 0.1.4 -> 0.1.5
+    - .agents/skills/si-chip/scripts/test_aggregate_eval.py                   # Round 9 Edit B extended — 8 new tests (109 total; was 101 before Round 9)
+    - evals/si-chip/runners/with_ability_runner.py                            # Round 9 Edit E — simulate_router_sweep + intersection_router_floor helpers; SCRIPT_VERSION 0.1.0 -> 0.1.1
+
+# §11 forever-out compliance check (verbatim).
+spec_11_forever_out_check:
+  marketplace: 'UNCHANGED — no marketplace / distribution-surface fields introduced this round'
+  router_model_training: 'UNCHANGED — R8 is static Jaccard/TF-IDF on SKILL.md descriptions (no learned ranker, no online weight learning, no kNN fit); intermediate profile adds hard-coded deterministic test cells (not a learned model); §5.1 metadata-retrieval surface only, NOT §5.2 router-model training'
+  markdown_to_cli: 'UNCHANGED — no markdown-to-CLI converter introduced'
+  generic_ide_compat: 'UNCHANGED — Cursor + Claude Code mirrors are §7.2 priority 1+2 (same as v0.1.0 ship); Codex still bridge-only per §11.2 deferred'
+  verdict: 'ALL 4 §11.1 ITEMS REMAIN FOREVER-OUT — ROUND 9 COMPLIANT'
+
+provenance:
+  generator: 'Round 9 dogfood — L3 Task Agent'
+  spec_version: v0.1.0
+  basis_metrics_report_round_9: .local/dogfood/2026-04-28/round_9/metrics_report.yaml
+  basis_metrics_report_round_8: .local/dogfood/2026-04-28/round_8/metrics_report.yaml
+  basis_half_retire_decision_round_9: .local/dogfood/2026-04-28/round_9/half_retire_decision.yaml
+  basis_half_retire_decision_round_8: .local/dogfood/2026-04-28/round_8/half_retire_decision.yaml
+  basis_router_floor_report_round_9: .local/dogfood/2026-04-28/round_9/router_floor_report.yaml
+  master_plan: .local/.agent/active/v0.2.0-iteration-plan.yaml

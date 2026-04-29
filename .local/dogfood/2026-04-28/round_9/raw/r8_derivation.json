@@ -1,0 +1,164 @@
+{
+  "round_id": "round_9",
+  "method_name": "max_jaccard",
+  "method": "count_tokens.skill_md_description_competition_index(skill_md, neighbors, method='max_jaccard')",
+  "method_note": "R8 == max(Jaccard(base_tokens, neighbor_tokens)) across neighbor set. Same formula family as C6; surfaces the WORST single offender (the neighbor most likely to steal a routing invocation). Default method.",
+  "skill_md_path": "/home/agent/workspace/Si-Chip/.agents/skills/si-chip/SKILL.md",
+  "n_neighbors_attempted": 23,
+  "n_neighbors_scored": 23,
+  "n_neighbors_skipped": 0,
+  "chosen_value_r8": 0.043478260869565216,
+  "range_sanity_check": "PASS (R8 0.043478260869565216 in [0.0, 1.0])",
+  "v1_baseline_gate": "n/a (R8 has no §4.1 hard threshold; informational)",
+  "spec_section_compliance": "§5.1 metadata-retrieval surface (kNN/heuristic baseline); NOT §5.2 router-model training (forbidden)",
+  "neighbor_paths": [
+    "/root/.claude/skills/lark-approval/SKILL.md",
+    "/root/.claude/skills/lark-attendance/SKILL.md",
+    "/root/.claude/skills/lark-base/SKILL.md",
+    "/root/.claude/skills/lark-calendar/SKILL.md",
+    "/root/.claude/skills/lark-contact/SKILL.md",
+    "/root/.claude/skills/lark-doc/SKILL.md",
+    "/root/.claude/skills/lark-drive/SKILL.md",
+    "/root/.claude/skills/lark-event/SKILL.md",
+    "/root/.claude/skills/lark-im/SKILL.md",
+    "/root/.claude/skills/lark-mail/SKILL.md",
+    "/root/.claude/skills/lark-minutes/SKILL.md",
+    "/root/.claude/skills/lark-openapi-explorer/SKILL.md",
+    "/root/.claude/skills/lark-shared/SKILL.md",
+    "/root/.claude/skills/lark-sheets/SKILL.md",
+    "/root/.claude/skills/lark-skill-maker/SKILL.md",
+    "/root/.claude/skills/lark-slides/SKILL.md",
+    "/root/.claude/skills/lark-task/SKILL.md",
+    "/root/.claude/skills/lark-vc/SKILL.md",
+    "/root/.claude/skills/lark-whiteboard-cli/SKILL.md",
+    "/root/.claude/skills/lark-whiteboard/SKILL.md",
+    "/root/.claude/skills/lark-wiki/SKILL.md",
+    "/root/.claude/skills/lark-workflow-meeting-summary/SKILL.md",
+    "/root/.claude/skills/lark-workflow-standup-report/SKILL.md"
+  ],
+  "per_neighbor_similarity": [
+    {
+      "neighbor_path": "/root/.claude/skills/lark-whiteboard-cli/SKILL.md",
+      "similarity": 0.043478260869565216,
+      "neighbor_tokens_count": 3
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-doc/SKILL.md",
+      "similarity": 0.041666666666666664,
+      "neighbor_tokens_count": 4
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-openapi-explorer/SKILL.md",
+      "similarity": 0.041666666666666664,
+      "neighbor_tokens_count": 4
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-skill-maker/SKILL.md",
+      "similarity": 0.041666666666666664,
+      "neighbor_tokens_count": 4
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-whiteboard/SKILL.md",
+      "similarity": 0.041666666666666664,
+      "neighbor_tokens_count": 4
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-vc/SKILL.md",
+      "similarity": 0.04,
+      "neighbor_tokens_count": 5
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-base/SKILL.md",
+      "similarity": 0.037037037037037035,
+      "neighbor_tokens_count": 7
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-minutes/SKILL.md",
+      "similarity": 0.03125,
+      "neighbor_tokens_count": 12
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-approval/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 1
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-attendance/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 0
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-calendar/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 11
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-contact/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 2
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-drive/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 11
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-event/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 5
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-im/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 0
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-mail/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 21
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-shared/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 12
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-sheets/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 4
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-slides/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 4
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-task/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 0
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-wiki/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 0
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-workflow-meeting-summary/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 0
+    },
+    {
+      "neighbor_path": "/root/.claude/skills/lark-workflow-standup-report/SKILL.md",
+      "similarity": 0.0,
+      "neighbor_tokens_count": 6
+    }
+  ],
+  "c6_vs_r8_consistency_check": {
+    "rationale": "method=\"max_jaccard\" is the SAME formula family as C6 against the SAME neighbor set, so R8 MUST equal C6 byte-identically when both use max_jaccard. Any divergence would indicate a regression in either helper.",
+    "c6_round_8_value": 0.043478260869565216,
+    "r8_round_9_value": 0.043478260869565216,
+    "delta": 0.0,
+    "pass": true
+  },
+  "method_comparison_note": "R8 supports tfidf_cosine_mean as an ALTERNATIVE method that surfaces AVERAGE competition across the neighbor set (complementary to max_jaccard WORST-offender signal). For Round 9, max_jaccard is chosen as default per master plan risk_flag because the Jaccard infrastructure is already battle-tested in Round 7 (C6). A future round may compute both methods in parallel for cross-validation."
+}

@@ -548,5 +548,247 @@ class SkillMdScopeOverlapScoreTests(unittest.TestCase):
             self.assertIn(str(n), neighbor_paths_in_pairs)
 
 
+# ─────────────── Round 9: D6/R8 description_competition_index ───────────────
+# Workspace rule "Mandatory Verification": Round 9 (task spec §1+§2) adds
+# the R8 helpers to ``count_tokens.py``. These tests cover TF-IDF /
+# cosine / R8 wrapper correctness, determinism, range sanity, error
+# signalling (empty neighbor / unknown method), and the Si-Chip real
+# neighbor smoke (method="max_jaccard" and "tfidf_cosine_mean").
+
+
+class TokenizeDescriptionListTests(unittest.TestCase):
+    """:func:`tokenize_description_list` preserves duplicates."""
+
+    def test_preserves_duplicate_counts(self) -> None:
+        toks = ct.tokenize_description_list("alpha alpha beta")
+        self.assertEqual(toks, ["alpha", "alpha", "beta"])
+
+    def test_empty_input_yields_empty_list(self) -> None:
+        self.assertEqual(ct.tokenize_description_list(""), [])
+
+    def test_stopwords_filtered(self) -> None:
+        toks = ct.tokenize_description_list("use the alpha")
+        self.assertNotIn("use", toks)
+        self.assertNotIn("the", toks)
+        self.assertIn("alpha", toks)
+
+
+class TfIdfVectorTests(unittest.TestCase):
+    """Direct unit tests for :func:`tf_idf_vector`."""
+
+    def test_deterministic_identical_input(self) -> None:
+        """Same input → byte-identical output (no RNG)."""
+
+        corpus = [["alpha", "beta"], ["alpha"], ["beta", "gamma"]]
+        v1 = ct.tf_idf_vector(["alpha", "beta"], corpus)
+        v2 = ct.tf_idf_vector(["alpha", "beta"], corpus)
+        self.assertEqual(list(v1.keys()), list(v2.keys()))
+        for k in v1:
+            self.assertEqual(v1[k], v2[k])
+
+    def test_empty_tokens_yields_empty_dict(self) -> None:
+        self.assertEqual(ct.tf_idf_vector([], [["alpha"]]), {})
+
+    def test_empty_corpus_yields_empty_dict(self) -> None:
+        """Empty corpus → empty dict (df denominator undefined)."""
+
+        self.assertEqual(ct.tf_idf_vector(["alpha"], []), {})
+
+    def test_rarer_term_has_higher_idf(self) -> None:
+        """Beta appears in 1/2 docs; alpha in 2/2 → beta weighted higher."""
+
+        corpus = [["alpha", "beta"], ["alpha"]]
+        v = ct.tf_idf_vector(["alpha", "beta"], corpus)
+        self.assertIn("alpha", v)
+        self.assertIn("beta", v)
+        self.assertGreater(v["beta"], v["alpha"])
+
+    def test_sorted_keys(self) -> None:
+        """Output dict is iterated in sorted-key order for determinism."""
+
+        corpus = [["gamma", "alpha", "beta"], ["alpha"], ["gamma"]]
+        v = ct.tf_idf_vector(["gamma", "alpha", "beta"], corpus)
+        self.assertEqual(list(v.keys()), sorted(v.keys()))
+
+    def test_all_positive_weights(self) -> None:
+        """TF-IDF weights must be > 0 for any term present in the doc."""
+
+        v = ct.tf_idf_vector(["a", "b", "c"], [["a", "b", "c"], ["d"]])
+        for term, weight in v.items():
+            with self.subTest(term=term):
+                self.assertGreater(weight, 0.0)
+
+
+class CosineSimilarityTests(unittest.TestCase):
+    """Direct unit tests for :func:`cosine_similarity`."""
+
+    def test_identical_vectors_is_one(self) -> None:
+        v = {"a": 1.0, "b": 2.0}
+        self.assertAlmostEqual(ct.cosine_similarity(v, v), 1.0, places=6)
+
+    def test_disjoint_vectors_is_zero(self) -> None:
+        self.assertEqual(
+            ct.cosine_similarity({"a": 1.0}, {"b": 1.0}),
+            0.0,
+        )
+
+    def test_partial_overlap(self) -> None:
+        """{a:1, b:1} vs {b:1, c:1} → intersection {b}, cosine = 0.5."""
+
+        j = ct.cosine_similarity({"a": 1.0, "b": 1.0}, {"b": 1.0, "c": 1.0})
+        self.assertAlmostEqual(j, 0.5, places=6)
+
+    def test_both_empty_is_zero(self) -> None:
+        self.assertEqual(ct.cosine_similarity({}, {}), 0.0)
+
+    def test_one_empty_is_zero(self) -> None:
+        self.assertEqual(ct.cosine_similarity({}, {"a": 1.0}), 0.0)
+        self.assertEqual(ct.cosine_similarity({"a": 1.0}, {}), 0.0)
+
+    def test_zero_norm_vector_is_zero(self) -> None:
+        """Vector with all-zero weights → cosine = 0.0 (no div-by-zero)."""
+
+        self.assertEqual(
+            ct.cosine_similarity({"a": 0.0, "b": 0.0}, {"a": 1.0}),
+            0.0,
+        )
+
+    def test_range_invariant(self) -> None:
+        """Cosine with non-negative TF-IDF weights must be in [0.0, 1.0]."""
+
+        for a in ({"a": 1.0}, {"a": 1.0, "b": 2.0}, {"c": 3.0}):
+            for b in ({"a": 1.0}, {"a": 1.0, "b": 2.0}, {"c": 3.0}):
+                with self.subTest(a=a, b=b):
+                    sim = ct.cosine_similarity(a, b)
+                    self.assertGreaterEqual(sim, 0.0)
+                    self.assertLessEqual(sim, 1.0)
+
+
+class SkillMdDescriptionCompetitionIndexTests(unittest.TestCase):
+    """End-to-end tests for :func:`skill_md_description_competition_index`."""
+
+    def _write_skill(self, name: str, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / f"{name}_SKILL.md"
+        path.write_text(
+            f"---\nname: {name}\ndescription: {description}\n---\nbody\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_max_jaccard_default_method(self) -> None:
+        base = self._write_skill("base", "alpha beta gamma")
+        n1 = self._write_skill("n1", "delta epsilon")         # disjoint
+        n2 = self._write_skill("n2", "alpha delta")           # partial
+        n3 = self._write_skill("n3", "alpha beta gamma")      # identical
+        r8, pairs = ct.skill_md_description_competition_index(
+            base, [n1, n2, n3]
+        )
+        self.assertAlmostEqual(r8, 1.0, places=6)
+        self.assertEqual(len(pairs), 3)
+        self.assertAlmostEqual(pairs[0]["similarity"], 1.0, places=6)
+
+    def test_tfidf_cosine_mean_deterministic(self) -> None:
+        """Same input → byte-identical R8 output on repeat invocation."""
+
+        base = self._write_skill("base", "alpha beta gamma")
+        n1 = self._write_skill("n1", "alpha delta")
+        n2 = self._write_skill("n2", "beta gamma")
+        r8_a, pairs_a = ct.skill_md_description_competition_index(
+            base, [n1, n2], method="tfidf_cosine_mean"
+        )
+        r8_b, pairs_b = ct.skill_md_description_competition_index(
+            base, [n1, n2], method="tfidf_cosine_mean"
+        )
+        self.assertEqual(r8_a, r8_b)
+        self.assertEqual(len(pairs_a), len(pairs_b))
+        for pa, pb in zip(pairs_a, pairs_b):
+            self.assertEqual(pa["similarity"], pb["similarity"])
+
+    def test_tfidf_cosine_mean_partial_overlap_in_range(self) -> None:
+        """Partial-overlap neighbors → R8 in (0.0, 1.0)."""
+
+        base = self._write_skill("base", "alpha beta gamma")
+        n1 = self._write_skill("n1", "alpha delta")
+        n2 = self._write_skill("n2", "beta epsilon")
+        r8, _ = ct.skill_md_description_competition_index(
+            base, [n1, n2], method="tfidf_cosine_mean"
+        )
+        self.assertGreater(r8, 0.0)
+        self.assertLess(r8, 1.0)
+
+    def test_empty_neighbor_list_raises(self) -> None:
+        base = self._write_skill("base", "alpha beta")
+        with self.assertRaises(ValueError):
+            ct.skill_md_description_competition_index(base, [])
+
+    def test_unknown_method_raises(self) -> None:
+        base = self._write_skill("base", "alpha")
+        n1 = self._write_skill("n1", "alpha")
+        with self.assertRaises(ValueError):
+            ct.skill_md_description_competition_index(
+                base, [n1], method="no_such_method",
+            )
+
+    def test_missing_base_raises(self) -> None:
+        n1 = self._write_skill("n1", "alpha")
+        with self.assertRaises(FileNotFoundError):
+            ct.skill_md_description_competition_index(
+                Path("/does/not/exist/SKILL.md"), [n1]
+            )
+
+    def test_missing_neighbor_recorded_not_raised(self) -> None:
+        """Missing neighbor → logged warning + explicit error record."""
+
+        base = self._write_skill("base", "alpha beta")
+        n1 = self._write_skill("n1", "alpha")
+        missing = Path("/does/not/exist/SKILL.md")
+        with self.assertLogs("si_chip.count_tokens", level="WARNING") as cm:
+            r8, pairs = ct.skill_md_description_competition_index(
+                base, [n1, missing]
+            )
+        self.assertTrue(any("missing" in m for m in cm.output))
+        self.assertGreaterEqual(r8, 0.0)
+        self.assertLessEqual(r8, 1.0)
+        missing_entries = [p for p in pairs if p.get("error") == "missing"]
+        self.assertEqual(len(missing_entries), 1)
+
+    def test_si_chip_real_neighbor_max_jaccard_expected_range(self) -> None:
+        """Real Si-Chip vs lark-* neighbors → R8(max_jaccard) ~ [0.04, 0.10]."""
+
+        import glob
+        repo_root = Path(__file__).resolve().parents[4]
+        skill = repo_root / ".agents/skills/si-chip/SKILL.md"
+        neighbors = [Path(p) for p in sorted(glob.glob("/root/.claude/skills/lark-*/SKILL.md"))]
+        if not skill.exists() or not neighbors:
+            self.skipTest("real Si-Chip SKILL.md or lark-* neighbors missing")
+        r8, pairs = ct.skill_md_description_competition_index(
+            skill, neighbors, method="max_jaccard"
+        )
+        self.assertGreaterEqual(r8, 0.0)
+        self.assertLessEqual(r8, 0.20)
+        # Result should match C6 (same formula family): max-Jaccard against
+        # the same neighbor set.
+        c6, _ = ct.skill_md_scope_overlap_score(skill, neighbors)
+        self.assertAlmostEqual(r8, c6, places=6)
+
+    def test_si_chip_real_neighbor_tfidf_cosine_mean_range(self) -> None:
+        """Real Si-Chip vs lark-* neighbors → R8(tfidf_cosine_mean) in [0.0, 1.0]."""
+
+        import glob
+        repo_root = Path(__file__).resolve().parents[4]
+        skill = repo_root / ".agents/skills/si-chip/SKILL.md"
+        neighbors = [Path(p) for p in sorted(glob.glob("/root/.claude/skills/lark-*/SKILL.md"))]
+        if not skill.exists() or not neighbors:
+            self.skipTest("real Si-Chip SKILL.md or lark-* neighbors missing")
+        r8, pairs = ct.skill_md_description_competition_index(
+            skill, neighbors, method="tfidf_cosine_mean"
+        )
+        self.assertGreaterEqual(r8, 0.0)
+        self.assertLessEqual(r8, 1.0)
+        # Low competition expected (descriptions are specialised).
+        self.assertLess(r8, 0.30)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

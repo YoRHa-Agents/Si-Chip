@@ -43,6 +43,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import re
 import sys
 import unicodedata
@@ -51,7 +52,7 @@ from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
 
 LOGGER = logging.getLogger("si_chip.count_tokens")
 
-SCRIPT_VERSION = "0.1.2"
+SCRIPT_VERSION = "0.1.3"
 
 _FRONTMATTER_RE = re.compile(
     r"\A---\s*\n(?P<meta>.*?)\n---\s*\n?(?P<body>.*)\Z",
@@ -746,6 +747,373 @@ def skill_md_scope_overlap_score(
         ),
     )
     return float(max_jaccard), pairs_sorted
+
+
+# ─────────── Round 9: D6/R8 description_competition_index (spec §3.1 D6/R8) ───────────
+#
+# R8 = formal across-matrix description-competition index — how "loud" the
+# Si-Chip SKILL.md description is within its neighbor set. Distinct from
+# Round 7's C6 which is a conservative max-Jaccard against the same
+# neighbor set (surfaces the WORST single offender). R8 supports two
+# complementary methods so the operator can choose the right signal:
+#
+#   * method="max_jaccard"   — token-set Jaccard; R8 == max(Jaccard over
+#     neighbors). This is the SAME family as C6 — surfaces the WORST
+#     description-competition offender. Default because Round 7's C6
+#     infrastructure is already battle-tested and the Jaccard signal
+#     is the stable choice across diverse neighbor sets.
+#   * method="tfidf_cosine_mean" — TF-IDF cosine similarity between the
+#     base description and each neighbor, averaged. Surfaces AVERAGE
+#     competition rather than WORST competition. Complements the Jaccard
+#     max with a mean signal.
+#
+# Both methods are DETERMINISTIC (sorted vocab; no RNG); re-running on
+# the same corpus yields byte-identical outputs. Workspace rule
+# "No Silent Failures" applies: unknown method or empty neighbor list
+# raises ValueError.
+#
+# R8 is metadata-retrieval / kNN-heuristic expansion per spec §5.1
+# surface 1+2 — NOT router model training (§5.2 forbidden).
+
+
+def tokenize_description_list(
+    text: str,
+    stopwords: Optional[FrozenSet[str]] = None,
+) -> List[str]:
+    """Tokenise a description string into a LIST preserving duplicates.
+
+    Pipeline mirrors :func:`tokenize_description` but returns a
+    duplicate-preserving list (TF-IDF needs term frequencies).
+
+    >>> tokenize_description_list("alpha alpha beta")
+    ['alpha', 'alpha', 'beta']
+    >>> tokenize_description_list("")
+    []
+    """
+
+    if stopwords is None:
+        stopwords = DEFAULT_STOPWORDS
+    if not text:
+        return []
+    normalised = unicodedata.normalize("NFKD", text)
+    lowered = normalised.lower()
+    cleaned = _SCOPE_NON_ALNUM_RE.sub(" ", lowered)
+    return [t for t in cleaned.split() if t and t not in stopwords]
+
+
+def tf_idf_vector(
+    tokens: List[str],
+    corpus: List[List[str]],
+) -> Dict[str, float]:
+    """Compute a standard TF-IDF vector for ``tokens`` given ``corpus``.
+
+    Formula (smoothed, sklearn-style):
+
+        TF(t, d)  = count(t, d) / max(len(d), 1)
+        IDF(t)    = ln((1 + N) / (1 + df(t))) + 1
+        TFIDF(t)  = TF(t, d) * IDF(t)
+
+    Where ``N = len(corpus)`` and ``df(t) = |{ d' in corpus : t in d' }|``.
+
+    Returns a dict ``{term: tfidf_weight}`` sorted-key-iterable by
+    construction (we iterate over ``sorted(set(tokens))`` so the output
+    is byte-identical across re-runs with the same input — no RNG).
+
+    Args:
+        tokens: Token list for the target document (may contain duplicates).
+        corpus: List of token lists covering every document. The target
+            document's tokens SHOULD be included in ``corpus`` so its own
+            term counts contribute to ``df``.
+
+    Returns:
+        A ``dict[str, float]`` TF-IDF vector. Empty input → empty dict.
+        Empty corpus → empty dict (df denominators cannot be computed).
+
+    >>> v = tf_idf_vector(["alpha", "beta"], [["alpha", "beta"], ["alpha"]])
+    >>> sorted(v.keys())
+    ['alpha', 'beta']
+    >>> v["beta"] > v["alpha"]  # beta is rarer across corpus → higher idf
+    True
+    >>> tf_idf_vector([], [["alpha"]])
+    {}
+    >>> tf_idf_vector(["alpha"], [])
+    {}
+    """
+
+    if not tokens:
+        return {}
+    if not corpus:
+        return {}
+
+    n_docs = len(corpus)
+    doc_len = len(tokens)
+
+    term_counts: Dict[str, int] = {}
+    for t in tokens:
+        term_counts[t] = term_counts.get(t, 0) + 1
+
+    # df(term) computed deterministically by iterating corpus in order.
+    df_counts: Dict[str, int] = {}
+    for term in sorted(term_counts.keys()):
+        df = 0
+        for doc in corpus:
+            if term in doc:
+                df += 1
+        df_counts[term] = df
+
+    vector: Dict[str, float] = {}
+    for term in sorted(term_counts.keys()):
+        tf = term_counts[term] / doc_len
+        df = df_counts[term]
+        idf = math.log((1.0 + n_docs) / (1.0 + df)) + 1.0
+        vector[term] = tf * idf
+    return vector
+
+
+def cosine_similarity(a: Dict[str, float], b: Dict[str, float]) -> float:
+    """Compute cosine similarity between two sparse TF-IDF vectors.
+
+    Returns ``0.0`` when either vector is empty or has zero norm
+    (documented degenerate path — the workspace cannot have
+    "competition" between two nothings, nor between something and
+    nothing). Workspace rule "No Silent Failures" is preserved by
+    returning a deterministic sentinel rather than raising
+    ``ZeroDivisionError``.
+
+    Args:
+        a: First TF-IDF vector as ``{term: weight}``.
+        b: Second TF-IDF vector as ``{term: weight}``.
+
+    Returns:
+        Cosine similarity in ``[0.0, 1.0]``. For negative weights the
+        range extends to ``[-1.0, 1.0]`` but TF-IDF weights are
+        non-negative so the standard range holds.
+
+    >>> round(cosine_similarity({"a": 1.0, "b": 1.0}, {"a": 1.0, "b": 1.0}), 6)
+    1.0
+    >>> cosine_similarity({"a": 1.0}, {"b": 1.0})
+    0.0
+    >>> cosine_similarity({}, {"a": 1.0})
+    0.0
+    >>> cosine_similarity({}, {})
+    0.0
+    """
+
+    if not a or not b:
+        return 0.0
+    norm_a = math.sqrt(sum(v * v for v in a.values()))
+    norm_b = math.sqrt(sum(v * v for v in b.values()))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    # Iterate over the smaller vector for efficiency; intersection only.
+    if len(a) > len(b):
+        a, b = b, a
+    dot = 0.0
+    for term, va in a.items():
+        vb = b.get(term)
+        if vb is not None:
+            dot += va * vb
+    return dot / (norm_a * norm_b)
+
+
+_R8_METHODS: FrozenSet[str] = frozenset({"max_jaccard", "tfidf_cosine_mean"})
+
+
+def skill_md_description_competition_index(
+    skill_md_path: Path,
+    neighbor_skill_md_paths: Iterable[Path],
+    *,
+    method: str = "max_jaccard",
+    stopwords: Optional[FrozenSet[str]] = None,
+) -> Tuple[float, List[Dict[str, Any]]]:
+    """Compute R8 description-competition index for a SKILL.md.
+
+    R8 = how strongly the base SKILL.md description competes with its
+    neighbor skill descriptions on the routing surface. Two methods:
+
+    * ``method="max_jaccard"`` (default): R8 = max Jaccard similarity
+      between the base description's token SET and each neighbor
+      description's token SET. This is the SAME formula family as
+      C6 (Round 7); chosen as default because the set-based Jaccard
+      is deterministic, bounded in ``[0.0, 1.0]``, and surfaces the
+      WORST single offender (the neighbor most likely to steal a
+      routing invocation). Mirrors the workspace's existing C6
+      infrastructure.
+
+    * ``method="tfidf_cosine_mean"``: R8 = MEAN TF-IDF cosine
+      similarity across the neighbor set. Surfaces AVERAGE
+      competition across the neighbor population — complementary
+      signal to Jaccard max. Corpus = [base_tokens] + neighbor_tokens
+      (base included so its own term counts contribute to df).
+
+    Args:
+        skill_md_path: Base SKILL.md path. Must exist (raises
+            ``FileNotFoundError`` otherwise per "No Silent Failures").
+        neighbor_skill_md_paths: Iterable of neighbor SKILL.md paths.
+            Must be non-empty — an empty iterable raises
+            ``ValueError`` (the "competition" question is
+            ill-defined against zero neighbors; the caller should
+            short-circuit to 0.0 explicitly upstream, which matches
+            C6's :func:`skill_md_scope_overlap_score` behaviour).
+        method: One of ``"max_jaccard"`` or ``"tfidf_cosine_mean"``.
+            Any other value raises ``ValueError``.
+        stopwords: Optional stopword override (defaults to
+            :data:`DEFAULT_STOPWORDS`).
+
+    Returns:
+        ``(value, pairs_list)`` where ``value`` is in ``[0.0, 1.0]``
+        and ``pairs_list`` enumerates per-neighbor similarity
+        (deterministic sort: DESC by similarity).
+
+    Raises:
+        FileNotFoundError: when ``skill_md_path`` does not exist.
+        ValueError: on empty ``neighbor_skill_md_paths`` or unknown
+            ``method``.
+    """
+
+    if not skill_md_path.exists():
+        raise FileNotFoundError(f"SKILL.md path not found: {skill_md_path}")
+    if method not in _R8_METHODS:
+        raise ValueError(
+            f"unknown R8 method {method!r}; must be one of {sorted(_R8_METHODS)}"
+        )
+
+    neighbor_list: List[Path] = list(neighbor_skill_md_paths)
+    if not neighbor_list:
+        raise ValueError(
+            "empty neighbor list; R8 competition requires at least one neighbor"
+        )
+
+    text = skill_md_path.read_text(encoding="utf-8")
+    meta_text, _body_text = split_frontmatter(text)
+    if not meta_text:
+        LOGGER.warning(
+            "SKILL.md at %s has no frontmatter; R8 cannot be computed",
+            skill_md_path,
+        )
+        return 0.0, []
+
+    base_desc = extract_description_from_frontmatter(meta_text)
+    if base_desc is None:
+        LOGGER.warning(
+            "SKILL.md at %s has no description field; R8 cannot be computed",
+            skill_md_path,
+        )
+        return 0.0, []
+
+    base_token_list = tokenize_description_list(base_desc, stopwords=stopwords)
+    base_token_set = set(base_token_list)
+
+    # Collect per-neighbor tokens; skip missing / undescribed neighbors
+    # with explicit error records (workspace "No Silent Failures").
+    neighbor_records: List[Dict[str, Any]] = []
+    for neighbor_path in neighbor_list:
+        record: Dict[str, Any] = {"neighbor_path": str(neighbor_path)}
+        if not neighbor_path.exists():
+            LOGGER.warning(
+                "neighbor SKILL.md at %s is missing; skipping",
+                neighbor_path,
+            )
+            record["error"] = "missing"
+            record["similarity"] = None
+            record["tokens"] = None
+            neighbor_records.append(record)
+            continue
+        try:
+            ntext = neighbor_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            LOGGER.warning(
+                "failed to read neighbor %s: %s; skipping",
+                neighbor_path, exc,
+            )
+            record["error"] = f"read-failure: {exc}"
+            record["similarity"] = None
+            record["tokens"] = None
+            neighbor_records.append(record)
+            continue
+        n_meta, _ = split_frontmatter(ntext)
+        n_desc = extract_description_from_frontmatter(n_meta) if n_meta else None
+        if n_desc is None:
+            LOGGER.warning(
+                "neighbor %s has no description field; recording similarity=0.0",
+                neighbor_path,
+            )
+            record["similarity"] = 0.0
+            record["tokens"] = []
+            record["note"] = "no description field"
+            neighbor_records.append(record)
+            continue
+        record["tokens"] = tokenize_description_list(n_desc, stopwords=stopwords)
+        neighbor_records.append(record)
+
+    if method == "max_jaccard":
+        for rec in neighbor_records:
+            if "similarity" in rec and rec.get("tokens") in (None, []):
+                continue
+            neighbor_tokens = rec.get("tokens")
+            if neighbor_tokens is None:
+                continue
+            rec["similarity"] = jaccard_similarity(
+                base_token_set, set(neighbor_tokens)
+            )
+            rec["neighbor_tokens_count"] = len(set(neighbor_tokens))
+        scored = [
+            r for r in neighbor_records
+            if isinstance(r.get("similarity"), (int, float))
+        ]
+        if not scored:
+            LOGGER.warning(
+                "no scorable neighbors for %s; R8(max_jaccard) defaults to 0.0",
+                skill_md_path,
+            )
+            value = 0.0
+        else:
+            value = max(float(r["similarity"]) for r in scored)
+    else:
+        # tfidf_cosine_mean: build corpus including base; compute cosine
+        # against every scorable neighbor; return mean.
+        corpus_tokens_list: List[List[str]] = [base_token_list]
+        for rec in neighbor_records:
+            tokens = rec.get("tokens")
+            if isinstance(tokens, list):
+                corpus_tokens_list.append(tokens)
+        base_vec = tf_idf_vector(base_token_list, corpus_tokens_list)
+        cosines: List[float] = []
+        for rec in neighbor_records:
+            neighbor_tokens = rec.get("tokens")
+            if neighbor_tokens is None:
+                continue
+            neighbor_vec = tf_idf_vector(neighbor_tokens, corpus_tokens_list)
+            sim = cosine_similarity(base_vec, neighbor_vec)
+            rec["similarity"] = float(sim)
+            rec["neighbor_tokens_count"] = len(set(neighbor_tokens))
+            cosines.append(float(sim))
+        if not cosines:
+            LOGGER.warning(
+                "no scorable neighbors for %s; R8(tfidf_cosine_mean) defaults to 0.0",
+                skill_md_path,
+            )
+            value = 0.0
+        else:
+            value = sum(cosines) / len(cosines)
+
+    # Sort DESC by similarity (missing/errored → last).
+    pairs_sorted = sorted(
+        neighbor_records,
+        key=lambda p: (
+            0 if isinstance(p.get("similarity"), (int, float)) else 1,
+            -(p["similarity"] if isinstance(p.get("similarity"), (int, float)) else 0),
+        ),
+    )
+
+    # Clamp computed value to [0.0, 1.0] — TF-IDF cosine with non-negative
+    # weights is guaranteed in range, but arithmetic round-off could
+    # leave a trailing ~+1e-16 that would fail a strict range assertion.
+    if value < 0.0:
+        value = 0.0
+    if value > 1.0:
+        value = 1.0
+    return float(value), pairs_sorted
 
 
 def main(argv: Optional[list] = None) -> int:

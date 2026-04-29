@@ -49,7 +49,17 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.spec_validator")
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.1.1"
+
+# §5 router_test_matrix template accepts BOTH schema versions as of
+# Round 9 (Si-Chip v0.1.8). 0.1.0 = initial (mvp:8 + full:96); 0.1.1 =
+# additive intermediate:16 profile. Backward compatibility is intentional —
+# previous rounds' evidence stays valid.
+SUPPORTED_ROUTER_TEMPLATE_SCHEMAS = {"0.1.0", "0.1.1"}
+
+# Round 9 intermediate invariants (only asserted when schema is 0.1.1).
+EXPECTED_INTERMEDIATE_CELLS = 16
+EXPECTED_INTERMEDIATE_GATE_BINDING = "relaxed"
 
 DEFAULT_SPEC = ".local/research/spec_v0.1.0.md"
 DEFAULT_TEMPLATES_DIR = "templates"
@@ -479,21 +489,125 @@ def check_threshold_table(spec_text: str, *, strict_prose: bool) -> AssertionRes
 
 
 def check_router_matrix_cells(templates_dir: Path) -> AssertionResult:
-    """Invariant 4 — ROUTER_MATRIX_CELLS: 8 / 96."""
+    """Invariant 4 — ROUTER_MATRIX_CELLS: 8 / 96 + optional 16 (intermediate).
+
+    Accepts BOTH schema versions (backward compat):
+
+    * ``0.1.0`` — mvp:8 + full:96 only.
+    * ``0.1.1`` — mvp:8 + intermediate:16 + full:96 (Round 9 additive
+      widening). When 0.1.1 is active, the intermediate invariants are
+      additionally asserted:
+
+        - ``cell_counts.intermediate == 16``
+        - ``profiles.intermediate.cells == 16``
+        - ``profiles.intermediate.gate_binding == "relaxed"``
+          (same as mvp; NOT a §5.4 binding escalation)
+        - ``len(models) * len(thinking_depths) * len(scenario_packs) == 16``
+          (i.e. the cell count matches the axis multiplication)
+
+    The mvp:8 and full:96 invariants are NEVER relaxed. Any structural
+    change to mvp or full fails this invariant regardless of schema
+    version.
+    """
 
     path = templates_dir / "router_test_matrix.template.yaml"
     data = _load_yaml(path)
+    if not isinstance(data, dict):
+        return AssertionResult(
+            id="ROUTER_MATRIX_CELLS",
+            name="Router-test matrix cells are 8 (MVP) + 16 (intermediate@0.1.1) + 96 (Full) per spec §5.3",
+            passed=False,
+            severity="BLOCKER",
+            message="template is not a YAML mapping",
+            evidence={"template_path": str(path)},
+        )
+
+    schema_version = data.get("$schema_version")
+    if schema_version not in SUPPORTED_ROUTER_TEMPLATE_SCHEMAS:
+        return AssertionResult(
+            id="ROUTER_MATRIX_CELLS",
+            name="Router-test matrix cells are 8 (MVP) + 16 (intermediate@0.1.1) + 96 (Full) per spec §5.3",
+            passed=False,
+            severity="BLOCKER",
+            message=(
+                f"unsupported $schema_version {schema_version!r}; "
+                f"expected one of {sorted(SUPPORTED_ROUTER_TEMPLATE_SCHEMAS)}"
+            ),
+            evidence={"schema_version": schema_version, "template_path": str(path)},
+        )
+
     cell_counts = data.get("cell_counts") if isinstance(data, dict) else None
     mvp = cell_counts.get("mvp") if isinstance(cell_counts, dict) else None
     full = cell_counts.get("full") if isinstance(cell_counts, dict) else None
     passed = mvp == 8 and full == 96
+
+    evidence: Dict[str, Any] = {
+        "schema_version": schema_version,
+        "mvp": mvp,
+        "full": full,
+        "template_path": str(path),
+    }
+
+    # Round 9 intermediate invariants (schema 0.1.1 only).
+    intermediate_invariants: Dict[str, Any] = {}
+    if schema_version == "0.1.1":
+        intermediate_cells = (
+            cell_counts.get("intermediate") if isinstance(cell_counts, dict) else None
+        )
+        profiles = data.get("profiles") if isinstance(data, dict) else None
+        intermediate_profile = (
+            profiles.get("intermediate") if isinstance(profiles, dict) else None
+        )
+        cells_in_profile: Optional[int] = None
+        gate_binding: Optional[str] = None
+        axis_product: Optional[int] = None
+        if isinstance(intermediate_profile, dict):
+            cells_in_profile = intermediate_profile.get("cells")
+            gate_binding = intermediate_profile.get("gate_binding")
+            models = intermediate_profile.get("models") or []
+            depths = intermediate_profile.get("thinking_depths") or []
+            packs = intermediate_profile.get("scenario_packs") or []
+            if (
+                isinstance(models, list)
+                and isinstance(depths, list)
+                and isinstance(packs, list)
+            ):
+                axis_product = len(models) * len(depths) * len(packs)
+
+        intermediate_invariants = {
+            "cell_counts_intermediate": intermediate_cells,
+            "profile_cells": cells_in_profile,
+            "profile_gate_binding": gate_binding,
+            "profile_axis_product": axis_product,
+        }
+        evidence["intermediate"] = intermediate_invariants
+
+        intermediate_ok = (
+            intermediate_cells == EXPECTED_INTERMEDIATE_CELLS
+            and cells_in_profile == EXPECTED_INTERMEDIATE_CELLS
+            and gate_binding == EXPECTED_INTERMEDIATE_GATE_BINDING
+            and axis_product == EXPECTED_INTERMEDIATE_CELLS
+        )
+        passed = passed and intermediate_ok
+
+        message = (
+            f"schema={schema_version}: expected mvp=8 full=96 "
+            f"intermediate=16 (gate_binding=relaxed; models*depths*packs=16), "
+            f"observed mvp={mvp} full={full} intermediate={intermediate_invariants}"
+        )
+    else:  # schema 0.1.0
+        message = (
+            f"schema={schema_version}: expected mvp=8 full=96, "
+            f"observed mvp={mvp} full={full}"
+        )
+
     return AssertionResult(
         id="ROUTER_MATRIX_CELLS",
-        name="Router-test matrix cells are 8 (MVP) and 96 (Full) per spec §5.3",
+        name="Router-test matrix cells are 8 (MVP) + 16 (intermediate@0.1.1) + 96 (Full) per spec §5.3",
         passed=passed,
         severity="BLOCKER",
-        message=f"expected mvp=8 full=96, observed mvp={mvp} full={full}",
-        evidence={"mvp": mvp, "full": full, "template_path": str(path)},
+        message=message,
+        evidence=evidence,
     )
 
 

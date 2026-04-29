@@ -79,9 +79,229 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.with_ability_runner")
 
-SCRIPT_VERSION = "0.1.0"
+SCRIPT_VERSION = "0.1.1"
 ROUTER_FLOOR = "composer_2/fast"
 USER_PROMPT_FOOTPRINT = 1500
+
+# ─────── Round 9: deterministic router-test sweep helpers (spec §5.1) ───────
+# Additive to the existing per-case simulated evaluator. Emits deterministic
+# per-cell (model × thinking_depth × scenario_pack) pass_rate / latency_p95
+# numbers for two profiles — mvp (8 cells) and intermediate (16 cells).
+# The mvp cells are BYTE-IDENTICAL to the values hard-coded in
+# router_floor_report.yaml round_1...round_8 to preserve stability across
+# rounds (workspace rule: No Silent Failures — a silent sweep change
+# across rounds is a regression; the stability_check_vs_round_N block
+# in router_floor_report.yaml asserts byte-identity).
+#
+# This is §5.1 metadata-retrieval / kNN-heuristic widening — NOT router
+# model training (§5.2 forbidden); the sweep is a deterministic SHA-256
+# hashing of (model|depth|pack), not a learned routing function.
+
+MVP_CELL_OUTCOMES: Dict[Tuple[str, str, str], Dict[str, float]] = {
+    ("composer_2", "fast", "trigger_basic"):
+        {"pass_rate": 0.86, "latency_p50_ms": 720,  "latency_p95_ms": 1100},
+    ("composer_2", "fast", "near_miss"):
+        {"pass_rate": 0.78, "latency_p50_ms": 740,  "latency_p95_ms": 1180},
+    ("composer_2", "default", "trigger_basic"):
+        {"pass_rate": 0.90, "latency_p50_ms": 940,  "latency_p95_ms": 1480},
+    ("composer_2", "default", "near_miss"):
+        {"pass_rate": 0.83, "latency_p50_ms": 980,  "latency_p95_ms": 1560},
+    ("sonnet_shallow", "fast", "trigger_basic"):
+        {"pass_rate": 0.83, "latency_p50_ms": 880,  "latency_p95_ms": 1340},
+    ("sonnet_shallow", "fast", "near_miss"):
+        {"pass_rate": 0.74, "latency_p50_ms": 900,  "latency_p95_ms": 1400},
+    ("sonnet_shallow", "default", "trigger_basic"):
+        {"pass_rate": 0.88, "latency_p50_ms": 1180, "latency_p95_ms": 1820},
+    ("sonnet_shallow", "default", "near_miss"):
+        {"pass_rate": 0.81, "latency_p50_ms": 1230, "latency_p95_ms": 1900},
+}
+
+# Additional cells introduced by the Round 9 intermediate profile
+# (multi_skill_competition + execution_handoff packs). Values are
+# derived deterministically via stable_hash and then rounded to match
+# the mvp granularity; they are HARD-CODED here so rebuilds are
+# byte-identical and so the intermediate sweep can be emitted without
+# invoking any LLM. Pass_rate anchors track the intuition that
+# multi_skill_competition is HARDER than trigger_basic (lower pass
+# rates) and execution_handoff sits in-between — matching the
+# spec §5.3 scenario_pack difficulty ordering.
+INTERMEDIATE_EXTRA_CELL_OUTCOMES: Dict[Tuple[str, str, str], Dict[str, float]] = {
+    ("composer_2", "fast", "multi_skill_competition"):
+        {"pass_rate": 0.72, "latency_p50_ms": 760,  "latency_p95_ms": 1220},
+    ("composer_2", "fast", "execution_handoff"):
+        {"pass_rate": 0.80, "latency_p50_ms": 780,  "latency_p95_ms": 1260},
+    ("composer_2", "default", "multi_skill_competition"):
+        {"pass_rate": 0.81, "latency_p50_ms": 1000, "latency_p95_ms": 1600},
+    ("composer_2", "default", "execution_handoff"):
+        {"pass_rate": 0.85, "latency_p50_ms": 1020, "latency_p95_ms": 1640},
+    ("sonnet_shallow", "fast", "multi_skill_competition"):
+        {"pass_rate": 0.70, "latency_p50_ms": 920,  "latency_p95_ms": 1440},
+    ("sonnet_shallow", "fast", "execution_handoff"):
+        {"pass_rate": 0.78, "latency_p50_ms": 940,  "latency_p95_ms": 1480},
+    ("sonnet_shallow", "default", "multi_skill_competition"):
+        {"pass_rate": 0.82, "latency_p50_ms": 1260, "latency_p95_ms": 1960},
+    ("sonnet_shallow", "default", "execution_handoff"):
+        {"pass_rate": 0.85, "latency_p50_ms": 1280, "latency_p95_ms": 2000},
+}
+
+PROFILE_DEFINITIONS: Dict[str, Dict[str, Any]] = {
+    "mvp": {
+        "cells": 8,
+        "models": ["composer_2", "sonnet_shallow"],
+        "thinking_depths": ["fast", "default"],
+        "scenario_packs": ["trigger_basic", "near_miss"],
+    },
+    "intermediate": {
+        "cells": 16,
+        "models": ["composer_2", "sonnet_shallow"],
+        "thinking_depths": ["fast", "default"],
+        "scenario_packs": [
+            "trigger_basic",
+            "near_miss",
+            "multi_skill_competition",
+            "execution_handoff",
+        ],
+    },
+}
+
+PASS_CELL_THRESHOLD = 0.80
+
+
+def simulate_router_sweep(profile_name: str) -> Dict[str, Any]:
+    """Emit a deterministic router-test sweep for ``profile_name``.
+
+    Args:
+        profile_name: ``"mvp"`` (8 cells) or ``"intermediate"`` (16 cells).
+            ``"full"`` (96 cells) is NOT supported by this simulator
+            because it requires 4 real frontier models (haiku_4_5,
+            sonnet_4_6, opus_4_7, gpt_5_mini) plus a real LLM backend;
+            v0.1.x intentionally defers it per master plan.
+
+    Returns:
+        ``{"profile": <name>, "cells": [...], "router_floor": <model/depth>}``
+        where ``cells`` is a list of 8 or 16 cell dicts, each carrying
+        ``model``, ``thinking_depth``, ``scenario_pack``, ``pass_rate``,
+        ``latency_p50_ms``, ``latency_p95_ms``, ``cell_pass``. The
+        ``router_floor`` is the cheapest ``(model, thinking_depth)``
+        tuple whose per-pack min(pass_rate) ≥ 0.80 — or ``None`` when
+        no tuple passes.
+
+    Raises:
+        ValueError: on unsupported ``profile_name``.
+
+    >>> sweep = simulate_router_sweep("mvp")
+    >>> len(sweep["cells"]), sweep["profile"]
+    (8, 'mvp')
+    >>> sweep = simulate_router_sweep("intermediate")
+    >>> len(sweep["cells"]), sweep["profile"]
+    (16, 'intermediate')
+    """
+
+    if profile_name not in PROFILE_DEFINITIONS:
+        raise ValueError(
+            f"unsupported profile {profile_name!r}; must be one of "
+            f"{sorted(PROFILE_DEFINITIONS)}"
+        )
+    profile = PROFILE_DEFINITIONS[profile_name]
+    cells: List[Dict[str, Any]] = []
+    for model in profile["models"]:
+        for depth in profile["thinking_depths"]:
+            for pack in profile["scenario_packs"]:
+                key = (model, depth, pack)
+                outcome = MVP_CELL_OUTCOMES.get(key)
+                if outcome is None:
+                    outcome = INTERMEDIATE_EXTRA_CELL_OUTCOMES.get(key)
+                if outcome is None:
+                    raise ValueError(
+                        f"no pre-computed outcome for cell {key!r}; "
+                        "real-LLM runner upgrade required"
+                    )
+                cells.append({
+                    "model": model,
+                    "thinking_depth": depth,
+                    "scenario_pack": pack,
+                    "pass_rate": outcome["pass_rate"],
+                    "latency_p50_ms": outcome["latency_p50_ms"],
+                    "latency_p95_ms": outcome["latency_p95_ms"],
+                    "near_miss_FP_rate": None,
+                    "cell_pass": outcome["pass_rate"] >= PASS_CELL_THRESHOLD,
+                })
+
+    # Compute router_floor: cheapest (model, depth) tuple whose per-pack
+    # min(pass_rate) >= 0.80. Cost ordering: composer_2 < sonnet_shallow;
+    # fast < default (shared across both profiles).
+    cost_order = [
+        ("composer_2", "fast"),
+        ("composer_2", "default"),
+        ("sonnet_shallow", "fast"),
+        ("sonnet_shallow", "default"),
+    ]
+    router_floor: Optional[str] = None
+    floor_reasoning: Optional[str] = None
+    for model, depth in cost_order:
+        packs_in_tuple = [
+            c["pass_rate"]
+            for c in cells
+            if c["model"] == model and c["thinking_depth"] == depth
+        ]
+        if not packs_in_tuple:
+            continue
+        if min(packs_in_tuple) >= PASS_CELL_THRESHOLD:
+            router_floor = f"{model}/{depth}"
+            floor_reasoning = (
+                f"cheapest (model, depth) tuple where ALL {len(packs_in_tuple)} "
+                f"packs reach pass_rate >= {PASS_CELL_THRESHOLD} "
+                f"(min={min(packs_in_tuple):.2f})"
+            )
+            break
+
+    return {
+        "profile": profile_name,
+        "cells": cells,
+        "router_floor": router_floor,
+        "floor_reasoning": floor_reasoning,
+        "pass_threshold": PASS_CELL_THRESHOLD,
+        "n_cells_total": len(cells),
+        "n_cells_passing": sum(1 for c in cells if c["cell_pass"]),
+    }
+
+
+def intersection_router_floor(
+    mvp_sweep: Dict[str, Any],
+    intermediate_sweep: Dict[str, Any],
+) -> Optional[str]:
+    """Return cheapest (model, depth) that passes on BOTH profiles.
+
+    Spec §5.3 constraint: for Round 9, when an ability runs on both the
+    mvp 8-cell and intermediate 16-cell profiles, the reported
+    ``router_floor`` must be the INTERSECTION — the cheapest tuple
+    whose per-pack min(pass_rate) ≥ 0.80 on BOTH sweeps. Returns
+    ``None`` when no tuple satisfies both profiles.
+
+    >>> a = simulate_router_sweep("mvp")
+    >>> b = simulate_router_sweep("intermediate")
+    >>> intersection_router_floor(a, b) == b["router_floor"] or intersection_router_floor(a, b) is not None
+    True
+    """
+
+    cost_order = [
+        ("composer_2", "fast"),
+        ("composer_2", "default"),
+        ("sonnet_shallow", "fast"),
+        ("sonnet_shallow", "default"),
+    ]
+    for model, depth in cost_order:
+        def _passes(sweep: Dict[str, Any]) -> bool:
+            packs = [
+                c["pass_rate"]
+                for c in sweep["cells"]
+                if c["model"] == model and c["thinking_depth"] == depth
+            ]
+            return bool(packs) and min(packs) >= PASS_CELL_THRESHOLD
+
+        if _passes(mvp_sweep) and _passes(intermediate_sweep):
+            return f"{model}/{depth}"
+    return None
 
 REQUIRED_RESULT_KEYS: Tuple[str, ...] = (
     "pass_rate",

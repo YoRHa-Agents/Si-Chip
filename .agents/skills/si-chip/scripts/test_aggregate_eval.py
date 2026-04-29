@@ -1523,5 +1523,172 @@ class BuildReportV1V4Integration(unittest.TestCase):
         self.assertIsNotNone(v1_source)
 
 
+# ─────────────────────────── Round 9 tests ───────────────────────────
+# Workspace rule "Mandatory Verification": Round 9 (task spec §3) adds
+# ``hoist_r8_description_competition_index`` + threads ``r8_method``
+# through ``build_report``. These tests cover happy-path max_jaccard,
+# happy-path tfidf_cosine_mean, degenerate paths (missing SKILL.md /
+# empty neighbor / unknown method), 28-key invariant preservation, and
+# the R8 value range sanity invariant.
+
+
+def _make_neighbor_skill(description: str, name: str = "neighbor") -> Path:
+    """Tiny helper that writes a neighbor SKILL.md for R8 tests."""
+
+    tmp = Path(tempfile.mkdtemp())
+    path = tmp / f"{name}_SKILL.md"
+    path.write_text(
+        f"---\nname: {name}\ndescription: {description}\n---\nneighbor body\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+class HoistR8Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_r8_description_competition_index`."""
+
+    def _make_base_skill(self, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            f"---\nname: si-chip\ndescription: {description}\n---\nbody\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_hoist_r8_max_jaccard_happy_path(self) -> None:
+        """Identical-description neighbor → R8(max_jaccard) == 1.0."""
+
+        base = self._make_base_skill("alpha beta gamma")
+        n_identical = _make_neighbor_skill("alpha beta gamma", "n_identical")
+        n_disjoint = _make_neighbor_skill("delta epsilon", "n_disjoint")
+        value, derivation = ae.hoist_r8_description_competition_index(
+            base, [n_identical, n_disjoint], method="max_jaccard"
+        )
+        self.assertAlmostEqual(value, 1.0, places=6)
+        self.assertIn("pairs", derivation)
+        self.assertEqual(derivation["n_neighbors_attempted"], 2)
+        self.assertEqual(derivation["method_name"], "max_jaccard")
+
+    def test_hoist_r8_tfidf_cosine_mean_path(self) -> None:
+        """tfidf_cosine_mean returns in-range deterministic value."""
+
+        base = self._make_base_skill("alpha beta gamma")
+        n1 = _make_neighbor_skill("alpha delta", "n1")
+        n2 = _make_neighbor_skill("beta gamma", "n2")
+        value, derivation = ae.hoist_r8_description_competition_index(
+            base, [n1, n2], method="tfidf_cosine_mean"
+        )
+        self.assertIsNotNone(value)
+        self.assertGreaterEqual(value, 0.0)
+        self.assertLessEqual(value, 1.0)
+        self.assertEqual(derivation["method_name"], "tfidf_cosine_mean")
+        self.assertIn("tfidf", derivation["method_note"].lower())
+
+    def test_hoist_r8_none_skill_md_returns_none(self) -> None:
+        """Missing skill_md_path → (None, {error, remediation})."""
+
+        value, derivation = ae.hoist_r8_description_competition_index(
+            None, [Path("/tmp/fake/neighbor.md")]
+        )
+        self.assertIsNone(value)
+        self.assertIn("error", derivation)
+        self.assertIn("--skill-md", derivation["remediation"])
+
+    def test_hoist_r8_empty_neighbor_list_returns_none(self) -> None:
+        """Empty neighbor list → (None, {error}); aggregator surfaces null."""
+
+        base = self._make_base_skill("alpha")
+        value, derivation = ae.hoist_r8_description_competition_index(
+            base, []
+        )
+        self.assertIsNone(value)
+        self.assertIn("error", derivation)
+
+    def test_hoist_r8_unknown_method_returns_none_not_raises(self) -> None:
+        """Unknown method → ValueError from helper is captured → None."""
+
+        base = self._make_base_skill("alpha")
+        n1 = _make_neighbor_skill("beta", "n1")
+        value, derivation = ae.hoist_r8_description_competition_index(
+            base, [n1], method="no_such_method"
+        )
+        self.assertIsNone(value)
+        self.assertIn("error", derivation)
+        self.assertEqual(derivation["method"], "no_such_method")
+
+    def test_build_report_populates_r8_with_skill_and_neighbors(self) -> None:
+        """End-to-end: build_report exposes R8 when skill_md + neighbors present."""
+
+        base = self._make_base_skill("alpha beta gamma")
+        n1 = _make_neighbor_skill("delta epsilon", "n1")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=base,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(),
+            neighbor_skill_md_paths=[n1],
+        )
+        r8 = report["metrics"]["routing_cost"]["R8_description_competition_index"]
+        self.assertIsNotNone(r8)
+        self.assertGreaterEqual(r8, 0.0)
+        self.assertLessEqual(r8, 1.0)
+        self.assertIn("r8_derivation", report["provenance"])
+
+    def test_build_report_preserves_28_key_invariant(self) -> None:
+        """Round 9 must not drop the spec §3.2 frozen key invariant."""
+
+        base = self._make_base_skill("alpha beta gamma")
+        n1 = _make_neighbor_skill("alpha", "n1")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=base,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(),
+            neighbor_skill_md_paths=[n1],
+        )
+        metrics = report["metrics"]
+        self.assertEqual(set(metrics.keys()), set(ae.METRIC_KEYS.keys()))
+        for dim, keys in ae.METRIC_KEYS.items():
+            self.assertEqual(
+                set(metrics[dim].keys()),
+                set(keys),
+                msg=f"{dim} sub-metric keys diverged from schema after Round 9",
+            )
+        # R8 is now populated in routing_cost (D6) for the first time.
+        self.assertIsNotNone(
+            metrics["routing_cost"]["R8_description_competition_index"],
+        )
+
+    def test_build_report_null_r8_when_no_neighbors(self) -> None:
+        """Round 8-compat code path (no neighbors) leaves R8 null."""
+
+        base = self._make_base_skill("alpha beta")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=base,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(),
+            neighbor_skill_md_paths=[],
+        )
+        r8 = report["metrics"]["routing_cost"]["R8_description_competition_index"]
+        self.assertIsNone(r8)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

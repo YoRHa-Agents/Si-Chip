@@ -1,0 +1,44 @@
+# Si-Chip Round 9 — eval-run log
+# Round 9 does NOT re-run the deterministic simulated with-ability /
+# no-ability runners. Instead it carries the Round 4 / pre-existing
+# baselines forward byte-identically (SKILL.md body unchanged; seed
+# unchanged; prompts unchanged -> deterministic outputs byte-identical).
+# The re-running SCRIPT_VERSION bumps were limited to:
+#   - count_tokens.py SCRIPT_VERSION 0.1.2 -> 0.1.3 (R8 helpers added)
+#   - aggregate_eval.py SCRIPT_VERSION 0.1.4 -> 0.1.5 (R8 hoist added)
+#   - with_ability_runner.py SCRIPT_VERSION 0.1.0 -> 0.1.1 (sweep helpers)
+#   - spec_validator.py SCRIPT_VERSION 0.1.0 -> 0.1.1 (0.1.1 schema)
+# No runner edits this round; existing result.json files at
+# evals/si-chip/baselines/with_si_chip_round4/*/result.json are used
+# as-is.
+
+EVIDENCE OF BYTE-IDENTICAL DETERMINISM:
+  * evals/si-chip/baselines/with_si_chip_round4/*/result.json SHA-256
+    fingerprints match Round 4/5/6/7/8 (no re-run; no modifications).
+  * evals/si-chip/baselines/no_ability/*/result.json SHA-256 fingerprints
+    match v0.1.0 ship baseline.
+
+NEW IN ROUND 9 (router-test sweep — deterministic, no LLM):
+  * simulate_router_sweep('mvp') -> 8 cells; 6 passing; router_floor =
+    composer_2/default. BYTE-IDENTICAL to Rounds 1-8 router_floor_report.yaml
+    mvp section.
+  * simulate_router_sweep('intermediate') -> 16 cells; 11 passing;
+    router_floor = composer_2/default. NEW profile; hard-coded
+    deterministic anchors for the 8 additional cells (multi_skill_competition
+    + execution_handoff × 2 models × 2 depths) in
+    with_ability_runner.INTERMEDIATE_EXTRA_CELL_OUTCOMES.
+  * intersection_router_floor(mvp, intermediate) = composer_2/default.
+
+REAL-LLM UPGRADE PATH:
+  * evals/si-chip/runners/with_ability_runner.py docstring "DETERMINISTIC
+    SIMULATED BASELINE" section documents the swap-in interface for a
+    real-LLM runner. The intermediate profile's hard-coded anchor cells
+    would be replaced with real model-sweep outputs; the spec §5 rules
+    (no router model training) still apply.
+  * Round 12 master plan evaluates v2_tightened readiness, at which
+    point the full 96-cell profile (requires haiku_4_5, sonnet_4_6,
+    opus_4_7, gpt_5_mini access) becomes relevant.
+
+EXIT: no runner invocations this round; aggregator re-run with Round 9
+     R8 + intermediate-sweep additions; sweep helpers exercised via
+     simulate_router_sweep() smoke tests.
