@@ -17,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Optional
 
 _THIS_DIR = Path(__file__).resolve().parent
 if str(_THIS_DIR) not in sys.path:
@@ -249,6 +250,302 @@ class SkillMdDescriptionFkTests(unittest.TestCase):
     def test_missing_file_raises(self) -> None:
         with self.assertRaises(FileNotFoundError):
             ct.skill_md_description_fk_grade(Path("/does/not/exist/SKILL.md"))
+
+
+# ─────────────────── Round 7: C5 context_rot_risk ───────────────────
+# Workspace rule "Mandatory Verification": Round 7 (task spec §1+§2)
+# adds the C5 + C6 helpers to ``count_tokens.py``. These tests cover
+# formula correctness, range sanity, silent-failure protection (raise
+# ValueError on negative inputs), and integration against the real
+# Si-Chip SKILL.md.
+
+
+class ContextRotRiskTests(unittest.TestCase):
+    """Direct unit tests for :func:`context_rot_risk` (spec §3.1 D2/C5)."""
+
+    def test_slim_body_below_tenth(self) -> None:
+        c5 = ct.context_rot_risk(body_tokens=2020, fanout_depth=1)
+        self.assertLess(c5, 0.10)
+        self.assertGreaterEqual(c5, 0.0)
+
+    def test_body_saturates_window_to_one(self) -> None:
+        c5 = ct.context_rot_risk(body_tokens=200_000, fanout_depth=0)
+        self.assertEqual(c5, 1.0)
+
+    def test_body_exceeds_window_clamps_to_one(self) -> None:
+        c5 = ct.context_rot_risk(body_tokens=400_000, fanout_depth=10)
+        self.assertEqual(c5, 1.0)
+
+    def test_degenerate_zero_body_yields_fanout_term_only(self) -> None:
+        c5 = ct.context_rot_risk(body_tokens=0, fanout_depth=3)
+        self.assertAlmostEqual(c5, 0.15, places=4)
+
+    def test_range_invariant_across_inputs(self) -> None:
+        for body in (0, 100, 1000, 10_000, 100_000, 500_000):
+            for fanout in (0, 1, 5, 20, 100):
+                with self.subTest(body=body, fanout=fanout):
+                    c5 = ct.context_rot_risk(body_tokens=body, fanout_depth=fanout)
+                    self.assertGreaterEqual(c5, 0.0)
+                    self.assertLessEqual(c5, 1.0)
+
+    def test_negative_fanout_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            ct.context_rot_risk(body_tokens=100, fanout_depth=-1)
+
+    def test_negative_body_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            ct.context_rot_risk(body_tokens=-1, fanout_depth=0)
+
+    def test_zero_window_raises(self) -> None:
+        with self.assertRaises(ValueError):
+            ct.context_rot_risk(body_tokens=100, fanout_depth=0, typical_window=0)
+
+    def test_typical_window_override(self) -> None:
+        c5_small = ct.context_rot_risk(body_tokens=100_000, fanout_depth=0, typical_window=1_000_000)
+        c5_default = ct.context_rot_risk(body_tokens=100_000, fanout_depth=0)
+        self.assertLess(c5_small, c5_default)
+        self.assertAlmostEqual(c5_small, 0.1, places=4)
+
+
+class SkillMdContextRotRiskTests(unittest.TestCase):
+    """:func:`skill_md_context_rot_risk` integration tests."""
+
+    def _write_pair(self, body: str, refs: Optional[dict] = None) -> tuple:
+        """Return (skill_md_path, refs_dir_path_or_None)."""
+
+        tmp = Path(tempfile.mkdtemp())
+        skill = tmp / "SKILL.md"
+        skill.write_text(
+            f"---\nname: demo\ndescription: stub\n---\n{body}\n",
+            encoding="utf-8",
+        )
+        refs_dir: Optional[Path] = None
+        if refs is not None:
+            refs_dir = tmp / "references"
+            refs_dir.mkdir()
+            for fname, fbody in refs.items():
+                (refs_dir / fname).write_text(fbody, encoding="utf-8")
+        return skill, refs_dir
+
+    def test_real_skill_md_in_range(self) -> None:
+        """Real Si-Chip SKILL.md → C5 non-null and clipped to [0, 1]."""
+
+        repo_root = Path(__file__).resolve().parents[4]
+        skill = repo_root / ".agents/skills/si-chip/SKILL.md"
+        refs_dir = repo_root / ".agents/skills/si-chip/references"
+        value, deriv = ct.skill_md_context_rot_risk(skill, refs_dir)
+        self.assertIsNotNone(value)
+        self.assertGreaterEqual(value, 0.0)
+        self.assertLessEqual(value, 1.0)
+        # Current Si-Chip v0.1.5/0.1.6 body is 2020 tokens; 5 references
+        # are referenced from the body → fanout=5 → C5 ≈ 0.2601. Record
+        # the expected-low-value invariant (< 0.5) so a future body
+        # explosion surfaces as a regression.
+        self.assertLess(value, 0.5)
+        # Derivation exposes body_tokens + fanout for provenance.
+        self.assertIn("body_tokens", deriv)
+        self.assertIn("fanout_depth", deriv)
+        self.assertGreaterEqual(deriv["fanout_depth"], 1)
+
+    def test_no_references_dir_yields_zero_fanout(self) -> None:
+        skill, _ = self._write_pair("just body")
+        value, deriv = ct.skill_md_context_rot_risk(skill, None)
+        self.assertIsNotNone(value)
+        self.assertEqual(deriv["fanout_depth"], 0)
+
+    def test_missing_references_dir_logs_and_degrades(self) -> None:
+        skill, _ = self._write_pair("body with ref.md")
+        missing = Path("/does/not/exist/references")
+        value, deriv = ct.skill_md_context_rot_risk(skill, missing)
+        self.assertIsNotNone(value)
+        self.assertEqual(deriv["fanout_depth"], 0)
+        self.assertFalse(deriv["references_dir_exists"])
+
+    def test_references_present_but_not_cited_yield_zero_fanout(self) -> None:
+        skill, refs_dir = self._write_pair(
+            "body text with no reference filenames",
+            refs={"alpha.md": "content", "beta.md": "content"},
+        )
+        value, deriv = ct.skill_md_context_rot_risk(skill, refs_dir)
+        self.assertIsNotNone(value)
+        self.assertEqual(deriv["fanout_depth"], 0)
+        self.assertEqual(deriv["referenced_files"], [])
+
+    def test_cited_references_increment_fanout(self) -> None:
+        skill, refs_dir = self._write_pair(
+            "body cites alpha.md and gamma.md explicitly",
+            refs={"alpha.md": "a", "beta.md": "b", "gamma.md": "c"},
+        )
+        value, deriv = ct.skill_md_context_rot_risk(skill, refs_dir)
+        self.assertIsNotNone(value)
+        self.assertEqual(deriv["fanout_depth"], 2)
+        self.assertEqual(sorted(deriv["referenced_files"]), ["alpha.md", "gamma.md"])
+
+    def test_missing_skill_md_raises(self) -> None:
+        with self.assertRaises(FileNotFoundError):
+            ct.skill_md_context_rot_risk(Path("/does/not/exist/SKILL.md"), None)
+
+
+# ─────────────────── Round 7: C6 scope_overlap_score ───────────────────
+
+
+class JaccardSimilarityTests(unittest.TestCase):
+    """Direct unit tests for :func:`jaccard_similarity`."""
+
+    def test_identical_is_one(self) -> None:
+        self.assertEqual(ct.jaccard_similarity({"a", "b"}, {"a", "b"}), 1.0)
+
+    def test_disjoint_is_zero(self) -> None:
+        self.assertEqual(ct.jaccard_similarity({"a"}, {"b"}), 0.0)
+
+    def test_partial_overlap_deterministic(self) -> None:
+        # {a, b, c} ∩ {b, c, d} = {b, c}; union = {a, b, c, d}
+        # Jaccard = 2/4 = 0.5.
+        self.assertAlmostEqual(
+            ct.jaccard_similarity({"a", "b", "c"}, {"b", "c", "d"}),
+            0.5,
+            places=6,
+        )
+
+    def test_both_empty_is_zero_by_convention(self) -> None:
+        self.assertEqual(ct.jaccard_similarity(set(), set()), 0.0)
+
+    def test_one_empty_is_zero(self) -> None:
+        self.assertEqual(ct.jaccard_similarity({"a", "b"}, set()), 0.0)
+        self.assertEqual(ct.jaccard_similarity(set(), {"a", "b"}), 0.0)
+
+    def test_range_invariant(self) -> None:
+        for a, b in (
+            (set(), set()),
+            ({"x"}, set()),
+            ({"x"}, {"x"}),
+            ({"x"}, {"y"}),
+            ({"a", "b", "c"}, {"a", "d", "e"}),
+        ):
+            with self.subTest(a=a, b=b):
+                j = ct.jaccard_similarity(a, b)
+                self.assertGreaterEqual(j, 0.0)
+                self.assertLessEqual(j, 1.0)
+
+
+class TokenizeDescriptionTests(unittest.TestCase):
+    """Normalisation + stopword behaviour of :func:`tokenize_description`."""
+
+    def test_basic_tokenisation(self) -> None:
+        tokens = ct.tokenize_description("Hello, World!")
+        self.assertEqual(tokens, {"hello", "world"})
+
+    def test_stopwords_filtered_by_default(self) -> None:
+        tokens = ct.tokenize_description("Use this when it is for the demo")
+        self.assertNotIn("when", tokens)
+        self.assertNotIn("the", tokens)
+        self.assertNotIn("use", tokens)
+        self.assertNotIn("it", tokens)
+        self.assertIn("demo", tokens)
+
+    def test_custom_empty_stopwords_disables_filter(self) -> None:
+        tokens = ct.tokenize_description("use demo", stopwords=frozenset())
+        self.assertIn("use", tokens)
+        self.assertIn("demo", tokens)
+
+    def test_hyphen_becomes_separator(self) -> None:
+        tokens = ct.tokenize_description("router-testing half-retiring")
+        self.assertIn("router", tokens)
+        self.assertIn("testing", tokens)
+        self.assertIn("half", tokens)
+        self.assertIn("retiring", tokens)
+
+    def test_empty_input_is_empty_set(self) -> None:
+        self.assertEqual(ct.tokenize_description(""), set())
+
+    def test_non_ascii_stripped(self) -> None:
+        # Chinese chars get stripped by the ASCII-alnum filter; ascii
+        # survives.
+        tokens = ct.tokenize_description("飞书 API demo")
+        self.assertIn("api", tokens)
+        self.assertIn("demo", tokens)
+
+
+class SkillMdScopeOverlapScoreTests(unittest.TestCase):
+    """End-to-end tests for :func:`skill_md_scope_overlap_score`."""
+
+    def _write_skill(self, name: str, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / f"{name}_SKILL.md"
+        path.write_text(
+            f"---\nname: {name}\ndescription: {description}\n---\nbody\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_max_reduction_across_neighbors(self) -> None:
+        base = self._write_skill("base", "alpha beta gamma")
+        n1 = self._write_skill("n1", "delta epsilon")         # disjoint
+        n2 = self._write_skill("n2", "alpha delta")           # partial
+        n3 = self._write_skill("n3", "alpha beta gamma")      # identical
+        c6, pairs = ct.skill_md_scope_overlap_score(base, [n1, n2, n3])
+        self.assertEqual(c6, 1.0)
+        # Sorted DESC by jaccard.
+        self.assertAlmostEqual(pairs[0]["jaccard"], 1.0, places=6)
+        self.assertGreaterEqual(pairs[1]["jaccard"], pairs[-1]["jaccard"])
+
+    def test_all_disjoint_neighbors_yield_zero(self) -> None:
+        base = self._write_skill("base", "alpha beta")
+        n1 = self._write_skill("n1", "xray yankee")
+        n2 = self._write_skill("n2", "zulu")
+        c6, pairs = ct.skill_md_scope_overlap_score(base, [n1, n2])
+        self.assertEqual(c6, 0.0)
+        self.assertEqual(len(pairs), 2)
+
+    def test_missing_neighbor_is_logged_and_skipped(self) -> None:
+        base = self._write_skill("base", "alpha beta")
+        n1 = self._write_skill("n1", "alpha")
+        missing = Path("/does/not/exist/SKILL.md")
+        with self.assertLogs("si_chip.count_tokens", level="WARNING") as cm:
+            c6, pairs = ct.skill_md_scope_overlap_score(base, [n1, missing])
+        # Warning must mention the missing path — no silent swallow.
+        self.assertTrue(any("missing" in m for m in cm.output))
+        # C6 still computable from the surviving neighbor.
+        self.assertIsNotNone(c6)
+        self.assertGreater(c6, 0.0)
+        self.assertEqual(len(pairs), 2)
+        # Missing entry recorded with an explicit error field.
+        missing_entries = [p for p in pairs if p.get("error") == "missing"]
+        self.assertEqual(len(missing_entries), 1)
+
+    def test_missing_base_raises(self) -> None:
+        n1 = self._write_skill("n1", "alpha")
+        with self.assertRaises(FileNotFoundError):
+            ct.skill_md_scope_overlap_score(
+                Path("/does/not/exist/SKILL.md"), [n1]
+            )
+
+    def test_empty_neighbor_list_returns_zero(self) -> None:
+        base = self._write_skill("base", "alpha beta")
+        c6, pairs = ct.skill_md_scope_overlap_score(base, [])
+        self.assertEqual(c6, 0.0)
+        self.assertEqual(pairs, [])
+
+    def test_si_chip_real_neighbor_overlap_low(self) -> None:
+        """Real Si-Chip vs lark-* neighbors → C6 < 0.50 (low competition)."""
+
+        import glob
+        repo_root = Path(__file__).resolve().parents[4]
+        skill = repo_root / ".agents/skills/si-chip/SKILL.md"
+        neighbors = [Path(p) for p in sorted(glob.glob("/root/.claude/skills/lark-*/SKILL.md"))]
+        if not skill.exists() or not neighbors:
+            self.skipTest("real Si-Chip SKILL.md or lark-* neighbors missing")
+        c6, pairs = ct.skill_md_scope_overlap_score(skill, neighbors)
+        self.assertIsNotNone(c6)
+        self.assertGreaterEqual(c6, 0.0)
+        self.assertLessEqual(c6, 1.0)
+        # Description vocabulary is very different; expect competition
+        # index < 0.30.
+        self.assertLess(c6, 0.30)
+        # All neighbor paths must appear in the pairs list.
+        neighbor_paths_in_pairs = {p["neighbor_path"] for p in pairs}
+        for n in neighbors:
+            self.assertIn(str(n), neighbor_paths_in_pairs)
 
 
 if __name__ == "__main__":

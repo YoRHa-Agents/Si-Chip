@@ -27,6 +27,9 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
+from typing import Optional
+
+import yaml
 
 _THIS_DIR = Path(__file__).resolve().parent
 if str(_THIS_DIR) not in sys.path:
@@ -932,6 +935,341 @@ class BuildReportU3U4Integration(unittest.TestCase):
             "U3_setup_steps_count",
             "U4_time_to_first_success",
         })
+
+
+# ─────────────────────────── Round 7 tests ───────────────────────────
+# Workspace rule "Mandatory Verification": Round 7 (task spec §3+§4)
+# added ``hoist_c5_context_rot_risk`` and
+# ``hoist_c6_scope_overlap_score``, plus ``build_report`` now accepts
+# ``references_dir`` and ``neighbor_skill_md_paths`` and populates
+# D2 C5 + D2 C6. These tests cover correctness, degenerate paths, and
+# the spec §3.2 frozen 28-key invariant after Round 7.
+
+
+class HoistC5Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_c5_context_rot_risk`."""
+
+    def _skill_with_refs(self, body: str, refs: list) -> tuple:
+        tmp = Path(tempfile.mkdtemp())
+        skill = tmp / "SKILL.md"
+        skill.write_text(
+            f"---\nname: demo\ndescription: demo\n---\n{body}\n",
+            encoding="utf-8",
+        )
+        refs_dir = tmp / "references"
+        refs_dir.mkdir()
+        for name in refs:
+            (refs_dir / name).write_text("stub", encoding="utf-8")
+        return skill, refs_dir
+
+    def test_happy_path_with_referenced_files(self) -> None:
+        skill, refs_dir = self._skill_with_refs(
+            "body cites alpha.md and beta.md",
+            ["alpha.md", "beta.md", "gamma.md"],
+        )
+        v, d = ae.hoist_c5_context_rot_risk(skill, refs_dir)
+        self.assertIsNotNone(v)
+        self.assertGreaterEqual(v, 0.0)
+        self.assertLessEqual(v, 1.0)
+        self.assertEqual(d["fanout_depth"], 2)
+        self.assertIn("range_sanity_check", d)
+
+    def test_none_skill_md_returns_none(self) -> None:
+        v, d = ae.hoist_c5_context_rot_risk(None, None)
+        self.assertIsNone(v)
+        self.assertIn("error", d)
+        self.assertIn("remediation", d)
+
+    def test_missing_skill_md_raises(self) -> None:
+        with self.assertRaises(FileNotFoundError):
+            ae.hoist_c5_context_rot_risk(Path("/no/such/SKILL.md"), None)
+
+    def test_no_references_dir_zero_fanout(self) -> None:
+        tmp = Path(tempfile.mkdtemp())
+        skill = tmp / "SKILL.md"
+        skill.write_text(
+            "---\nname: demo\ndescription: demo\n---\nshort body\n",
+            encoding="utf-8",
+        )
+        v, d = ae.hoist_c5_context_rot_risk(skill, None)
+        self.assertIsNotNone(v)
+        self.assertEqual(d["fanout_depth"], 0)
+        self.assertGreaterEqual(v, 0.0)
+        self.assertLessEqual(v, 1.0)
+
+
+class HoistC6Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_c6_scope_overlap_score`."""
+
+    def _write_skill(self, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            f"---\nname: demo\ndescription: {description}\n---\nbody\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_happy_path_partial_overlap(self) -> None:
+        base = self._write_skill("alpha beta gamma")
+        n1 = self._write_skill("alpha delta")      # 1/4 overlap
+        n2 = self._write_skill("alpha beta")       # 2/3 overlap
+        v, d = ae.hoist_c6_scope_overlap_score(base, [n1, n2])
+        self.assertIsNotNone(v)
+        self.assertGreaterEqual(v, 0.0)
+        self.assertLessEqual(v, 1.0)
+        # Max over two pairs — expect 2/3 ≈ 0.667.
+        self.assertAlmostEqual(v, 2 / 3, places=4)
+        self.assertEqual(d["n_neighbors_scored"], 2)
+
+    def test_none_skill_md_returns_none(self) -> None:
+        v, d = ae.hoist_c6_scope_overlap_score(None, [])
+        self.assertIsNone(v)
+        self.assertIn("error", d)
+
+    def test_empty_neighbors_defaults_to_zero(self) -> None:
+        base = self._write_skill("alpha beta")
+        with self.assertLogs("si_chip.aggregate_eval", level="WARNING") as cm:
+            v, d = ae.hoist_c6_scope_overlap_score(base, [])
+        # Warning logged — no silent zero substitution per workspace rule.
+        self.assertTrue(any("no neighbor" in m.lower() for m in cm.output))
+        self.assertEqual(v, 0.0)
+        self.assertEqual(d["n_neighbors_attempted"], 0)
+
+    def test_missing_base_raises(self) -> None:
+        n1 = self._write_skill("alpha")
+        with self.assertRaises(FileNotFoundError):
+            ae.hoist_c6_scope_overlap_score(
+                Path("/no/such/SKILL.md"), [n1]
+            )
+
+    def test_neighbor_missing_recorded_in_pairs(self) -> None:
+        base = self._write_skill("alpha beta")
+        n1 = self._write_skill("alpha")
+        missing = Path("/does/not/exist/SKILL.md")
+        v, d = ae.hoist_c6_scope_overlap_score(base, [n1, missing])
+        self.assertIsNotNone(v)
+        self.assertEqual(d["n_neighbors_scored"], 1)
+        self.assertEqual(d["n_neighbors_skipped"], 1)
+        # Missing entry appears in pairs with explicit error.
+        missing_entries = [p for p in d["pairs"] if p.get("error") == "missing"]
+        self.assertEqual(len(missing_entries), 1)
+
+
+class BuildReportC5C6Integration(unittest.TestCase):
+    """End-to-end smoke: build_report surfaces D2 C5 + D2 C6."""
+
+    def _make_skill_md(self, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            f"---\nname: si-chip\ndescription: {description}\n---\n"
+            "body text body text body text body text body text body text\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_full_instrumentation_populates_c5_and_c6(self) -> None:
+        skill_md = self._make_skill_md(
+            "Persistent BasicAbility optimization factory."
+        )
+        neighbor1 = self._make_skill_md("persistent optimization factory")
+        neighbor2 = self._make_skill_md("irrelevant vocab here")
+        # Reference dir with one .md file that the body literally references.
+        refs_dir = skill_md.parent / "references"
+        refs_dir.mkdir()
+        (refs_dir / "body.md").write_text("stub", encoding="utf-8")
+
+        with_rows = [_row_with_outcomes() for _ in range(3)]
+        without_rows = [_row(pass_rate=0.5, trigger_F1=0.0) for _ in range(3)]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            references_dir=refs_dir,
+            neighbor_skill_md_paths=[neighbor1, neighbor2],
+        )
+        ce = report["metrics"]["context_economy"]
+        self.assertIsNotNone(ce["C5_context_rot_risk"])
+        self.assertGreaterEqual(ce["C5_context_rot_risk"], 0.0)
+        self.assertLessEqual(ce["C5_context_rot_risk"], 1.0)
+        self.assertIsNotNone(ce["C6_scope_overlap_score"])
+        self.assertGreaterEqual(ce["C6_scope_overlap_score"], 0.0)
+        self.assertLessEqual(ce["C6_scope_overlap_score"], 1.0)
+        self.assertIn("c5_derivation", report["provenance"])
+        self.assertIn("c6_derivation", report["provenance"])
+
+    def test_missing_skill_md_keeps_c5_and_c6_null(self) -> None:
+        """Round 6 code path (no skill_md_path) must leave C5 + C6 null."""
+
+        with_rows = [_row_with_outcomes()]
+        without_rows = [_row()]
+        report = ae.build_report(
+            with_rows=with_rows,
+            without_rows=without_rows,
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=None,
+            install_telemetry=None,
+        )
+        ce = report["metrics"]["context_economy"]
+        self.assertIsNone(ce["C5_context_rot_risk"])
+        self.assertIsNone(ce["C6_scope_overlap_score"])
+
+    def test_empty_neighbor_list_keeps_c6_zero_not_null(self) -> None:
+        """Empty neighbors → C6 = 0.0 by convention (logged warning)."""
+
+        skill_md = self._make_skill_md("demo description")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            neighbor_skill_md_paths=[],
+        )
+        self.assertEqual(report["metrics"]["context_economy"]["C6_scope_overlap_score"], 0.0)
+
+    def test_c5_c6_range_invariant_in_build_report(self) -> None:
+        """When populated, C5 and C6 must always lie in [0.0, 1.0]."""
+
+        skill_md = self._make_skill_md("demo description")
+        neighbor = self._make_skill_md("another description")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            neighbor_skill_md_paths=[neighbor],
+        )
+        ce = report["metrics"]["context_economy"]
+        self.assertIsNotNone(ce["C5_context_rot_risk"])
+        self.assertIsNotNone(ce["C6_scope_overlap_score"])
+        self.assertGreaterEqual(ce["C5_context_rot_risk"], 0.0)
+        self.assertLessEqual(ce["C5_context_rot_risk"], 1.0)
+        self.assertGreaterEqual(ce["C6_scope_overlap_score"], 0.0)
+        self.assertLessEqual(ce["C6_scope_overlap_score"], 1.0)
+
+    def test_round_7_keeps_28_key_invariant(self) -> None:
+        """Spec §3.2 frozen key contract still holds after Round 7.
+
+        The spec §13.4 prose lists 28 sub-metrics; the §3.1 TABLE (and
+        thus the runtime schema and aggregator) carries 37. The
+        aggregator preserves the table count verbatim — every sub-
+        metric key from the template appears in the report with null
+        or non-null value. The reconciliation prose↔table is a Round 11
+        task per master plan.
+        """
+
+        skill_md = self._make_skill_md("demo")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            references_dir=None,
+            neighbor_skill_md_paths=[],
+        )
+        metrics = report["metrics"]
+        # All 7 dimensions present.
+        self.assertEqual(set(metrics.keys()), set(ae.METRIC_KEYS.keys()))
+        # Each dimension's sub-metric keys match the template.
+        for dim, keys in ae.METRIC_KEYS.items():
+            self.assertEqual(
+                set(metrics[dim].keys()),
+                set(keys),
+                msg=f"{dim} sub-metric keys diverged from schema after Round 7",
+            )
+        # Total aggregate count = sum of template per-dimension counts.
+        total_keys = sum(len(keys) for keys in ae.METRIC_KEYS.values())
+        self.assertEqual(total_keys, 37)  # §3.1 TABLE; §13.4 prose says 28 (reconciled in Round 11).
+
+    def test_round_7_cli_flag_round_trip(self) -> None:
+        """CLI flags ``--references-dir`` and ``--neighbor-skills-glob`` feed build_report."""
+
+        import subprocess
+        import tempfile as _tempfile
+        tmp = Path(_tempfile.mkdtemp())
+        runs = tmp / "runs"
+        base = tmp / "base"
+        runs.mkdir()
+        base.mkdir()
+        case = {
+            "pass_rate": 0.85,
+            "pass_k_4": 0.5478,
+            "latency_p95_s": 1.4,
+            "metadata_tokens": 82,
+            "per_invocation_footprint": 3600,
+            "trigger_F1": 0.89,
+            "router_floor": "composer_2/fast",
+            "routing_stage_tokens_total": 78 * 20,
+            "body_invocation_tokens_total": 3520 * 20,
+            "latency_p50_s": 1.2,
+            "step_count": 20,
+            "redundant_call_ratio": 0.0,
+            "prompt_outcomes": [
+                {"prompt_id": f"p{i}", "expected": "trigger", "correct": True}
+                for i in range(10)
+            ],
+        }
+        base_case = dict(case)
+        base_case["pass_rate"] = 0.5
+        base_case["trigger_F1"] = 0.0
+        (runs / "result.json").write_text(
+            __import__("json").dumps(case), encoding="utf-8"
+        )
+        (base / "result.json").write_text(
+            __import__("json").dumps(base_case), encoding="utf-8"
+        )
+        skill = tmp / "SKILL.md"
+        skill.write_text(
+            "---\nname: demo\ndescription: demo skill.\n---\nbody\n",
+            encoding="utf-8",
+        )
+        out_path = tmp / "metrics.yaml"
+        refs_dir = tmp / "references"
+        refs_dir.mkdir()
+
+        aggregate_py = Path(__file__).resolve().parent / "aggregate_eval.py"
+        # Empty neighbor glob → C6 = 0.0 (predictable in CI).
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(aggregate_py),
+                "--runs-dir", str(runs),
+                "--baseline-dir", str(base),
+                "--skill-md", str(skill),
+                "--out", str(out_path),
+                "--references-dir", str(refs_dir),
+                "--neighbor-skills-glob", "",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        report = yaml.safe_load(out_path.read_text(encoding="utf-8"))
+        ce = report["metrics"]["context_economy"]
+        # C5 populated from empty refs_dir → fanout=0 → value based on body tokens.
+        self.assertIsNotNone(ce["C5_context_rot_risk"])
+        self.assertGreaterEqual(ce["C5_context_rot_risk"], 0.0)
+        # C6 = 0.0 because neighbor glob was empty.
+        self.assertEqual(ce["C6_scope_overlap_score"], 0.0)
 
 
 if __name__ == "__main__":

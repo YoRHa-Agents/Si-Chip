@@ -1,0 +1,176 @@
+# Si-Chip Next-Action Plan — round_7 -> round_8
+# Conforms to templates/next_action_plan.template.yaml (spec §8.1 step 4 / §8.2 evidence #5).
+# target_gate stays bound to v1_baseline ("relaxed") per master plan
+# (.local/.agent/active/v0.2.0-iteration-plan.yaml#round_8); promotion to
+# v2_tightened is held until Round 12 readiness check.
+round_id: round_8
+generated_at: '2026-04-28T20:30:00+00:00'
+basis_metrics_report: .local/dogfood/2026-04-28/round_7/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-28/round_7/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-28/round_7/iteration_delta_report.yaml
+target_gate: relaxed  # spec §5.4: relaxed -> v1_baseline
+
+actions:
+  - id: a1
+    title: Populate V1_permission_scope via filesystem-write audit
+    owner: Implement
+    applies_to_metric: V1_permission_scope
+    primitive: implement
+    exit_criterion: 'V1_permission_scope non-null in round_8 metrics_report.yaml (integer count or 0)'
+    notes: |
+      Round 7 closes D2 context_economy (5/6 measured + 1 by-design
+      null). Round 8 targets D7 governance_risk: 4/4 sub-metric fill
+      per master plan. V1 = count of filesystem paths the skill
+      writes outside .local/dogfood/ (currently expected = 0, clean).
+
+      Helper: new tools/governance_scan.py (V1_permission_scope);
+      walks the skill's script sources + templates + install.sh to
+      enumerate write surfaces (mkdir, open-for-write, subprocess
+      invocation of rm/mv, etc.). Record the pattern list in
+      round_8/raw/governance_scan.json for reproducibility.
+
+  - id: a2
+    title: Populate V2_credential_surface via secret-pattern scan
+    owner: Implement
+    applies_to_metric: V2_credential_surface
+    primitive: implement
+    exit_criterion: 'V2_credential_surface non-null in round_8 metrics_report.yaml (integer count or 0; MUST NOT log secret values themselves — only pattern names + counts)'
+    notes: |
+      V2 = count of credential / secret PATTERNS referenced in any
+      skill artifact. Patterns: {API_KEY, AWS_ACCESS_KEY_ID, password,
+      token, secret, private_key, bearer, etc.}. Currently expected = 0
+      (clean — no hard-coded credentials in any skill artifact).
+
+      CRITICAL: The scanner must NOT log the actual VALUE of any
+      credential-like match — only the pattern name + file + line
+      number. Workspace "No Silent Failures" rule applies: if a
+      secret is detected, the scanner surfaces it loudly (counts +
+      line pointers) but never leaks the value. Master plan Round 8
+      risk_flag explicitly acknowledged this.
+
+  - id: a3
+    title: Populate V3_drift_signal + V4_staleness_days
+    owner: Implement
+    applies_to_metric: V3_drift_signal
+    primitive: implement
+    exit_criterion: 'V3_drift_signal non-null in [0.0, 1.0]; V4_staleness_days non-null (integer >= 0)'
+    notes: |
+      V3 = 1 - cross_tree_drift_zero ratio across the 3 mirrors
+      (.agents, .cursor, .claude). Currently expected = 0.0 (clean
+      per v0.1.0 ship report's ALL_TREES_DRIFT_ZERO verdict; every
+      Round 7 mirror sync must preserve this).
+      V4 = days since last_reviewed_at on the basic_ability_profile.
+      Round 7 last_reviewed_at = 2026-04-28; V4 on 2026-04-28 = 0
+      days (same-day review).
+
+      Helper lives in tools/governance_scan.py (same file as V1+V2);
+      emits a shared JSON payload hoisted by aggregate_eval.
+
+  - id: a4
+    title: Unit tests for tools/governance_scan.py (workspace Mandatory Verification rule)
+    owner: Test
+    applies_to_metric: V1_permission_scope
+    primitive: test
+    exit_criterion: 'tools/test_governance_scan.py has >= 15 unit tests covering V1/V2/V3/V4 happy paths, degenerate paths, and the MUST-NOT-log-secret-values invariant'
+    notes: |
+      Cover:
+      - V1 happy path (scans scripts + install.sh; counts write
+        surfaces)
+      - V1 zero case (empty target dir)
+      - V1 missing target dir raises
+      - V2 happy path (finds common secret pattern)
+      - V2 MUST-NOT-log-values invariant (asserts the scanner logs
+        pattern name + line number but NOT the captured value)
+      - V2 zero case (clean source tree)
+      - V3 zero case (identical mirrors)
+      - V3 non-zero case (synthetic drift)
+      - V4 same-day case (V4 = 0)
+      - V4 staleness case (frozen date; verify integer monotonicity)
+      - 28-key invariant preserved after Round 8
+      - Build-report integration populates V1-V4 when scanner runs
+
+  - id: a5
+    title: Assert half_retire_decision.yaml governance_risk_delta uses live V1-V4 input (not hard-coded 0.0)
+    owner: Verify
+    applies_to_metric: V4_staleness_days
+    primitive: verify
+    exit_criterion: 'round_8/half_retire_decision.yaml governance_risk_delta derived from V1/V2/V3/V4 via (with - without) arithmetic; no longer a hard-coded 0.0'
+    notes: |
+      Master plan Round 8 acceptance criterion: "half_retire_decision.yaml
+      governance_risk_delta is no longer hard-coded 0.0 — uses live
+      V1-V4 input". Until Round 8, the governance_risk_delta axis is
+      always 0.0 because no risk dimension has been measured. After
+      Round 8, it should reflect the actual Si-Chip governance
+      footprint (expected ≈ 0 for clean baseline, but computed, not
+      stipulated).
+
+expected_iteration_delta_axes:
+  - governance_risk     # via a1-a4 (V1-V4 fill) — currently 0/4 D7 sub-metrics, target 4/4
+
+# Pre-commitment: round_8 must show movement on the governance_risk axis (per
+# spec §4.1 v1_baseline iteration_delta row, any axis >= +0.05). The
+# measurement-fill flavour is acceptable per the same alternative clause
+# Rounds 3/4/5/6/7 invoked: "iteration_delta governance_risk axis D7
+# coverage moves from 0/4 -> 4/4 (full-coverage flavour)" per master
+# plan round_8 acceptance_criteria.
+
+deferred_from_round_7:
+  - id: a5_round_4_deferred
+    title: 'Populate L5/L6/L7 (D3 latency_path completion to 7/7)'
+    deferral_reason: |
+      D3 stays at 4/7; L5_detour_index, L6_replanning_rate, L7_think_act_split
+      require a real-LLM run (the simulated runner has no detour / replanning
+      notion). Master plan defers these to post-v0.2.0 (the LLM-backed
+      runner upgrade) and does not enumerate them as gate-blocking rows.
+    refer_to: 'evals/si-chip/runners/with_ability_runner.py docstring "DETERMINISTIC SIMULATED BASELINE" section + Round 4 risk_flag.'
+  - id: a5_round_3_deferred
+    title: 'T2_pass_k v2_tightened margin (0.5478 vs 0.55; delta -0.0022)'
+    deferral_reason: |
+      CASE-LEVEL fix needed (slightly harder acceptance criteria or one more
+      passing case); not a Round 8 priority. Round 12 master plan
+      v2_tightened readiness check will revisit.
+    refer_to: '.local/dogfood/2026-04-28/round_7/raw/notes.md §5 bullet 1'
+  - id: u4_round_6_live_wall_clock
+    title: 'U4 live wall-clock (dry_run=False) sampling for p50 + p95'
+    deferral_reason: |
+      Round 7 U4 is carried from Round 6 dry-run floor estimate (0.0073 s).
+      A live wall-clock (with network download + tar extraction) would
+      capture the actual user-experience time for the one-line install.
+      Requires either (a) a local tarball mirror at
+      docs/skills/si-chip-0.1.6.tar.gz with a file:// source-url that
+      the installer can actually consume, or (b) a dedicated CI job with
+      network access. Round 12 + real-LLM runner upgrade is the
+      recommended path; the dry-run floor is v1_baseline-adequate for
+      the dogfood feedback loop.
+    refer_to: 'round_6/metrics_report.yaml provenance.u4_derivation.interpretation_note'
+  - id: c5_heuristic_proxy
+    title: 'C5_context_rot_risk is currently a HEURISTIC PROXY (not ground-truth)'
+    deferral_reason: |
+      Round 7 C5 = 0.2601 uses a deterministic formula
+      (body_tokens/typical_window + 0.05*fanout_depth) derived from
+      the 2026 frontier-model context-rot studies cited in
+      references/metrics-r6-summary.md. Replacing the heuristic
+      coefficient with a real-LLM empirical measurement requires the
+      Round 12 LLM-backed runner upgrade. Master plan Round 7
+      risk_flag explicitly accepts the heuristic as v1_baseline-
+      adequate for measurement-fill purposes.
+    refer_to: '.local/dogfood/2026-04-28/round_7/raw/c5_derivation.json'
+
+continuing_through_master_plan:
+  - 'Round 8: V1+V2+V3+V4 governance_risk (D7 fill 0/4 -> 4/4)'
+  - 'Round 9: R8 description_competition_index + 16-cell intermediate router-test profile (D6 formal full coverage; templates bumped)'
+  - 'Round 10: G1 cross_model_pass_matrix (D4 fill 0/4 -> 1/4 plus golden_set seeded)'
+  - 'Round 11: spec internal reconciliation §3.1/§13.4 + §4.1/§13.4 (spec bump v0.1.0 -> v0.2.0-rc1)'
+  - 'Round 12: §6.4 reactivation detector + v2_tightened readiness verify (v0.2.0 ship gate)'
+
+provenance:
+  generator: 'Round 7 dogfood — L3 Task Agent'
+  spec_version: v0.1.0
+  basis_round: round_7
+  cites:
+    - .local/dogfood/2026-04-28/round_7/raw/notes.md  # diagnose output (Step 3)
+    - .local/dogfood/2026-04-28/round_7/metrics_report.yaml
+    - .local/dogfood/2026-04-28/round_6/next_action_plan.yaml  # carry-forward audit
+    - .local/.agent/active/v0.2.0-iteration-plan.yaml  # master plan round_8 entry
+    - .local/research/spec_v0.1.0.md  # §4.1 thresholds, §4.2 promotion rule
+    - .agents/skills/si-chip/references/metrics-r6-summary.md  # D7 derivation signals

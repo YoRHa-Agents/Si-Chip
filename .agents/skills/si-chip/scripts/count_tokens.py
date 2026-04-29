@@ -45,12 +45,13 @@ import json
 import logging
 import re
 import sys
+import unicodedata
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
 
 LOGGER = logging.getLogger("si_chip.count_tokens")
 
-SCRIPT_VERSION = "0.1.1"
+SCRIPT_VERSION = "0.1.2"
 
 _FRONTMATTER_RE = re.compile(
     r"\A---\s*\n(?P<meta>.*?)\n---\s*\n?(?P<body>.*)\Z",
@@ -369,6 +370,382 @@ def skill_md_description_fk_grade(
     details["description_text"] = desc
     details["path"] = str(skill_md_path)
     return grade, details
+
+
+# ─────────── Round 7: D2/C5 context_rot_risk (spec §3.1 D2/C5) ───────────
+#
+# Round 7 fills the last two D2 context_economy cells (C5 + C6). The C3
+# cell stays explicit-null by design (Si-Chip references are loaded on
+# demand only — resolved_tokens has no deterministic static value).
+#
+# C5 formula (spec §3.1 D2/C5; Round 6 next_action_plan a1):
+#
+#     C5 = clip(body_tokens / typical_context_window
+#               + 0.05 * reference_fanout_depth, 0.0, 1.0)
+#
+# ``typical_context_window`` defaults to 200_000 (Sonnet 4.6 baseline, per
+# references/metrics-r6-summary.md). The multiplier 0.05 per fanout hop
+# captures the empirical "each additional ref loads ~5% more context" rule
+# from the 2026 frontier-model context-rot studies cited by
+# references/metrics-r6-summary.md.
+#
+# ``reference_fanout_depth`` is the count of ``.md`` files under
+# ``references_dir`` that the SKILL.md body literally references by
+# filename (substring match). Depth = 1 when no references_dir is
+# passed or the directory is missing (a single-layer SKILL.md still
+# has the SKILL.md body itself on the context rot graph).
+#
+# Helpers preserve workspace rule "No Silent Failures": negative or
+# nonsensical inputs raise ``ValueError`` rather than being clamped.
+
+DEFAULT_TYPICAL_CONTEXT_WINDOW = 200_000
+
+
+def context_rot_risk(
+    body_tokens: int,
+    fanout_depth: int,
+    typical_window: int = DEFAULT_TYPICAL_CONTEXT_WINDOW,
+) -> float:
+    """Compute the C5 context_rot_risk proxy.
+
+    Formula: ``C5 = clip(body_tokens / typical_window
+    + 0.05 * fanout_depth, 0.0, 1.0)``.
+
+    Args:
+        body_tokens: Token count of the SKILL.md body (spec §3.1 D2/C2).
+            Must be ``>= 0``.
+        fanout_depth: Integer count of references the SKILL.md body
+            loads on-demand. Must be ``>= 0``. Per the workspace
+            "No Silent Failures" rule, negative values raise
+            ``ValueError`` instead of being silently clamped.
+        typical_window: Nominal context-window size in tokens against
+            which ``body_tokens`` is normalised. Defaults to 200_000
+            (Sonnet 4.6 baseline per references/metrics-r6-summary.md);
+            raise to 1_000_000 for Opus-class models. Must be ``> 0``.
+
+    Returns:
+        A float in ``[0.0, 1.0]``. Higher = more context-rot risk.
+
+    Raises:
+        ValueError: on negative ``body_tokens`` / ``fanout_depth`` or
+            non-positive ``typical_window``.
+
+    >>> context_rot_risk(2020, 1)
+    0.0601
+    >>> context_rot_risk(200_000, 0)
+    1.0
+    >>> context_rot_risk(0, 2)
+    0.1
+    >>> 0.0 <= context_rot_risk(1000, 3) <= 1.0
+    True
+    """
+
+    if body_tokens < 0:
+        raise ValueError(f"body_tokens must be >= 0, got {body_tokens}")
+    if fanout_depth < 0:
+        raise ValueError(f"fanout_depth must be >= 0, got {fanout_depth}")
+    if typical_window <= 0:
+        raise ValueError(f"typical_window must be > 0, got {typical_window}")
+
+    raw = body_tokens / typical_window + 0.05 * fanout_depth
+    if raw < 0.0:
+        return 0.0
+    if raw > 1.0:
+        return 1.0
+    # Round to 4 decimals for stable comparisons / YAML stability;
+    # this is cosmetic — the clip is already enforced above.
+    return round(raw, 4)
+
+
+def skill_md_context_rot_risk(
+    skill_md_path: Path,
+    references_dir: Optional[Path],
+    typical_window: int = DEFAULT_TYPICAL_CONTEXT_WINDOW,
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Compute C5 for a SKILL.md + its references directory.
+
+    Reads the SKILL.md body, tokenises it via :func:`count_tokens`, and
+    derives ``fanout_depth`` as the count of ``*.md`` files under
+    ``references_dir`` whose filename appears (literal substring match)
+    in the SKILL.md body. When ``references_dir`` is ``None`` or missing
+    on disk, ``fanout_depth`` defaults to ``0`` and the derivation record
+    documents the degenerate path.
+
+    Returns ``(value, derivation_dict)``. ``value`` is ``None`` when the
+    SKILL.md path is missing (raises ``FileNotFoundError`` in that case
+    to honour "No Silent Failures") or when the body cannot be split.
+    """
+
+    if not skill_md_path.exists():
+        raise FileNotFoundError(f"SKILL.md path not found: {skill_md_path}")
+
+    text = skill_md_path.read_text(encoding="utf-8")
+    _meta_text, body_text = split_frontmatter(text)
+    body_tokens, backend = count_tokens(body_text)
+
+    fanout_depth = 0
+    referenced_files: List[str] = []
+    refs_dir_exists = False
+    refs_dir_resolved: Optional[str] = None
+    if references_dir is not None:
+        refs_dir_resolved = str(references_dir)
+        if references_dir.exists() and references_dir.is_dir():
+            refs_dir_exists = True
+            for md_path in sorted(references_dir.glob("*.md")):
+                if md_path.name in body_text:
+                    referenced_files.append(md_path.name)
+            fanout_depth = len(referenced_files)
+        else:
+            LOGGER.warning(
+                "references_dir %s does not exist or is not a directory; "
+                "fanout_depth defaults to 0 (documented degenerate path)",
+                references_dir,
+            )
+
+    value = context_rot_risk(body_tokens, fanout_depth, typical_window)
+    derivation: Dict[str, Any] = {
+        "method": (
+            "context_rot_risk(body_tokens, fanout_depth, typical_window=200_000); "
+            "formula = clip(body_tokens/typical_window + 0.05*fanout_depth, 0, 1)"
+        ),
+        "body_tokens": body_tokens,
+        "body_tokens_backend": backend,
+        "typical_window": typical_window,
+        "fanout_depth": fanout_depth,
+        "referenced_files": referenced_files,
+        "references_dir": refs_dir_resolved,
+        "references_dir_exists": refs_dir_exists,
+        "skill_md_path": str(skill_md_path),
+        "value_c5": value,
+    }
+    return value, derivation
+
+
+# ─────────── Round 7: D2/C6 scope_overlap_score (spec §3.1 D2/C6) ───────────
+#
+# C6 is a Jaccard-similarity metric that compares the Si-Chip SKILL.md
+# description against neighbour SKILL.md descriptions in the workspace.
+# The value surfaces the "description competition" surface area that
+# Round 9 R8 widens into R8_description_competition_index.
+#
+# C6 formula (Round 6 next_action_plan a2):
+#   1. Tokenise each description (NFKD + lowercase + strip ASCII-
+#      non-alphanumeric + split whitespace).
+#   2. Filter a minimal English stopword list.
+#   3. Compute Jaccard = |A ∩ B| / |A ∪ B| per pair.
+#   4. C6 = max(Jaccard) across the neighbour set (conservative —
+#      surfaces the WORST description-competition offender).
+
+DEFAULT_STOPWORDS: FrozenSet[str] = frozenset({
+    "the",
+    "a",
+    "an",
+    "when",
+    "use",
+    "this",
+    "for",
+    "it",
+    "with",
+    "to",
+    "of",
+    "and",
+    "or",
+    "in",
+    "on",
+    "is",
+    "are",
+    "be",
+})
+
+
+_SCOPE_NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
+
+
+def tokenize_description(
+    text: str,
+    stopwords: Optional[FrozenSet[str]] = None,
+) -> Set[str]:
+    """Normalise and tokenise a SKILL.md description string.
+
+    Pipeline:
+      * NFKD-normalise (compatibility decomposition so Unicode
+        characters split cleanly into ASCII + combining marks).
+      * Lowercase.
+      * Replace every non-ASCII-alphanumeric run with a single space.
+      * Split on whitespace and drop empty tokens.
+      * Drop tokens in ``stopwords`` (default: :data:`DEFAULT_STOPWORDS`).
+
+    Args:
+        text: Raw description text.
+        stopwords: Optional stopword set; defaults to the minimal
+            English set declared in :data:`DEFAULT_STOPWORDS`. Pass
+            ``frozenset()`` to disable stopword filtering explicitly.
+
+    Returns:
+        A ``set[str]`` of surviving tokens. Empty input yields an
+        empty set (workspace rule: deterministic, no silent error).
+
+    >>> sorted(tokenize_description("Use when profiling: test."))
+    ['profiling', 'test']
+    >>> tokenize_description("") == set()
+    True
+    """
+
+    if stopwords is None:
+        stopwords = DEFAULT_STOPWORDS
+
+    if not text:
+        return set()
+
+    normalised = unicodedata.normalize("NFKD", text)
+    lowered = normalised.lower()
+    cleaned = _SCOPE_NON_ALNUM_RE.sub(" ", lowered)
+    tokens = {t for t in cleaned.split() if t and t not in stopwords}
+    return tokens
+
+
+def jaccard_similarity(a: Set[str], b: Set[str]) -> float:
+    """Compute the Jaccard similarity ``|A ∩ B| / |A ∪ B|``.
+
+    Empty-vs-empty returns ``0.0`` by convention (documented: the
+    workspace cannot have "competition" between two nothings).
+
+    Args:
+        a: First token set.
+        b: Second token set.
+
+    Returns:
+        A float in ``[0.0, 1.0]``.
+
+    >>> jaccard_similarity({"a", "b"}, {"a", "b"})
+    1.0
+    >>> jaccard_similarity({"a", "b"}, {"c", "d"})
+    0.0
+    >>> round(jaccard_similarity({"a", "b", "c"}, {"b", "c", "d"}), 4)
+    0.5
+    >>> jaccard_similarity(set(), set())
+    0.0
+    """
+
+    if not a and not b:
+        return 0.0
+    union = a | b
+    if not union:
+        return 0.0
+    intersection = a & b
+    return len(intersection) / len(union)
+
+
+def skill_md_scope_overlap_score(
+    skill_md_path: Path,
+    neighbor_skill_md_paths: Iterable[Path],
+    stopwords: Optional[FrozenSet[str]] = None,
+) -> Tuple[Optional[float], List[Dict[str, Any]]]:
+    """Compute the C6 scope_overlap_score for a SKILL.md.
+
+    Extracts Si-Chip's SKILL.md description, tokenises it, and computes
+    Jaccard similarity against each neighbour SKILL.md's description.
+    Returns ``(max_jaccard, pairs_list)`` where ``pairs_list`` is
+    sorted by ``jaccard`` DESCENDING. Missing neighbour files are
+    skipped with a ``LOGGER.warning`` (workspace rule: log + continue,
+    never silently swallow — the caller sees every skip in the
+    derivation record).
+
+    Returns ``(None, [])`` when the Si-Chip SKILL.md has no
+    description field (documented degenerate path).
+
+    Raises:
+        FileNotFoundError: when ``skill_md_path`` is missing.
+    """
+
+    if not skill_md_path.exists():
+        raise FileNotFoundError(f"SKILL.md path not found: {skill_md_path}")
+
+    text = skill_md_path.read_text(encoding="utf-8")
+    meta_text, _body_text = split_frontmatter(text)
+    if not meta_text:
+        LOGGER.warning(
+            "SKILL.md at %s has no frontmatter; C6 cannot be computed",
+            skill_md_path,
+        )
+        return None, []
+
+    base_desc = extract_description_from_frontmatter(meta_text)
+    if base_desc is None:
+        LOGGER.warning(
+            "SKILL.md at %s has no description field; C6 cannot be computed",
+            skill_md_path,
+        )
+        return None, []
+
+    base_tokens = tokenize_description(base_desc, stopwords=stopwords)
+
+    pairs: List[Dict[str, Any]] = []
+    for neighbor_path in neighbor_skill_md_paths:
+        if not neighbor_path.exists():
+            LOGGER.warning(
+                "neighbor SKILL.md at %s is missing; skipping",
+                neighbor_path,
+            )
+            pairs.append({
+                "neighbor_path": str(neighbor_path),
+                "jaccard": None,
+                "error": "missing",
+            })
+            continue
+        try:
+            ntext = neighbor_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            LOGGER.warning(
+                "failed to read neighbor %s: %s; skipping",
+                neighbor_path,
+                exc,
+            )
+            pairs.append({
+                "neighbor_path": str(neighbor_path),
+                "jaccard": None,
+                "error": f"read-failure: {exc}",
+            })
+            continue
+        n_meta, _ = split_frontmatter(ntext)
+        n_desc = extract_description_from_frontmatter(n_meta) if n_meta else None
+        if n_desc is None:
+            LOGGER.warning(
+                "neighbor %s has no description field; recording jaccard=0.0",
+                neighbor_path,
+            )
+            pairs.append({
+                "neighbor_path": str(neighbor_path),
+                "jaccard": 0.0,
+                "neighbor_tokens_count": 0,
+            })
+            continue
+        n_tokens = tokenize_description(n_desc, stopwords=stopwords)
+        j = jaccard_similarity(base_tokens, n_tokens)
+        pairs.append({
+            "neighbor_path": str(neighbor_path),
+            "jaccard": j,
+            "neighbor_tokens_count": len(n_tokens),
+        })
+
+    scored_pairs = [p for p in pairs if isinstance(p.get("jaccard"), (int, float))]
+    if not scored_pairs:
+        LOGGER.warning(
+            "no scorable neighbors for %s; C6 defaults to 0.0 (no competition observed)",
+            skill_md_path,
+        )
+        return 0.0, pairs
+
+    max_jaccard = max(p["jaccard"] for p in scored_pairs)
+    # Sort pairs by jaccard DESC (None/error values go last).
+    pairs_sorted = sorted(
+        pairs,
+        key=lambda p: (
+            0 if isinstance(p.get("jaccard"), (int, float)) else 1,
+            -(p["jaccard"] if isinstance(p.get("jaccard"), (int, float)) else 0),
+        ),
+    )
+    return float(max_jaccard), pairs_sorted
 
 
 def main(argv: Optional[list] = None) -> int:

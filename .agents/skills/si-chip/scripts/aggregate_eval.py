@@ -42,19 +42,20 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import glob
 import json
 import logging
 import statistics
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import yaml
 
 LOGGER = logging.getLogger("si_chip.aggregate_eval")
 
-SCRIPT_VERSION = "0.1.2"
+SCRIPT_VERSION = "0.1.3"
 
 REQUIRED_KEYS: Tuple[str, ...] = (
     "pass_rate",
@@ -705,6 +706,187 @@ def hoist_u3_setup_steps_count(
     return count, derivation
 
 
+# ─────────── Round 7 D2 context_economy hoists (C5 + C6) ───────────
+#
+# Spec §3.1 D2:
+#   C5_context_rot_risk = deterministic proxy based on (body_tokens /
+#     typical_context_window) + 0.05 * reference_fanout_depth, clipped to
+#     [0.0, 1.0]. Computed by count_tokens.context_rot_risk via
+#     count_tokens.skill_md_context_rot_risk. Fanout is the count of
+#     *.md files under references_dir that the SKILL.md body literally
+#     references by filename (Round 7 task spec §1).
+#   C6_scope_overlap_score = max Jaccard similarity between Si-Chip
+#     SKILL.md description tokens and neighbor skill SKILL.md description
+#     tokens. Computed by count_tokens.skill_md_scope_overlap_score
+#     (Round 7 task spec §2).
+#
+# Both hoists are degenerate-path-safe and NEVER silently substitute a
+# placeholder — they return None-plus-error-record on any failure so the
+# aggregator preserves the §3.2 explicit-null contract and workspace
+# "No Silent Failures" rule.
+
+
+def hoist_c5_context_rot_risk(
+    skill_md_path: Optional[Path],
+    references_dir: Optional[Path],
+    typical_window: int = 200_000,
+    *,
+    strict: bool = False,
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist C5 from a SKILL.md + its references directory.
+
+    Spec §3.1 D2/C5 ``context_rot_risk`` (float in ``[0.0, 1.0]``):
+    the deterministic approximation documented in Round 7 task spec §1.
+
+    Returns ``(value, derivation_dict)``. ``value`` is ``None`` when
+    ``skill_md_path`` is not provided or when the helper fails (with
+    a logged warning). Permissive default: unexpected exceptions are
+    caught, logged, and mapped to ``(None, {"error": ...})``. Pass
+    ``strict=True`` to re-raise (useful for unit tests).
+
+    >>> # Smoke check: None path → None return (documented degenerate path).
+    >>> v, d = hoist_c5_context_rot_risk(None, None)
+    >>> v is None and "error" in d
+    True
+    """
+
+    if skill_md_path is None:
+        return None, {
+            "error": "no --skill-md provided",
+            "remediation": "pass --skill-md to aggregate_eval.py",
+        }
+
+    from count_tokens import skill_md_context_rot_risk  # local import
+
+    try:
+        value, deriv = skill_md_context_rot_risk(
+            skill_md_path, references_dir, typical_window
+        )
+    except FileNotFoundError:
+        raise  # re-raise: explicit missing-path failure bubbles per "No Silent Failures".
+    except Exception as exc:  # pragma: no cover - defensive
+        LOGGER.warning("hoist_c5 unexpected error: %s", exc)
+        if strict:
+            raise
+        return None, {
+            "error": f"hoist_c5 failed: {exc}",
+            "skill_md_path": str(skill_md_path),
+        }
+
+    if value is None:
+        return None, deriv
+
+    if not (0.0 <= value <= 1.0):
+        LOGGER.warning("C5 out of range after hoist: %s", value)
+        deriv["range_sanity_check"] = f"FAIL (C5 {value} not in [0.0, 1.0])"
+        if strict:
+            raise ValueError(f"C5 out of [0.0, 1.0]: {value}")
+        return None, deriv
+
+    deriv["range_sanity_check"] = f"PASS (C5 {value} in [0.0, 1.0])"
+    deriv["v1_baseline_gate"] = "n/a (C5 has no §4.1 hard threshold; informational)"
+    return float(value), deriv
+
+
+def hoist_c6_scope_overlap_score(
+    skill_md_path: Optional[Path],
+    neighbor_skill_md_paths: Optional[Iterable[Path]],
+    *,
+    strict: bool = False,
+) -> Tuple[Optional[float], Dict[str, Any]]:
+    """Hoist C6 from a SKILL.md vs a neighbor SKILL.md list.
+
+    Spec §3.1 D2/C6 ``scope_overlap_score`` (float in ``[0.0, 1.0]``):
+    max Jaccard similarity between the base SKILL.md description and
+    each neighbor's description; computed by
+    :func:`count_tokens.skill_md_scope_overlap_score`.
+
+    Returns ``(value, derivation_dict)`` where ``derivation_dict``
+    includes every neighbor pair with per-pair jaccard + an
+    ``error`` entry for missing / unreadable neighbors (logged via
+    ``LOGGER.warning`` — never silently swallowed per workspace rule).
+
+    Permissive default: unexpected exceptions are caught, logged, and
+    mapped to ``(None, {"error": ...})``. Pass ``strict=True`` to
+    re-raise.
+
+    >>> v, d = hoist_c6_scope_overlap_score(None, None)
+    >>> v is None and "error" in d
+    True
+    """
+
+    if skill_md_path is None:
+        return None, {
+            "error": "no --skill-md provided",
+            "remediation": "pass --skill-md to aggregate_eval.py",
+        }
+
+    neighbor_list: List[Path] = list(neighbor_skill_md_paths or [])
+    if not neighbor_list:
+        LOGGER.warning(
+            "hoist_c6: no neighbor SKILL.md paths supplied; C6 defaults to 0.0"
+        )
+        return 0.0, {
+            "method": "skill_md_scope_overlap_score(skill_md, neighbors); empty neighbor list",
+            "n_neighbors_attempted": 0,
+            "n_neighbors_scored": 0,
+            "pairs": [],
+            "range_sanity_check": "PASS (C6 0.0 in [0.0, 1.0])",
+        }
+
+    from count_tokens import skill_md_scope_overlap_score  # local import
+
+    try:
+        value, pairs = skill_md_scope_overlap_score(
+            skill_md_path, neighbor_list
+        )
+    except FileNotFoundError:
+        raise  # explicit missing-base-path failure bubbles per "No Silent Failures".
+    except Exception as exc:  # pragma: no cover - defensive
+        LOGGER.warning("hoist_c6 unexpected error: %s", exc)
+        if strict:
+            raise
+        return None, {
+            "error": f"hoist_c6 failed: {exc}",
+            "skill_md_path": str(skill_md_path),
+        }
+
+    if value is None:
+        return None, {
+            "error": "no scorable neighbors or base description missing",
+            "n_neighbors_attempted": len(neighbor_list),
+            "pairs": pairs,
+        }
+
+    if not (0.0 <= value <= 1.0):  # pragma: no cover - should not happen by construction
+        LOGGER.warning("C6 out of range: %s", value)
+        if strict:
+            raise ValueError(f"C6 out of [0.0, 1.0]: {value}")
+        return None, {
+            "error": f"C6 out of [0.0, 1.0]: {value}",
+            "pairs": pairs,
+        }
+
+    scored_pairs = [p for p in pairs if isinstance(p.get("jaccard"), (int, float))]
+    skipped_pairs = [p for p in pairs if not isinstance(p.get("jaccard"), (int, float))]
+    derivation: Dict[str, Any] = {
+        "method": (
+            "max(jaccard_similarity(tokenize(base_desc), tokenize(neighbor_desc))) "
+            "across neighbor SKILL.md set; helper = count_tokens."
+            "skill_md_scope_overlap_score"
+        ),
+        "skill_md_path": str(skill_md_path),
+        "n_neighbors_attempted": len(neighbor_list),
+        "n_neighbors_scored": len(scored_pairs),
+        "n_neighbors_skipped": len(skipped_pairs),
+        "pairs": pairs,
+        "max_jaccard": value,
+        "range_sanity_check": f"PASS (C6 {value} in [0.0, 1.0])",
+        "v1_baseline_gate": "n/a (C6 has no §4.1 hard threshold; informational)",
+    }
+    return float(value), derivation
+
+
 def hoist_u4_time_to_first_success(
     install_telemetry: Optional[Dict[str, Any]],
 ) -> Tuple[Optional[float], Dict[str, Any]]:
@@ -841,6 +1023,8 @@ def build_report(
     router_floor_report: Optional[Dict[str, Any]] = None,
     skill_md_path: Optional[Path] = None,
     install_telemetry: Optional[Dict[str, Any]] = None,
+    references_dir: Optional[Path] = None,
+    neighbor_skill_md_paths: Optional[Iterable[Path]] = None,
 ) -> Dict[str, Any]:
     """Compute the metrics_report dict from collected rows.
 
@@ -881,6 +1065,15 @@ def build_report(
       invocation to first ``[OK] Installed`` line (from install_telemetry
       payload; dry-run floor estimate in CI/offline envs). Range
       ``[0.0, 60.0]``.
+
+    Round 7 (task spec §4) hoists D2 C5 / C6:
+
+    * C5_context_rot_risk = clip(body_tokens / typical_window
+      + 0.05 * fanout_depth, 0.0, 1.0); ``fanout_depth`` = count of
+      ``*.md`` files under ``references_dir`` that the SKILL.md body
+      literally references by filename. Range ``[0.0, 1.0]``.
+    * C6_scope_overlap_score = max Jaccard across neighbor SKILL.md
+      description pairs (token-set overlap). Range ``[0.0, 1.0]``.
 
     All hoisted fields stay ``null`` when their data source is
     degenerate; the aggregator MUST NOT silently substitute a
@@ -948,6 +1141,16 @@ def build_report(
     u4_value, u4_derivation = hoist_u4_time_to_first_success(install_telemetry)
     metrics["usage_cost"]["U4_time_to_first_success"] = u4_value
 
+    # Round 7 (task spec §4): hoist D2 C5 / C6.
+    c5_value, c5_derivation = hoist_c5_context_rot_risk(
+        skill_md_path, references_dir
+    )
+    metrics["context_economy"]["C5_context_rot_risk"] = c5_value
+    c6_value, c6_derivation = hoist_c6_scope_overlap_score(
+        skill_md_path, neighbor_skill_md_paths
+    )
+    metrics["context_economy"]["C6_scope_overlap_score"] = c6_value
+
     devolaflow_version = _safe_devolaflow_version()
 
     report = {
@@ -975,6 +1178,8 @@ def build_report(
             "u2_derivation": u2_derivation,
             "u3_derivation": u3_derivation,
             "u4_derivation": u4_derivation,
+            "c5_derivation": c5_derivation,
+            "c6_derivation": c6_derivation,
         },
     }
     return report
@@ -1093,6 +1298,24 @@ def main(argv: Optional[List[str]] = None) -> int:
             "(Round 6 Edit C)."
         ),
     )
+    parser.add_argument(
+        "--references-dir",
+        default=".agents/skills/si-chip/references",
+        help=(
+            "Optional SKILL.md references directory (default: "
+            ".agents/skills/si-chip/references). Used by the C5 hoist to "
+            "derive reference_fanout_depth (Round 7)."
+        ),
+    )
+    parser.add_argument(
+        "--neighbor-skills-glob",
+        default="/root/.claude/skills/lark-*/SKILL.md",
+        help=(
+            "Optional glob for neighbor SKILL.md paths. Used by the C6 "
+            "scope_overlap_score hoist; defaults to the 20+ lark-* family. "
+            "Set to an empty string to disable C6 hoisting (Round 7)."
+        ),
+    )
     parser.add_argument("--verbose", action="store_true", help="Set log level to INFO.")
     args = parser.parse_args(argv)
 
@@ -1110,6 +1333,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     install_telemetry_path = (
         Path(args.install_telemetry).resolve() if args.install_telemetry else None
     )
+    references_dir: Optional[Path] = None
+    if args.references_dir:
+        references_dir = Path(args.references_dir).resolve()
+    neighbor_paths: List[Path] = []
+    if args.neighbor_skills_glob:
+        # Keep glob-resolved paths as-is (no symlink resolution) so the
+        # derivation record matches the caller's invocation surface.
+        neighbor_paths = [Path(p) for p in sorted(glob.glob(args.neighbor_skills_glob))]
+        LOGGER.info("C6 neighbor glob matched %d path(s)", len(neighbor_paths))
 
     with_runs = _walk_runs(runs_dir)
     base_runs = _walk_runs(baseline_dir)
@@ -1130,6 +1362,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         router_floor_report=router_floor_report,
         skill_md_path=skill_md,
         install_telemetry=install_telemetry,
+        references_dir=references_dir,
+        neighbor_skill_md_paths=neighbor_paths,
     )
 
     template_metrics = _load_template_metrics(Path(args.templates_dir).resolve())
