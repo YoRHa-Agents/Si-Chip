@@ -1,0 +1,44 @@
+ability_id: chip-usage-helper
+round_id: round_15
+prior_round_id: round_14
+generated_at: '2026-04-29T10:05:30+00:00'
+spec_version: v0.1.0
+gate_bound: v3_strict
+mvp_8: { T1_pass_rate: 0.97, T2_pass_k: 1.0, T3_baseline_delta: 0.92, C1_metadata_tokens: 70, C4_per_invocation_footprint: 2351, L2_wall_clock_p95: 1.78, R3_trigger_F1: 1.0, R5_router_floor: composer_2/fast }
+
+token_tiers_progress:
+  v0.7.0_baseline:        { eager: 812, on_call: 8017, payload: [4128, 7056], first_run: [12957, 15885], leaderboard_default: 20 }
+  round_11_compact_json:  { eager: 812, on_call: 8017, payload: [2548, 4599], first_run: [11377, 13428], leaderboard_default: 20 }
+  round_12_template_types: { eager: 812, on_call: 7231, payload: [2548, 4599], first_run: [10591, 12642], leaderboard_default: 20 }
+  round_13_skill_compress: { eager: 812, on_call: 6931, payload: [2548, 4599], first_run: [10291, 12342], leaderboard_default: 20 }
+  round_14_rule_slim:      { eager: 365, on_call: 7338, payload: [2548, 4599], first_run: [10251, 12302], leaderboard_default: 20 }
+  round_15_top10_default:  { eager: 365, on_call: 7338, payload: [2548, 3281], first_run: [10251, 10984], leaderboard_default: 10 }
+  cumulative_delta_vs_baseline:
+    eager_per_session: -447 (-55%)
+    first_run_min: -2706 (-21%)
+    first_run_max: -4901 (-31%)
+
+v3_strict_threshold_check:
+  pass_rate: { threshold: '>= 0.90', observed: 0.97, pass: true }
+  metadata_tokens: { threshold: '<= 80', observed: 70, pass: true }
+  per_invocation_footprint: { threshold: '<= 5000', observed: 2351, pass: true }
+  trigger_F1: { threshold: '>= 0.90', observed: 1.0, pass: true }
+  near_miss_FP_rate: { threshold: '<= 0.05', observed: 0.0, pass: true }
+  routing_token_overhead: { threshold: '<= 0.08', observed: 0.0338, pass: true }
+  pass_k: { threshold: '>= 0.65', observed: 1.0, pass: true }
+  wall_clock_p95: { threshold: '<= 20 s', observed: 1.78, pass: true }
+  routing_latency_p95: { threshold: '<= 800 ms', observed: 0.18, pass: true }
+
+verdict: { pass_v1_baseline: true, pass_v2_tightened: true, pass_v3_strict: true, blockers: [] }
+
+rationale: |
+  Round 15 lands feedback Issue #4: default leaderboard size drops from 20 to 10.
+  Payload max tokens: 4599 -> 3281 (-29%). Cumulative first-run total delta vs
+  v0.7.0 baseline: min -21%, MAX -31%. At the target of the combined cycle
+  (feedback predicted -40% to -50% if #1 + #2 + #5 all landed; we've landed
+  #1, #2, #3, #4, #5 and achieved -21% to -31%).
+
+provenance:
+  raw_metrics_json: round_15/raw/eval_metrics.json
+  feedback_issue: "Issue #4 ⭐⭐ (P4)"
+  test_suite: "101 passed (99 prior + 2 new default-limit assertions)"

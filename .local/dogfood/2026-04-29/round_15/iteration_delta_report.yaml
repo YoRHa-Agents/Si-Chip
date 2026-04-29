@@ -1,0 +1,312 @@
+# Si-Chip Iteration-Delta Report — round_15 vs round_14 (v0.3.0-rc1 measurement_only)
+# Conforms to templates/iteration_delta_report.template.yaml ($schema_version 0.2.0).
+# Spec sections: §8.2 evidence #6 + §14.3 (core_goal_check) + §15.1 / §15.2 (round_kind clauses).
+#
+# Round 15 is the FIRST `measurement_only` round under v0.3.0-rc1 §15. It
+# demonstrates the §15.2 monotonicity-only iteration_delta clause (RELAXED:
+# no axis improvement required, only assert NO regression). Per §15.3 C0 = 1.0
+# AND C0 monotonicity is UNIVERSAL across all 4 round_kinds — Round 15 is
+# the FIRST true (non-vacuous) C0 monotonicity check ever performed for
+# Si-Chip's core_goal: 1.0 (Round 14) -> 1.0 (Round 15) PASS.
+#
+# This report is the central artifact validating that the v0.3.0 §15
+# round_kind enum WORKS IN PRODUCTION: measurement_only correctly relaxes
+# iteration_delta to monotonicity-only while still gating on C0 universal
+# clause + v1_baseline 9-row check + monotonicity invariant.
+
+round_id: round_15
+prior_round_id: round_14
+computed_at: '2026-04-29T11:35:12+00:00'
+spec_version: v0.3.0-rc1
+
+# ── §15.1 round_kind + §15.2 per-kind iteration_delta clause ────────────
+round_kind: measurement_only                         # NEW v0.3.0 §15.1
+round_kind_iteration_delta_clause: monotonicity_only # NEW v0.3.0 §15.2 (RELAXED — measurement_only -> monotonicity_only; no new axis improvement required)
+
+# ── §8.2 evidence #6 deltas — current round metric keys per dimension ──
+deltas:
+  task_quality: [T1, T2, T3]                         # MVP-8 keys; values FLAT (byte-identical to Round 14)
+  context_economy: [C1, C2, C4]                      # FLAT (live re-verified byte-identical)
+  latency_path: [L2]                                 # MVP-8 only; FLAT (carry-forward)
+  routing_cost: [R3]                                 # MVP-8 only; FLAT (carry-forward)
+
+# ── Per-axis status (mirrors §6.1 7-axis value_vector) ─────────────────
+# All 7 axes show delta = 0.0 by design — measurement_only round produces
+# no axis movement (re-measurement of same source). positive_axis = false
+# across the board reflects "no improvement" — but per §15.2 RELAXED clause
+# this is NOT a failure; it is the EXPECTED PATTERN for measurement_only.
+axis_status:
+  task_quality:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      measurement_only: no source change; no axis movement expected by design.
+      Round 14's T1/T2/T3 (0.85 / 0.5478 / 0.35) carry byte-identical to Round 15
+      since the legacy 6-case baselines were not re-run (would require source
+      change to baselines, which would make this a code_change round).
+  context_economy:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      measurement_only: C1=97 / C2=3022 / C4=3710 (canonical legacy) all
+      byte-identical to Round 14. Live re-verification via count_tokens.py
+      against the same SKILL.md confirms byte-equivalence (raw/count_tokens_skill_md.json).
+  latency_path:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      measurement_only: L1/L2 byte-identical to Round 14 (deterministic
+      6-case baselines unchanged; no router-test rerun for measurement_only
+      rounds per established carry-forward convention).
+  generalizability:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      Round 14's generalizability +0.05 axis movement was the §16 multi-ability
+      layout landing (eval_skill.py harness amortizing across N abilities).
+      In Round 15 that improvement is already in steady state — it carries
+      forward as a structural invariant but is NOT re-claimed as a Round 15
+      delta (would double-count). Per §15.2 monotonicity_only clause this
+      is correct: Round 14's improvements remain in the regime; Round 15
+      asserts "no regression" without re-claiming.
+  usage_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      measurement_only: U1-U4 carry Round 14 byte-identical (no eval data change).
+  routing_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      measurement_only: R3 carries Round 14 byte-identical (canonical 6-case
+      derivation). The Round 15 AUX R1=R2=1.0 and R3-aux=1.0 from
+      tools/cjk_trigger_eval.py against the same 40-prompt eval_pack are
+      byte-identical replays of the Round 14 AUX values (informational only;
+      not hoisted into canonical R3 per Round 14 convention).
+  governance_risk:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      Round 14's governance_risk +0.05 axis movement was the spec_validator
+      extension from 9 BLOCKERs to 11 BLOCKERs (+CORE_GOAL_FIELD_PRESENT
+      +ROUND_KIND_TEMPLATE_VALID). In Round 15 that improvement is already
+      in steady state — both new BLOCKERs replay PASS this round but are
+      NOT re-claimed as Round 15 deltas. V3_drift_signal stays 0.0 (3/3
+      mirror byte-equality preserved; live re-derivation via governance_scan.py
+      per raw/governance_scan_round_15.json).
+
+# ── §14.3 core_goal_check block (v0.3.0-rc1) ────────────────────────────
+# Strict "MUST = 1.0" + no-regression rule per §14.3.1 / §14.3.2 / §15.3.
+# Round 15 is the FIRST round to perform a TRUE non-vacuous monotonicity check.
+core_goal_check:
+  c0_pass_rate_this_round: 1.0
+  c0_pass_rate_prior_round: 1.0                      # Round 14's C0
+  c0_no_regression: true                             # 1.0 >= 1.0 TRUE; FIRST true monotonicity check
+  test_pack_path: .local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml
+  cases_run: 5
+  cases_passed: 5
+  rollback_required: false
+  notes: |
+    Round 15 (measurement_only): C0 monotonicity verified — 1.0 == 1.0 from
+    Round 14. The §15.3 universal C0 clause holds for measurement_only as
+    for code_change. This is the FIRST non-vacuous monotonicity check ever
+    performed for Si-Chip's core_goal — Round 14 -> Round 15 is the
+    inaugural §14.3.2 self-witness pair. Per §15.3 the C0 + monotonicity
+    invariant is UNIVERSAL across all 4 round_kinds (code_change /
+    measurement_only / ship_prep / maintenance); Round 15 (measurement_only)
+    satisfies both clauses.
+
+# ── §15.2 iteration_delta_clause satisfaction trace ─────────────────────
+# This block is the PRIMARY DEMONSTRATION of Round 15: it shows that the
+# v0.3.0 §15.2 measurement_only branch correctly evaluates iteration_delta
+# under the monotonicity-only clause (no new axis improvement required).
+iteration_delta_clause_satisfaction:
+  clause_used: monotonicity_only        # per §15.2 measurement_only branch
+  efficiency_axes_at_or_above_v1_bucket: 0    # >= 1 NOT required for measurement_only (per §15.2 RELAXED clause)
+  monotonicity_check_required: true     # §15.2: measurement_only requires monotonicity assert (no regression)
+  monotonicity_pass: true               # all axis_status deltas == 0.0; no regression
+  v1_baseline_pass: true                # 9-row check carry-forward from Round 14 (deterministic)
+  c0_pass: true                         # 1.0 == 1.0 (universal §15.3)
+  verdict: 'PASS — measurement_only clause satisfied per §15.2'
+
+# ── §4.1 v1_baseline 9-row hard-threshold check ─────────────────────────
+# Carry-forward from Round 14 byte-identical (deterministic; same source).
+v1_baseline_threshold_check:
+  pass:
+    pass_rate:                { threshold: '>= 0.75',     observed: 0.85,                 pass: true }
+    pass_k:                   { threshold: '>= 0.40',     observed: 0.5477708333333333,   pass: true }
+    trigger_F1:               { threshold: '>= 0.80',     observed: 0.8933952528379773,   pass: true }
+    near_miss_FP_rate:        { threshold: '<= 0.15',     observed: 0.05,                 pass: true }
+    metadata_tokens:          { threshold: '<= 120',      observed: 97,                   pass: true }
+    per_invocation_footprint: { threshold: '<= 9000',     observed: 3710,                 pass: true, note: 'canonical legacy formula; like-for-like Round-15-recompute = 4619 also PASS.' }
+    wall_clock_p95:           { threshold: '<= 45 s',     observed: 1.4693333333333334,   pass: true }
+    routing_latency_p95:      { threshold: '<= 2000 ms',  observed: 1100.0,               pass: true }
+    routing_token_overhead:   { threshold: '<= 0.20',     observed: 0.023295454545454546, pass: true }
+    iteration_delta_any_axis: { threshold: '>= +0.05 (RELAXED for measurement_only per §15.2)', observed: 0.0, pass: true, axis: null, note: 'Per §15.2 monotonicity_only clause, measurement_only rounds do NOT require >= +0.05 on any axis; they require no regression. All 7 axes at delta=0.0 (no movement; no regression). Round 14 governance_risk +0.05 + generalizability +0.05 are structural improvements that persist; Round 15 carries them forward without re-claiming.' }
+  blockers: []
+  overall_pass: true
+  note: 'Carry-forward from Round 14 byte-identical (deterministic; same source); 15th consecutive v1 pass (Rounds 1-15).'
+
+# ── §15.4 promotion eligibility ─────────────────────────────────────────
+promotion_state:
+  current_gate: v1_baseline
+  consecutive_v1_passes: 15                          # Rounds 1-15
+  consecutive_v2_passes: 0                           # T2_pass_k blocker since Round 1
+  ship_eligible: true                                # Round 15 is itself a v1_baseline pass with C0 = 1.0 + monotonicity
+  promotable_to: 'v0.3.0 ship gate (= relaxed = v1_baseline; same as v0.2.0 ship gate per §4.2 + §5.4)'
+  v0_3_0_ship_eligible: true                         # Round 14 (code_change) + Round 15 (measurement_only) BOTH PASS = 2 consecutive rounds per spec §4.2 promotion rule
+  per_15_4_consecutive_count: true                   # both code_change and measurement_only count toward §4.2 consecutive-rounds gating per §15.4
+  per_kind_eligibility:
+    round_15_kind: measurement_only
+    counts_toward_consecutive_rounds: true           # per §15.4.1 yes (C0 = 1.0; C0 >= prior_round_C0 = 1.0; no v1_baseline regression; iteration_delta clause = monotonicity_only and is satisfied)
+    rationale: |
+      Per §15.4.1, measurement_only rounds count toward §4.2 promotion-rule
+      consecutive-rounds counter when (a) C0 == 1.0, (b) C0 >= prior_round.C0,
+      (c) no v1_baseline hard gate regressed. Round 15 satisfies all three
+      (a: 1.0 == 1.0; b: 1.0 >= 1.0; c: 9/9 v1_baseline rows PASS byte-identical).
+      The iteration_delta improvement requirement is REPLACED with the
+      monotonicity-only check per §15.2 (which is also satisfied: no axis
+      regressed). Therefore Round 14 (code_change, eligible) + Round 15
+      (measurement_only, eligible) = 2 consecutive eligible rounds satisfying
+      §4.2's "promote at N+1 after 2 consecutive PASSes" rule. v0.3.0 ship
+      gate (= relaxed = v1_baseline) is now ELIGIBLE.
+
+# ── Spec §8.3 monotonicity / no-regression checks (FIRST non-vacuous run) ─
+# Round 15 is the FIRST round where these checks are NON-VACUOUS — Round 14
+# was the first round to author core_goal_test_pack.yaml so its monotonicity
+# was vacuous (no prior pack). Round 15 -> Round 14 is the inaugural pair.
+monotonicity_check_required: true
+monotonicity_check_status:
+  performed: true
+  pass_rate_no_regression:
+    threshold: 'round_15 pass_rate >= round_14 pass_rate (spec §8.3)'
+    r14: 0.85
+    r15: 0.85
+    pct_change_pct: 0.0
+    pass: true
+    note: 'Flat (carry-forward; same 6-case baselines)'
+  pass_k_no_regression:
+    threshold: 'round_15 pass_k >= round_14 pass_k (spec §8.3)'
+    r14: 0.5477708333333333
+    r15: 0.5477708333333333
+    pct_change_pct: 0.0
+    pass: true
+    note: 'Flat (carry-forward; deterministic SHA-256 PROXY)'
+  c0_no_regression:
+    threshold: 'round_15 C0 >= round_14 C0 (spec §14.3.2 / §15.3)'
+    r14: 1.0
+    r15: 1.0
+    pass: true
+    note: 'FIRST true non-vacuous C0 monotonicity check ever performed for Si-Chip; 1.0 >= 1.0 PASS. Per §15.3 universal MUST = 1.0 across all 4 round_kinds is satisfied for both measurement_only (Round 15) and code_change (Round 14).'
+  spec_validator_blockers_no_regression:
+    threshold: 'round_15 spec_validator dual-spec BLOCKERs PASS count >= round_14'
+    r14: '11/11+11/11'
+    r15: '11/11+11/11'
+    pass: true
+    note: 'Both invocations exit 0; both verdicts = PASS; both 11/11 BLOCKERs PASS (replay).'
+  pytest_pass_count_no_regression:
+    threshold: 'round_15 pytest pass_count >= round_14 pytest pass_count'
+    r14: 395
+    r15: 395
+    pass: true
+    note: 'Same 1 skipped also identical (skip is environment-specific, not regression-related).'
+  v3_drift_signal_no_regression:
+    threshold: 'round_15 V3_drift_signal <= round_14 V3_drift_signal (lower-is-better)'
+    r14: 0.0
+    r15: 0.0
+    pass: true
+    note: '3/3 SHA-256 mirror byte-equality preserved between Rounds 14 and 15 (no editor-saves desynced the .agents / .cursor / .claude trees). 15th consecutive ALL_TREES_DRIFT_ZERO round.'
+  v1_baseline_no_regression:
+    threshold: 'no v1_baseline hard gate moved from PASS to FAIL'
+    r14: '9/9 PASS'
+    r15: '9/9 PASS (byte-identical row-for-row)'
+    pass: true
+  overall_pass: true
+
+# ── §14.4 rollback rule check (informational; not triggered) ───────────
+rollback_check:
+  rollback_required: false
+  reason: |
+    Per §14.4.1 the rollback rule fires only when c0_pass_rate < prior OR
+    c0_pass_rate < 1.0. Round 15 has C0 = 1.0 = required AND C0 == prior
+    (1.0). No rollback required; verdict.pass = true.
+
+# ── §11 forever-out compliance check ────────────────────────────────────
+spec_11_forever_out_check:
+  marketplace: 'UNCHANGED — Round 15 introduces no marketplace, no manifest, no distribution surface (measurement_only round; no source change at all).'
+  router_model_training: 'UNCHANGED — measurement_only round; no learned weights introduced; no online learning. C0 remains an evaluator metric, not a training signal.'
+  markdown_to_cli: 'UNCHANGED — no markdown-to-CLI auto-converter introduced.'
+  generic_ide_compat: 'UNCHANGED — Cursor + Claude Code mirrors are §7.2 priority 1+2; Codex remains bridge-only per §11.2 deferred. SKILL.md frontmatter / packaging gate unchanged from Round 14.'
+  verdict: 'ALL 4 §11.1 ITEMS REMAIN FOREVER-OUT — ROUND 15 COMPLIANT (vacuously: no source change at all)'
+
+# ── Headline ─────────────────────────────────────────────────────────────
+headline:
+  efficiency_axes_at_or_above_v1_bucket: 0           # not required for measurement_only per §15.2 RELAXED clause
+  primary_improvement_axis: null                     # measurement_only doesn't improve; it confirms
+  primary_demonstration: 'v0.3.0 §15 round_kind enum WORKS IN PRODUCTION: measurement_only clause correctly relaxes iteration_delta to monotonicity-only (per §15.2); C0 universal clause (§15.3) enforced; §15.4 consecutive-rounds counter incremented.'
+  c0_core_goal_pass_rate: 1.0
+  c0_no_regression_first_non_vacuous: true           # Round 15 is the FIRST true monotonicity check
+  spec_validator_blockers: 11                        # both v0.2.0 and v0.3.0-rc1 specs (replay)
+  spec_validator_dual_spec_pass: true
+  consecutive_v1_passes: 15
+  v0_3_0_ship_eligible: true                         # Round 14 + Round 15 = 2 consecutive PASSes per §4.2 + §15.4
+
+# ── Verdict ─────────────────────────────────────────────────────────────
+verdict:
+  pass_v1_baseline: true
+  core_goal_pass: true                               # NEW §14.3 verdict bit
+  monotonicity_pass: true                            # NEW §15.2 verdict bit (FIRST non-vacuous monotonicity check)
+  blockers: []
+  rationale: |
+    All 9 v1_baseline hard thresholds PASS byte-identical to Round 14 (replay).
+    C0 = 1.0 (5/5 core_goal cases) AND C0 monotonicity verified (1.0 == 1.0
+    from Round 14; FIRST non-vacuous monotonicity check). spec_validator
+    dual-spec PASS (11/11 BLOCKERs on both v0.2.0 and v0.3.0-rc1; replay).
+    pytest 395 passed / 1 skipped (replay byte-identical). V3_drift_signal
+    = 0.0 (3/3 SHA-256 mirror equality preserved; 15th consecutive
+    ALL_TREES_DRIFT_ZERO round).
+
+    Per §15.2 monotonicity_only clause: 0 axes at v1 bucket required, 0 axes
+    at v1 bucket observed (axis_status delta = 0.0 across all 7 axes); no
+    axis regressed. Clause satisfied.
+
+    15th consecutive v1 pass; eligible to count toward §4.2 promotion-rule
+    consecutive-rounds counter per §15.4.1. Combined with Round 14's
+    eligibility, Round 14 + Round 15 = 2 consecutive PASSes -> v0.3.0 ship
+    gate (= relaxed = v1_baseline) is now ELIGIBLE.
+
+# ── §14 / §15 cross-references ──────────────────────────────────────────
+spec_cross_refs:
+  c0_invariant_section: '§14.3.1 (MUST = 1.0) + §14.3.2 (no-regression) + §15.3 (universal across all 4 round_kind)'
+  round_kind_section: '§15.1 (4-value enum) + §15.2 (per-kind iteration_delta clause: measurement_only -> monotonicity_only)'
+  measurement_only_branch_demonstration: |
+    Round 15 is the canonical demonstration of the §15.2 measurement_only
+    branch: SAME source tree re-measured, all axis_status deltas at 0.0,
+    monotonicity verified, C0 = 1.0 + monotonicity satisfied. The v0.3.0
+    §15 fix to the historic "measurement-fill" pattern (Rounds 4-12 of
+    v0.2.0 cycle were "measurement-fill" rounds masquerading as code_change
+    rounds; v0.3.0 separates the two kinds via §15.1 enum + §15.2 clause).
+  multi_ability_layout_section: '§16 (Informative @ v0.3.0; Normative target @ v0.3.x) — UNCHANGED from Round 14'
+  agent_behavior_contract_addons: '§17 (rules 9 + 10) — UNCHANGED from Round 14; will compile to 10 rules total at v0.3.0 final ship (Round 16 ship_prep)'
+
+provenance:
+  generator: 'round_15 L3 dogfood; tools/spec_validator.py SCRIPT_VERSION=0.2.0; tools/eval_skill.py same as Round 14'
+  spec_version: v0.3.0-rc1
+  generated_at: '2026-04-29T11:35:12+00:00'
+  basis_metrics_report: .local/dogfood/2026-04-29/round_15/metrics_report.yaml
+  prior_round_basis: .local/dogfood/2026-04-29/round_14/iteration_delta_report.yaml
+  basis_metrics_report_round_14: .local/dogfood/2026-04-29/round_14/metrics_report.yaml
+  basis_basic_ability_profile_round_15: .local/dogfood/2026-04-29/round_15/basic_ability_profile.yaml
+  raw_artifacts:
+    spec_validator_v0_2_0: .local/dogfood/2026-04-29/round_15/raw/spec_validator_v0_2_0.json
+    spec_validator_v0_3_0_rc1: .local/dogfood/2026-04-29/round_15/raw/spec_validator_v0_3_0_rc1.json
+    spec_validator_v0_3_0_rc1_strict_prose: .local/dogfood/2026-04-29/round_15/raw/spec_validator_v0_3_0_rc1_strict_prose.json
+    core_goal_pack_run: .local/dogfood/2026-04-29/round_15/raw/core_goal_test_pack_run_round_15.json
+    eval_skill_output: .local/dogfood/2026-04-29/round_15/raw/eval_skill_output.yaml
+    governance_scan: .local/dogfood/2026-04-29/round_15/raw/governance_scan_round_15.json
+    pytest_full: .local/dogfood/2026-04-29/round_15/raw/pytest_full_round_15.txt
+    round_kind_validate: .local/dogfood/2026-04-29/round_15/raw/round_kind_validate.txt
+    count_tokens_skill_md: .local/dogfood/2026-04-29/round_15/raw/count_tokens_skill_md.json
+  target_branch: feat/v0.3.0-core-goal-invariant
+  target_commit_base: 6dc04e3e344486cc3b621af5f3a5258b9e744588   # SAME as Round 14 (no commits between Rounds 14 and 15)
+  generated_by: round_15_L3_dogfood

@@ -1,0 +1,44 @@
+{
+  "round_id": "round_3",
+  "method": "Per-prompt outcomes from with_si_chip_round3 result.json \u2014 count n_fp where expected=='no_trigger' AND triggered==True; mean across 6 cases.",
+  "per_case": {
+    "docs_boundary": {
+      "fp": 0,
+      "n_should_not": 10,
+      "fp_rate": 0.0
+    },
+    "half_retire_review": {
+      "fp": 0,
+      "n_should_not": 10,
+      "fp_rate": 0.0
+    },
+    "metrics_gap": {
+      "fp": 0,
+      "n_should_not": 10,
+      "fp_rate": 0.0
+    },
+    "next_action_plan": {
+      "fp": 2,
+      "n_should_not": 10,
+      "fp_rate": 0.2
+    },
+    "profile_self": {
+      "fp": 1,
+      "n_should_not": 10,
+      "fp_rate": 0.1
+    },
+    "router_matrix": {
+      "fp": 0,
+      "n_should_not": 10,
+      "fp_rate": 0.0
+    }
+  },
+  "mean_fp_rate": 0.05000000000000001,
+  "weighted_fp_rate": 0.05,
+  "v1_baseline_threshold": 0.15,
+  "v1_baseline_pass": true,
+  "v3_strict_threshold": 0.05,
+  "v3_strict_pass": false,
+  "agreement_with_round_2": false,
+  "comment": "Round 3 R4 = 0.05, identical to Round 2 (deterministic runner; same prompts, same hash-based outcomes)."
+}

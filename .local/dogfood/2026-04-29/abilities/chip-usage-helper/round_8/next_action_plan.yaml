@@ -1,0 +1,54 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T08:18:30+00:00'
+targets_round: round_9
+bound_gate: v3_strict
+target_branch: feature/si-chip
+
+# Round 9: T2 pass_k strengthening + L6/L7 fills (where deterministic-extractable).
+# Real-LLM-dependent metrics (G2/G3/G4 cross-domain/OOD/version-stability) are out of
+# scope for the deterministic harness and stay null with explicit rationale.
+
+actions:
+  - action_id: a1
+    priority: P0
+    targets_metric: T2_pass_k
+    current: 0.97
+    description: |
+      Currently T2 = T1 (single-shot eval = k=1). For a real T2_pass_k (k=4), run the
+      deterministic trigger evaluator 4 times with controlled jitter (rotate prompt
+      order; permute discriminator order) and report fraction-of-runs where ALL prompts
+      pass. For our deterministic evaluator this should be 1.0 (no jitter).
+    scope_writable_files:
+      - .local/dogfood/2026-04-29/abilities/chip-usage-helper/tools/eval_chip_usage_helper.py
+    acceptance_criteria:
+      - "T2 populated as proper k=4 measurement with provenance"
+
+  - action_id: a2
+    priority: P1
+    targets_metric: L6_replanning_rate
+    current: null
+    description: |
+      L6 = (rounds where the agent had to retry/replan) / (total rounds). For the
+      deterministic skill flow, replanning would be triggered by tool errors. Helper
+      added that scans the existing tests for `try { ... } catch` retry patterns.
+    scope_writable_files:
+      - .local/dogfood/2026-04-29/abilities/chip-usage-helper/tools/eval_chip_usage_helper.py
+    acceptance_criteria:
+      - "L6 populated (in [0, 1])"
+
+  - action_id: a3
+    priority: P1
+    targets_metric: L7_think_act_split
+    current: null
+    description: |
+      L7 = ratio of think tokens (analysis/diagnostic) to act tokens (tool invocations).
+      For chip-usage-helper, the skill body is mostly act-oriented (tool description +
+      recipe steps); think portion = "When to use" + "Skip when" = ~3-5% of body tokens.
+    scope_writable_files:
+      - .local/dogfood/2026-04-29/abilities/chip-usage-helper/tools/eval_chip_usage_helper.py
+    acceptance_criteria:
+      - "L7 populated (in [0, 1])"
+
+anticipated_iteration_delta_axes: [latency_path]
+expected_delta_bucket: "v3_strict (>= +0.15)"
+provenance: { target_commit_base: d3cc6a2 }

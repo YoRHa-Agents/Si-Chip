@@ -1,0 +1,64 @@
+{
+  "round_id": "round_10",
+  "metric": "G1_cross_model_pass_matrix",
+  "helper": "aggregate_eval.hoist_g1_cross_model_pass_matrix",
+  "helper_script_version": "0.1.6",
+  "generated_at": "2026-04-28T22:30:00+00:00",
+  "source_sweep_path": ".local/dogfood/2026-04-28/round_8/router_floor_report.yaml",
+  "source_sweep_alternate_shape_path": ".local/dogfood/2026-04-28/round_9/router_floor_report.yaml#mvp_profile",
+  "source_profile": "mvp",
+  "source_shape": "cells (flat top-level; helper also accepts nested mvp_profile.cells)",
+  "collapse_rule": "max(pass_rate) across thinking_depth per (model, scenario_pack)",
+  "collapse_rule_rationale": "Using max (rather than mean) preserves the best-case generalizability signal. If ANY depth passes for that (model, pack) combination, the matrix records the highest observed rate. The max aggregation is monotone under adding more depths later, so the hoist is forward-compatible with the 96-cell full profile (v2_tightened+ upgrade).",
+  "n_cells_total": 8,
+  "n_cells_used": 8,
+  "n_cells_skipped": 0,
+  "packs_observed": ["trigger_basic", "near_miss"],
+  "models_observed": ["composer_2", "sonnet_shallow"],
+  "per_cell_values": [
+    {"model": "composer_2", "thinking_depth": "fast",    "scenario_pack": "trigger_basic", "pass_rate": 0.86},
+    {"model": "composer_2", "thinking_depth": "fast",    "scenario_pack": "near_miss",     "pass_rate": 0.78},
+    {"model": "composer_2", "thinking_depth": "default", "scenario_pack": "trigger_basic", "pass_rate": 0.90},
+    {"model": "composer_2", "thinking_depth": "default", "scenario_pack": "near_miss",     "pass_rate": 0.83},
+    {"model": "sonnet_shallow", "thinking_depth": "fast",    "scenario_pack": "trigger_basic", "pass_rate": 0.83},
+    {"model": "sonnet_shallow", "thinking_depth": "fast",    "scenario_pack": "near_miss",     "pass_rate": 0.74},
+    {"model": "sonnet_shallow", "thinking_depth": "default", "scenario_pack": "trigger_basic", "pass_rate": 0.88},
+    {"model": "sonnet_shallow", "thinking_depth": "default", "scenario_pack": "near_miss",     "pass_rate": 0.81}
+  ],
+  "matrix_2x2": {
+    "composer_2": {
+      "trigger_basic": 0.9,
+      "near_miss": 0.83
+    },
+    "sonnet_shallow": {
+      "trigger_basic": 0.88,
+      "near_miss": 0.81
+    }
+  },
+  "per_cell_max_derivation": [
+    {"model": "composer_2",     "pack": "trigger_basic", "fast": 0.86, "default": 0.90, "max": 0.90},
+    {"model": "composer_2",     "pack": "near_miss",     "fast": 0.78, "default": 0.83, "max": 0.83},
+    {"model": "sonnet_shallow", "pack": "trigger_basic", "fast": 0.83, "default": 0.88, "max": 0.88},
+    {"model": "sonnet_shallow", "pack": "near_miss",     "fast": 0.74, "default": 0.81, "max": 0.81}
+  ],
+  "range_sanity_check": "PASS (all 4 cells in [0.0, 1.0])",
+  "v1_baseline_gate": "n/a (G1 has no §4.1 hard threshold; informational — D4 generalizability is coverage-only at v1_baseline)",
+  "partial_proxy_disclosure": "2-model × 2-pack view collapsed from mvp 8-cell sweep. Authoritative G1 requires real-LLM runs against the full 96-cell profile (§5.3 full: 6 model × 4 depth × 4 pack). G2/G3/G4 remain null by scope for v0.1.x per master plan (.local/.agent/active/v0.2.0-iteration-plan.yaml#round_10).",
+  "spec_section_compliance": "§3.1 D4 G1 (partial fill); §5.1 metadata-retrieval surface (deterministic sweep cells; NOT §5.2 router-model training)",
+  "d4_coverage_change": {
+    "round_9": "0/4 populated",
+    "round_10": "1/4 populated + 3/4 explicit null (G2/G3/G4 out-of-scope for v0.1.x)",
+    "delta": "+1 sub-metric populated (G1 null -> 2x2 nested dict)"
+  },
+  "stability_check_vs_upstream_sweep": {
+    "performed": true,
+    "reference_sweep_path": ".local/dogfood/2026-04-28/round_8/router_floor_report.yaml",
+    "reference_sweep_round_9_shape_path": ".local/dogfood/2026-04-28/round_9/router_floor_report.yaml#mvp_profile",
+    "expected_cells": 8,
+    "observed_cells": 8,
+    "rationale": "The 8 mvp cells are hard-coded in evals/si-chip/runners/with_ability_runner.py::MVP_CELL_OUTCOMES and have been byte-identical since Round 1. Collapsing them via max across depths yields a deterministic 2x2 matrix."
+  },
+  "instrumentation_source": "aggregate_eval.hoist_g1_cross_model_pass_matrix (Round 10 Edit A; SCRIPT_VERSION 0.1.5 -> 0.1.6)",
+  "unit_tested_in": ".agents/skills/si-chip/scripts/test_aggregate_eval.py::HoistG1Tests + BuildReportG1Integration (11 new tests; 120 total)",
+  "comment": "Round 10 G1 = 2x2 nested dict; first-ever D4 generalizability measurement in v0.1.x. PARTIAL PROXY — authoritative G1 requires full 96-cell matrix + real-LLM runner (Round 12+ upgrade path). Monotone under extending to more depths / models; forward-compatible with the 96-cell promotion."
+}

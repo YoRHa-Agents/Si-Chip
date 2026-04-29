@@ -1,0 +1,38 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T09:54:30+00:00'
+targets_round: round_13
+bound_gate: v3_strict
+target_branch: feature/si-chip-token-econ
+
+# Round 13: feedback Issue #2 — compress SKILL.md "What the data payload looks like" section.
+# Currently SKILL.md body has ~60 lines of TS interface mirroring (lines 82-142 in our snapshot).
+# After Round 12 these types live in templates/types.d.ts; SKILL.md just needs a pointer.
+
+actions:
+  - action_id: a1
+    priority: P0
+    targets_metric: on_call_skill_body_tokens
+    current: 1902
+    expected: "<= 1300 (-600 tokens)"
+    description: |
+      In skills/chip-usage-helper/SKILL.md:
+      Replace the "## What the data payload looks like" section (lines 82-142, ~60
+      lines of inline TS interfaces) with a 5-line summary that:
+        1. Names the top-level fields (me, window, week, month, agentHours, rankings,
+           snapshot, eventsCount, fetchedAtMs)
+        2. Points readers to the canonical schema in templates/types.d.ts (added
+           by Round 12) for full field types.
+        3. Keeps a 3-4 line example for the highest-frequency field cluster
+           (`me.email`, `rankings.weekly.me.rank`) so an agent without reading
+           types.d.ts can still recognize them.
+    scope_writable_files:
+      - skills/chip-usage-helper/SKILL.md
+    acceptance_criteria:
+      - "SKILL.md body tokens (eval_metrics.token_tiers.on_call.skill_body) <= 1300"
+      - "Description still mentions all top-level fields by name"
+      - "Reference to templates/types.d.ts present"
+      - "npm test 99/99 PASS (no test depends on SKILL.md content; sanity check)"
+
+anticipated_iteration_delta_axes: [context_economy]
+expected_delta_bucket: "v3_strict (>= +0.15 cumulative)"
+provenance: { target_commit_base: TBD_round_12 }

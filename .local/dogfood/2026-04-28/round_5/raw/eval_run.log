@@ -1,0 +1,77 @@
+# Round 5 Eval Pipeline Run Log
+# round_id: round_5 / project_version: 0.1.4 / spec_version: v0.1.0
+# computed_at: 2026-04-28T19:10:00+00:00
+
+## Step A: Unit test verification (workspace rule "Mandatory Verification")
+count_tokens: Python 3 doctest runner — 6 doctests (count_tokens, _fallback_count,
+  split_frontmatter) + NEW Round 5 doctests (flesch_kincaid_grade,
+  _fk_count_syllables, _fk_count_words, _fk_count_sentences,
+  extract_description_from_frontmatter) = 23 tests total; PASS.
+count_tokens unit tests (test_count_tokens.py): 32 tests total (ALL NEW in Round 5
+  because test_count_tokens.py did not exist before this round).
+  - 3 SplitFrontmatterTests + 2 CountTokensTests (smoke)
+  - 7 FkSyllableCountTests (vowel-group + silent-e + uppercase + min-one)
+  - 7 FkWordAndSentenceTests (word count + sentence count + digit-period stripping)
+  - 6 FkGradeTests (empty text, range, formula, determinism, si-chip desc)
+  - 3 ExtractDescriptionTests (YAML parsing)
+  - 4 SkillMdDescriptionFkTests (file IO)
+  Verdict: all 32 tests PASS.
+
+aggregate_eval: Python 3 doctest runner — 17 doctests (no regressions vs Round 4).
+aggregate_eval unit tests (test_aggregate_eval.py): 43 tests total (28 pre-existing
+  + 15 NEW in Round 5).
+  - 5 HoistR6Tests (Round 3) — PASS
+  - 4 HoistR7Tests (Round 3) — PASS
+  - 3 BuildReportR6R7Integration (Round 3) — PASS
+  - 4 HoistL1Tests (Round 4) — PASS
+  - 3 HoistL3Tests (Round 4) — PASS
+  - 4 HoistL4Tests (Round 4) — PASS
+  - 4 BuildReportL1L3L4Integration (Round 4) — PASS
+  - 5 HoistU1Tests (Round 5 NEW) — PASS
+  - 6 HoistU2Tests (Round 5 NEW) — PASS
+  - 4 BuildReportU1U2Integration (Round 5 NEW) — PASS
+  - 1 cross-round 28-key invariant — PASS
+  Verdict: all 43 tests PASS.
+
+## Step B: aggregate_eval.py against Round 4 baselines (Round 5 carry-forward)
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+INFO si_chip.aggregate_eval: with-ability runs: 6, no-ability runs: 6
+INFO si_chip.aggregate_eval: devolaflow version: 9.0.1
+WARNING si_chip.aggregate_eval: schema lacks 'basic_ability.metrics' mapping; skipping cross-check
+/home/agent/workspace/Si-Chip/.local/dogfood/2026-04-28/round_5/raw/aggregator_raw_output.yaml
+
+Aggregator emitted U1 = 19.58 + U2 = 0.75 for the first time. All other
+measured cells carried from Round 4 (deterministic runner; SKILL.md body
+unchanged; baselines unchanged).
+
+## Step C: CLI smoke test of count_tokens --fk-description
+python3 .agents/skills/si-chip/scripts/count_tokens.py \\
+    --file .agents/skills/si-chip/SKILL.md \\
+    --metadata-only --fk-description --json
+OUTPUT: {"metadata_tokens": 82, "body_tokens": null, ...,
+         "fk_description": {"grade": 19.58, "details": {"words": 20,
+         "sentences": 2, "syllables": 53, "raw_grade": 19.58, "grade": 19.58,
+         "formula": "0.39 * (words/sentences) + 11.8 * (syllables/words) - 15.59",
+         "description_text": "Persistent BasicAbility optimization factory. ...",
+         "path": ".agents/skills/si-chip/SKILL.md"}}}
+Exit code: 0.
+
+## Step D: spec_validator verification (workspace rule "Mandatory Verification")
+python3 tools/spec_validator.py --json > .local/dogfood/2026-04-28/round_5/raw/spec_validator.json
+Exit code: 0.
+verdict: PASS (8/8 invariants pass in default mode).
+
+## Step E: SKILL.md mirror drift check (spec §7.2 — drift = CI failure)
+.agents/skills/si-chip/SKILL.md frontmatter version: 0.1.3 -> 0.1.4
+.cursor/skills/si-chip/SKILL.md mirrored: 0.1.3 -> 0.1.4
+.claude/skills/si-chip/SKILL.md mirrored: 0.1.3 -> 0.1.4
+Body byte-identical across all 3 trees.
+diff .agents/skills/si-chip/SKILL.md .cursor/skills/si-chip/SKILL.md -> empty
+diff .agents/skills/si-chip/SKILL.md .claude/skills/si-chip/SKILL.md -> empty
+Mirror drift = 0.
+
+## Step F: Tarball build
+docs/skills/si-chip-0.1.4.tar.gz generated deterministically via
+  tar --sort=name --owner=0 --group=0 --numeric-owner -cf - \\
+      SKILL.md references/ scripts/ | gzip -n > ...
+SHA-256 recorded in CHANGELOG entry.

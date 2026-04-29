@@ -1,0 +1,109 @@
+{
+  "ability_id": "si-chip",
+  "pack_version": "1.0.0",
+  "spec_version": "v0.3.0-rc1",
+  "pack_path": ".local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml",
+  "cases_total": 5,
+  "cases_passed": 5,
+  "c0_core_goal_pass_rate": 1.0,
+  "c0_must_equal_1_0": true,
+  "failed_case_ids": [],
+  "cases": [
+    {
+      "case_id": "c0_eval_skill_help_works",
+      "prompt": "python tools/eval_skill.py --help",
+      "exit_code": 0,
+      "wall_seconds": 0.0551,
+      "stdout_excerpt": "usage: eval_skill [-h] --ability ABILITY --skill-md SKILL_MD --vocabulary\n                  VOCABULARY --eval-pack EVAL_PACK --core-goal-test-pack\n                  CORE_GOAL_TEST_PACK --test-runner-cmd TEST_RUNNER_CMD\n                  --test-runner-cwd TEST_RUNNER_CWD [--runs RUNS] [--out OUT]\n                  [--round-kind {code_change,maintenance,measurement_only,ship_prep}]\n                 ",
+      "stderr_excerpt": "",
+      "expected_shape": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "--ability",
+          "--skill-md",
+          "--core-goal-test-pack",
+          "--round-kind"
+        ]
+      },
+      "checks": {
+        "exit_code": true,
+        "stdout_contains": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "c0_round_kind_validate_4_kinds",
+      "prompt": "for kind in code_change measurement_only ship_prep maintenance; do python tools/round_kind.py validate $kind || exit 1; done",
+      "exit_code": 0,
+      "wall_seconds": 0.1264,
+      "stdout_excerpt": "",
+      "stderr_excerpt": "",
+      "expected_shape": {
+        "all_4_exit_zero": true,
+        "exit_code": 0
+      },
+      "checks": {
+        "exit_code": true,
+        "all_4_exit_zero": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "c0_spec_validator_dual_spec_pass",
+      "prompt": "python tools/spec_validator.py --json && python tools/spec_validator.py --spec .local/research/spec_v0.3.0-rc1.md --json",
+      "exit_code": 0,
+      "wall_seconds": 0.2787,
+      "stdout_excerpt": "{\"verdict\": \"PASS\", \"results\": [{\"id\": \"BAP_SCHEMA\", \"name\": \"BasicAbilityProfile schema field set matches spec §2.1\", \"passed\": true, \"severity\": \"BLOCKER\", \"message\": \"$schema_version=0.2.0 expected=['core_goal', 'current_surface', 'decision', 'eval_state', 'id', 'intent', 'lifecycle', 'metrics', 'packaging', 'router_floor', 'value_vector'] actual=['core_goal', 'current_surface', 'decision', 'ev",
+      "stderr_excerpt": "",
+      "expected_shape": {
+        "both_verdicts": "PASS",
+        "both_blocker_counts": 11,
+        "both_exit_zero": true
+      },
+      "checks": {
+        "both_verdicts": true,
+        "both_blocker_counts": true,
+        "both_exit_zero": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "c0_skill_md_packaging_gate",
+      "prompt": "python .agents/skills/si-chip/scripts/count_tokens.py --file .agents/skills/si-chip/SKILL.md --both --budget-meta 100 --budget-body 5000 --json",
+      "exit_code": 0,
+      "wall_seconds": 0.2818,
+      "stdout_excerpt": "{\"metadata_tokens\": 97, \"body_tokens\": 3022, \"budget_meta\": 100, \"budget_body\": 5000, \"pass\": true, \"backend\": \"tiktoken\", \"script_version\": \"0.1.3\"}\n",
+      "stderr_excerpt": "",
+      "expected_shape": {
+        "exit_code": 0,
+        "metadata_le_100": true,
+        "body_le_5000": true,
+        "pass": true
+      },
+      "checks": {
+        "exit_code": true,
+        "metadata_le_100": true,
+        "body_le_5000": true,
+        "pass": true
+      },
+      "passed": true
+    },
+    {
+      "case_id": "c0_six_evidence_files_present",
+      "prompt": "ls .local/dogfood/2026-04-29/round_14/basic_ability_profile.yaml .local/dogfood/2026-04-29/round_14/metrics_report.yaml .local/dogfood/2026-04-29/round_14/router_floor_report.yaml .local/dogfood/2026-04-29/round_14/half_retire_decision.yaml .local/dogfood/2026-04-29/round_14/next_action_plan.yaml .local/dogfood/2026-04-29/round_14/iteration_delta_report.yaml",
+      "exit_code": 0,
+      "wall_seconds": 0.0018,
+      "stdout_excerpt": ".local/dogfood/2026-04-29/round_14/basic_ability_profile.yaml\n.local/dogfood/2026-04-29/round_14/half_retire_decision.yaml\n.local/dogfood/2026-04-29/round_14/iteration_delta_report.yaml\n.local/dogfood/2026-04-29/round_14/metrics_report.yaml\n.local/dogfood/2026-04-29/round_14/next_action_plan.yaml\n.local/dogfood/2026-04-29/round_14/router_floor_report.yaml\n",
+      "stderr_excerpt": "",
+      "expected_shape": {
+        "exit_code": 0,
+        "file_count": 6
+      },
+      "checks": {
+        "exit_code": true,
+        "file_count": true
+      },
+      "passed": true
+    }
+  ]
+}

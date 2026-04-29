@@ -1,17 +1,22 @@
 # Si-Chip Iteration-Delta Report Template
+# Schema v0.2.0 (additive — v0.1.0 fields unchanged; spec v0.3.0-rc1 §14/§15 add-on)
 # Spec source: §8.2 evidence #6; §4 progressive-gate single-monotone rule.
+# v0.3.0-rc1 §14.3 add-on: core_goal_check block — strict "MUST = 1.0" + no-regression rule.
+# v0.3.0-rc1 §15.1/§15.2 add-on: round_kind enum + round_kind_iteration_delta_clause drive
+#                                how §4.1 row 10 iteration_delta is interpreted this round.
 # Instance template (NOT a DevolaFlow WorkflowTemplate).
 # Compares current round to the prior round and records whether at least one efficiency
 # axis improved (§4.1 iteration_delta row: v1 >= +0.05, v2 >= +0.10, v3 >= +0.15).
 
-$schema_version: "0.1.0"
+$schema_version: "0.2.0"
 $spec_section: "§8.2 evidence #6"
+$spec_section_v0_3_0: "§8.2 + §14.3 + §15.2"
 $source_of_truth: ".agents/skills/si-chip/"
 
 metadata:
   name: "si-chip-iteration-delta-report"
-  version: "0.1.0"
-  description: "Round-over-round delta for MVP-8 metrics plus positive-axis verdict."
+  version: "0.2.0"
+  description: "Round-over-round delta for MVP-8 metrics plus positive-axis verdict; adds §14 C0 check and §15 round_kind (v0.3.0-rc1)."
 
 # Guard-rail the single-monotone rule from §4.1 (threshold rows must remain monotone
 # across v1_baseline -> v2_tightened -> v3_strict). Any instance must run this check
@@ -22,8 +27,11 @@ required_fields:
   - round_id
   - prior_round_id
   - computed_at
+  - round_kind
+  - round_kind_iteration_delta_clause
   - deltas
   - axis_status
+  - core_goal_check
   - verdict
 
 schema:
@@ -39,6 +47,23 @@ schema:
     type: string
     required: true
     format: "date-time"
+  round_kind:
+    type: string
+    required: true
+    enum:
+      - code_change
+      - measurement_only
+      - ship_prep
+      - maintenance
+    description: "Spec v0.3.0-rc1 §15.1 — drives §15.2 iteration_delta clause interpretation and §15.4 promotion eligibility."
+  round_kind_iteration_delta_clause:
+    type: string
+    required: true
+    enum:
+      - strict
+      - monotonicity_only
+      - waived
+    description: "Spec v0.3.0-rc1 §15.2 — strict for code_change (>= 1 axis at gate bucket); monotonicity_only for measurement_only (no regression); waived for ship_prep and maintenance."
   deltas:
     type: object
     required: true
@@ -115,6 +140,46 @@ schema:
         properties:
           positive_axis: { type: boolean }
           delta: { type: number }
+  core_goal_check:
+    type: object
+    required: true
+    description: |
+      Spec v0.3.0-rc1 §14.3 block — strict "MUST = 1.0" + no-regression verdict for this round.
+      Per §14: if c0_pass_rate < 1.0 OR c0_pass_rate_this_round < c0_pass_rate_prior_round,
+      this round is FAILURE regardless of axis_status entries or pass_v1_baseline.
+    properties:
+      c0_pass_rate_this_round:
+        type: number
+        required: true
+        description: "MUST be 1.0 per spec §14.3."
+      c0_pass_rate_prior_round:
+        type: number
+        required: true
+        description: "MUST be >= prior; any decrease = round failure (§14.3.2)."
+      c0_no_regression:
+        type: boolean
+        required: true
+        description: "true iff c0_pass_rate_this_round >= c0_pass_rate_prior_round."
+      test_pack_path:
+        type: string
+        required: true
+        description: "Repo-relative path to core_goal_test_pack.yaml (§14.2)."
+      cases_run:
+        type: integer
+        required: true
+        description: "Number of cases executed; >= 3 per §14.2 frozen constraint #1."
+      cases_passed:
+        type: integer
+        required: true
+        description: "Number of cases with expected_shape assertions satisfied."
+      rollback_required:
+        type: boolean
+        required: true
+        description: "true iff c0_no_regression == false; triggers REVERT-only round per §14.4."
+      notes:
+        type: string
+        required: false
+        description: "Optional human note explaining any rollback trigger or revision log."
   verdict:
     type: object
     required: true
@@ -144,6 +209,8 @@ example_instance:
   round_id: "r1"
   prior_round_id: "r0"
   computed_at: "2026-04-28T00:00:00Z"
+  round_kind: code_change           # Spec v0.3.0-rc1 §15.1 enum: code_change | measurement_only | ship_prep | maintenance
+  round_kind_iteration_delta_clause: strict   # Spec §15.2: strict | monotonicity_only | waived (per round_kind)
   deltas:
     task_quality: [T1, T2, T3]
     context_economy: [C1, C4]
@@ -157,6 +224,15 @@ example_instance:
     usage_cost: { positive_axis: false, delta: 0.0 }
     routing_cost: { positive_axis: false, delta: 0.0 }
     governance_risk: { positive_axis: false, delta: 0.0 }
+  core_goal_check:
+    c0_pass_rate_this_round: 1.0   # MUST be 1.0 per spec §14.3
+    c0_pass_rate_prior_round: 1.0  # MUST be >= prior; any decrease = round failure
+    c0_no_regression: true
+    test_pack_path: ".local/dogfood/<DATE>/abilities/<id>/core_goal_test_pack.yaml"
+    cases_run: 0                   # >= 3 per §14.2
+    cases_passed: 0
+    rollback_required: false       # true if c0_no_regression == false; triggers REVERT-only round per §14.4
+    notes: "Per spec §14: if c0_pass_rate < 1.0 OR c0_pass_rate_this_round < c0_pass_rate_prior_round, this round is FAILURE regardless of axis_status entries."
   verdict:
     pass_v1_baseline: true
     blockers: []

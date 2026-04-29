@@ -1,0 +1,14 @@
+Usage: nines benchmark [OPTIONS]
+
+  Full analysis→benchmark→evaluate→mapping workflow.
+
+Options:
+  --target-path PATH             Path to repo to analyze.  [required]
+  --rounds INTEGER               Number of evaluation rounds.
+  --convergence-threshold FLOAT  Score convergence threshold.
+  --output-dir PATH              Directory for output artifacts.
+  --suite-id TEXT                Benchmark suite identifier.
+  --tasks-path PATH              Path to directory of custom TOML task
+                                 definitions. When provided, these tasks are
+                                 used instead of auto-generated ones.
+  --help                         Show this message and exit.

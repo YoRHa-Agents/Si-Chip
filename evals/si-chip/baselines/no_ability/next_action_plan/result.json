@@ -2,10 +2,13 @@
   "pass_rate": 0.5,
   "pass_k_4": 0.0625,
   "latency_p95_s": 0.9470000000000001,
+  "latency_p50_s": 0.764,
   "metadata_tokens": 0,
   "per_invocation_footprint": 1500,
   "trigger_F1": 0.0,
   "router_floor": "n/a (no_ability)",
+  "step_count": 20,
+  "redundant_call_ratio": 0.0,
   "prompt_outcomes": [
     {
       "prompt_id": "t01",
@@ -196,6 +199,8 @@
     "n_should_trigger": 10,
     "n_should_not_trigger": 10,
     "n_total": 20,
-    "n_correct": 10
+    "n_correct": 10,
+    "step_count_basis": "L3_step_count = len(prompt_outcomes); each prompt eval is one logical execution step in the simulated runner.",
+    "redundant_call_ratio_basis": "L4_redundant_call_ratio = (total_calls - unique_call_names) / total_calls; tool name = prompt_id; degenerate 0.0 expected for the simulated runner because every prompt_id in a case is unique."
   }
 }

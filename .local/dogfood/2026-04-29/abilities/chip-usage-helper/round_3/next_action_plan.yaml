@@ -1,0 +1,46 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T05:12:20+00:00'
+targets_round: round_4
+bound_gate: v2_tightened
+spec_version: v0.1.0
+target_branch: feature/si-chip
+
+actions:
+  - action_id: a1
+    priority: P0
+    targets_metric: T4_error_recovery_rate  # AND V2 credential_surface audit
+    current: null
+    description: |
+      Add a new MCP tool `diagnose_identity` that returns a structured identity-diagnosis
+      payload (resolved Cursor identity, effective ai-bill identity, team-match result,
+      candidate suggestions, owner-email-domain distribution). Addresses the v0.6.0
+      identity-mismatch feedback where users see 0 events because their CLI email differs
+      from their ai-bill owning_user. Also reduces V2_credential_surface scan hits by
+      consolidating sensitive reads in one place with explicit read-only semantics.
+    scope_writable_files:
+      - /home/agent/workspace/ChipPlugins/chips/chip_usage_helper/mcp/src/tools/diagnose-identity.ts
+      - /home/agent/workspace/ChipPlugins/chips/chip_usage_helper/mcp/src/tools/index.ts
+      - /home/agent/workspace/ChipPlugins/chips/chip_usage_helper/mcp/tests/unit/diagnose-identity.test.ts
+    acceptance_criteria:
+      - "New tool diagnose_identity registered in tools/index.ts"
+      - "Unit test passes (follow tests/unit/me-resolver.test.ts pattern)"
+      - "npm test 96+ -> at least 100/100"
+      - "T4 error_recovery_rate populated in Round 4 metrics (simulated pass rate for identity-mismatch-error recovery)"
+
+  - action_id: a2
+    priority: P1
+    targets_metric: U1_description_readability
+    current: null
+    description: |
+      Populate U1 via Flesch-Kincaid grade level on SKILL description + body.
+      Expected: FK ~8-10 for technical docs with code blocks.
+    scope_writable_files:
+      - .local/dogfood/2026-04-29/abilities/chip-usage-helper/tools/eval_chip_usage_helper.py
+    acceptance_criteria:
+      - "U1 populated in round_4 metrics (float in [0, 24])"
+
+anticipated_iteration_delta_axes: [task_quality, generalizability, usage_cost]
+expected_delta_bucket: "v2_tightened (>= +0.10 on any efficiency axis)"
+provenance:
+  prior_metrics_report: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_3/metrics_report.yaml
+  target_commit_base: 44c541f

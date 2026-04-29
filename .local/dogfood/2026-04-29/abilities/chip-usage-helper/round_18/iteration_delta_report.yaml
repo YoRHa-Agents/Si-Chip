@@ -1,0 +1,27 @@
+round_id: round_18
+prior_round_id: round_17
+computed_at: '2026-04-29T11:33:00+00:00'
+spec_version: v0.1.0
+cycle: token_economy_v3
+axis_status:
+  task_quality: { positive_axis: false, delta: 0.0 }
+  context_economy: { positive_axis: true, delta: 0.01, rationale: "SKILL body 2131 -> 2060 (-71 tokens); ON-CALL -71 total." }
+  latency_path: { positive_axis: false, delta: 0.0 }
+  generalizability: { positive_axis: false, delta: 0.0 }
+  usage_cost: { positive_axis: false, delta: 0.0 }
+  routing_cost: { positive_axis: false, delta: -0.0006, rationale: "R7 0.0318 -> 0.0340 (SKILL body shrank more than ratio effect; acceptable)." }
+  governance_risk: { positive_axis: false, delta: 0.0 }
+v3_strict_threshold_check: { pass: true, blockers: [] }
+monotonicity_check_status:
+  pass_rate_no_regression: { r17: 0.97, r18: 0.97, pass: true }
+  per_metric:
+    R3_trigger_F1: { r17: 1.0, r18: 1.0, pass: true, note: "trigger vocab union preserved" }
+    skill_body_tokens: { r17: 2131, r18: 2060, pct_change: -3.3, pass: true }
+    test_count: { r17: 101, r18: 101, pass: true }
+  overall_pass: true
+promotion_state: { current_gate: v3_strict, consecutive_v3_passes: 13 }
+headline:
+  primary_improvement_axis: context_economy
+  cycle_3_cumulative_on_call_delta: -331 (-4.5%)
+  cycle_3_rounds_complete: 2
+provenance: { target_commit_base: 64eceb7, feedback_source: feedback_for_v0.8.0_token_usage_verification.md }

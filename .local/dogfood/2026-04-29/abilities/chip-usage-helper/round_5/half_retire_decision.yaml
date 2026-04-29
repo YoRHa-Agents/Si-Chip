@@ -1,0 +1,65 @@
+ability_id: chip-usage-helper
+version: '0.6.1+round_5'
+decided_at: '2026-04-29T08:06:00+00:00'
+decision: keep
+
+value_vector:
+  task_delta: 0.92            # T1 with-skill 0.97 vs no-ability ~0.05 (matches dashboard query? mostly NO without the rule)
+  token_delta: 0.0            # no body change vs round 4
+  latency_delta: 0.0322       # (1.866 - 1.806)/1.866; small but positive
+  context_delta: 0.0
+  path_efficiency_delta: 1.0  # (0.0909 - 0.0)/0.0909 = 1.0 — perfect elimination
+  routing_delta: 1.0          # R3 1.0
+  governance_risk_delta: 0.0
+
+rule_evaluation:
+  spec_section: "§6.2"
+  bound_gate: v2_tightened
+  bucket_threshold: 0.10
+  fired_rule: keep
+  fired_condition: "task_delta (+0.92) >> +0.10"
+  other_rules_checked:
+    half_retire: "NOT FIRED (task_delta +0.92 outside near-zero band [-0.02, +0.10])"
+    retire: "NOT FIRED (multiple axes positive: task=0.92, path=1.0, routing=1.0)"
+    disable_auto_trigger: "NOT FIRED (governance_risk_delta = 0.0)"
+  round_5_axis_movement:
+    path_efficiency_delta: "+1.0 round-on-round (Round 4: 0.909 measured against eliminating one of two redundant calls; Round 5: full elimination -> path_efficiency_delta saturates at 1.0)"
+    latency_delta: "+0.0322 (small but real; under v2_tightened bucket 0.10 by itself but combined with path_efficiency saturation is the dominant signal)"
+
+simplification:
+  applied: []
+  bound_gate: v2_tightened
+
+retained_core:
+  - "8 MCP tools (get_me, get_week_usage, get_month_totals, get_agent_hours, get_rankings, get_dashboard_data, sync_usage_events, diagnose_identity)"
+  - "SKILL.md (compressed description from Round 3, negative discriminator from Round 2)"
+  - "rules/usage-helper.mdc"
+  - "commands/usage-report.md"
+
+review:
+  next_review_at: '2026-05-29'
+  triggers:
+    - new_model_no_ability_baseline_gap
+    - new_scenario_or_domain_match
+    - router_test_requires_ability_for_cheap_model
+    - efficiency_axis_becomes_significant
+    - upstream_api_change_wrapper_stabilizes
+    - manual_invocation_rebound
+
+provenance:
+  round_id: round_5
+  prior_round_id: round_4
+  metrics_report_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_5/metrics_report.yaml
+  router_floor_report_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_5/router_floor_report.yaml
+  prior_half_retire_decision_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_4/half_retire_decision.yaml
+  decided_by: 'eval_chip_usage_helper.py + manual review'
+  baseline_summary_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_1/raw/eval_metrics.json
+  spec_version: v0.1.0
+
+rationale: |
+  Round 5 keeps the chip-usage-helper ability because (a) task_delta remains huge (+0.92 vs
+  the no-ability baseline — the routing rule + skill is the difference between "agent
+  searches the web" and "agent fires get_dashboard_data"), and (b) Round 5 lands the
+  cleanest single-round path-efficiency win seen yet: L4 0.0909 -> 0.0 (full elimination of
+  the two redundant SQLite calls in get_dashboard_data). Latency p95 also ticked down 3%.
+  No regressions in any other axis; 99/99 tests still green.

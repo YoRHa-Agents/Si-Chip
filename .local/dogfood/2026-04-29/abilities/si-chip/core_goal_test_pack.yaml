@@ -1,0 +1,134 @@
+# Si-Chip Core-Goal Test Pack (FIRST pack ever authored for Si-Chip itself)
+# Conforms to templates/basic_ability_profile.schema.yaml §14 core_goal block
+# + spec v0.3.0-rc1 §14.2 ("≥ 3 cases, Pact-style expected_shape").
+#
+# Pack-level invariants (§14.2):
+#   1. Case count: 5 (>= 3 required; well under the 20-case upper recommendation)
+#   2. Every expected_shape is a STRUCTURAL assertion (exit_code, substring, bool),
+#      not an exact equality (Pact "as loose as possible" principle).
+#   3. No case may be deleted without bumping pack_version (§14.2 #4).
+#   4. Cases are deterministic CLI invocations — no LLM calls, no RNG.
+#   5. No benchmark-detection: every CLI invocation is exactly what a human or
+#      another agent would run from the shell; no "this is the test pack" flag.
+#
+# C0_core_goal_pass_rate = cases_passed / cases_total MUST == 1.0 every round
+# (§14.3.1). Any < 1.0 triggers the §14.4 REVERT-only rollback rule regardless
+# of axis deltas.
+
+$schema_version: "0.1.0"
+$spec_section: "v0.3.0-rc1 §14.2"
+
+ability_id: si-chip
+pack_version: "1.0.0"
+spec_version: v0.3.0-rc1
+last_revised: '2026-04-29'
+
+core_goal_statement: |
+  Given a BasicAbility input, Si-Chip MUST emit the 6 evidence files (spec §8.2 —
+  basic_ability_profile / metrics_report / router_floor_report / half_retire_decision /
+  next_action_plan / iteration_delta_report) under
+  .local/dogfood/<DATE>/[abilities/<id>/]round_<N>/ and produce a deterministic
+  11-BLOCKER spec_validator PASS on BOTH the frozen v0.2.0 spec AND the newly
+  shipped v0.3.0-rc1 spec.
+
+user_observable_failure_mode: |
+  A user asks "run Si-Chip dogfood round N on ability X" and gets back either
+  (a) fewer than 6 evidence files, (b) a schema-invalid yaml in any of the 6,
+  (c) a spec_validator non-PASS verdict under v0.2.0 or v0.3.0-rc1, or
+  (d) a core-goal-test-pack run with C0 < 1.0 that is silently accepted
+  instead of triggering the §14.4 REVERT-only path. Each of these means
+  Si-Chip cannot deliver its primary value.
+
+revision_log:
+  - round: round_14
+    change: "Initial pack authoring. 5 cases covering the 4 new generic tools (eval_skill, round_kind, spec_validator dual-spec, count_tokens) plus the legacy 6-evidence-file completeness check."
+
+cases:
+  - id: c0_eval_skill_help_works         # schema-aligned id key per tools/eval_skill.py::run_core_goal_test_pack (also keeps case_id below as a human-readable alias for run_core_goal_cases.py)
+    case_id: c0_eval_skill_help_works
+    prompt: "python tools/eval_skill.py --help"
+    command: "bash -lc \"python tools/eval_skill.py --help | grep -q -e '--ability' && python tools/eval_skill.py --help | grep -q -e '--skill-md' && python tools/eval_skill.py --help | grep -q -e '--core-goal-test-pack' && python tools/eval_skill.py --help | grep -q -e '--round-kind'\""
+    expected_shape:
+      exit_code: 0
+      stdout_contains:
+        - "--ability"
+        - "--skill-md"
+        - "--core-goal-test-pack"
+        - "--round-kind"
+    rationale: |
+      eval_skill.py is the NEW v0.3.0-rc1 §14 / §15 generic per-ability harness.
+      If the CLI surface lost any of the four flags listed above, the harness can
+      no longer wire ability / SKILL.md / core_goal_test_pack / round_kind into
+      one metrics_report, which is exactly what C0 is there to detect.
+    weight: 1.0
+
+  - id: c0_round_kind_validate_4_kinds
+    case_id: c0_round_kind_validate_4_kinds
+    prompt: "for kind in code_change measurement_only ship_prep maintenance; do python tools/round_kind.py validate $kind || exit 1; done"
+    command: "bash -lc \"for kind in code_change measurement_only ship_prep maintenance; do python tools/round_kind.py validate $kind || exit 1; done\""
+    expected_shape:
+      all_4_exit_zero: true
+      exit_code: 0
+    rationale: |
+      round_kind.py enforces the §15.1 4-value enum. If any of the 4 values
+      stops validating (e.g. the enum is accidentally reduced to 3), spec §15
+      is broken and the promotion-counter semantics (§15.4) become undefined.
+    weight: 1.0
+
+  - id: c0_spec_validator_dual_spec_pass
+    case_id: c0_spec_validator_dual_spec_pass
+    prompt: "python tools/spec_validator.py --json && python tools/spec_validator.py --spec .local/research/spec_v0.3.0-rc1.md --json"
+    command: "bash -lc \"python tools/spec_validator.py --json > /dev/null && python tools/spec_validator.py --spec .local/research/spec_v0.3.0-rc1.md --json > /dev/null\""
+    expected_shape:
+      both_verdicts: PASS
+      both_blocker_counts: 11
+      both_exit_zero: true
+    rationale: |
+      Si-Chip core-goal: spec_validator MUST land 11/11 BLOCKERs PASS on BOTH the
+      frozen v0.2.0 spec (regression guard for the 9-BLOCKER legacy set) AND
+      v0.3.0-rc1 (new CORE_GOAL_FIELD_PRESENT + ROUND_KIND_TEMPLATE_VALID). If
+      either spec regresses a BLOCKER, downstream dogfood rounds are lying
+      about passing (the detector is broken), which is exactly the
+      user-observable failure mode described above.
+    weight: 1.0
+
+  - id: c0_skill_md_packaging_gate
+    case_id: c0_skill_md_packaging_gate
+    prompt: "python .agents/skills/si-chip/scripts/count_tokens.py --file .agents/skills/si-chip/SKILL.md --both --budget-meta 100 --budget-body 5000 --json"
+    command: "python .agents/skills/si-chip/scripts/count_tokens.py --file .agents/skills/si-chip/SKILL.md --both --budget-meta 100 --budget-body 5000 --json"
+    expected_shape:
+      exit_code: 0
+      metadata_le_100: true
+      body_le_5000: true
+      pass: true
+    rationale: |
+      §7.3 packaging gate requires metadata_tokens <= 100 and body_tokens <= 5000
+      on every platform. If the gate breaks, Si-Chip cannot be installed as a
+      Skill on Cursor / Claude Code / Codex, and the "persistent optimization
+      factory" contract (§1.1) collapses — core_goal regresses.
+    weight: 1.0
+
+  - id: c0_six_evidence_files_present
+    case_id: c0_six_evidence_files_present
+    prompt: "ls .local/dogfood/2026-04-29/round_14/basic_ability_profile.yaml .local/dogfood/2026-04-29/round_14/metrics_report.yaml .local/dogfood/2026-04-29/round_14/router_floor_report.yaml .local/dogfood/2026-04-29/round_14/half_retire_decision.yaml .local/dogfood/2026-04-29/round_14/next_action_plan.yaml .local/dogfood/2026-04-29/round_14/iteration_delta_report.yaml"
+    command: "bash -lc \"ls .local/dogfood/2026-04-29/round_14/basic_ability_profile.yaml .local/dogfood/2026-04-29/round_14/metrics_report.yaml .local/dogfood/2026-04-29/round_14/router_floor_report.yaml .local/dogfood/2026-04-29/round_14/half_retire_decision.yaml .local/dogfood/2026-04-29/round_14/next_action_plan.yaml .local/dogfood/2026-04-29/round_14/iteration_delta_report.yaml\""
+    expected_shape:
+      exit_code: 0
+      file_count: 6
+    rationale: |
+      §8.2 requires exactly 6 evidence files per dogfood round. This case
+      is the round-local "did we actually emit the full evidence set" check
+      — i.e. the literal user-observable-failure-mode (a). If any file is
+      missing, ls exits non-zero, and C0 fires.
+    weight: 1.0
+
+provenance:
+  authored_at: '2026-04-29T10:55:00+00:00'
+  authored_by: 'round_14 dogfood L3 Task Agent'
+  spec_version: v0.3.0-rc1
+  target_commit_base: 6dc04e3e344486cc3b621af5f3a5258b9e744588
+  forever_out_check: |
+    None of the 5 cases introduces a marketplace, router-model training, a
+    generic IDE compat layer, or a Markdown-to-CLI converter (§11.1). All
+    cases are local shell invocations of already-shipped tools. Verified
+    per §14.6.

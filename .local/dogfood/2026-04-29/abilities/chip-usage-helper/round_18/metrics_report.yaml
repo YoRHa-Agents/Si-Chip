@@ -1,0 +1,43 @@
+ability_id: chip-usage-helper
+round_id: round_18
+prior_round_id: round_17
+generated_at: '2026-04-29T11:33:00+00:00'
+spec_version: v0.1.0
+gate_bound: v3_strict
+cycle: token_economy_v3
+
+mvp_8: { T1_pass_rate: 0.97, T2_pass_k: 1.0, T3_baseline_delta: 0.92, C1_metadata_tokens: 70, C4_per_invocation_footprint: 2402, L2_wall_clock_p95: 1.78, R3_trigger_F1: 1.0, R5_router_floor: composer_2/fast }
+
+token_tiers_progress_cycle_3:
+  v0.8.0_baseline:         { eager: 365, on_call: 7338, skill_body: 2009, template: 4544, first_run: [10251, 10984] }
+  round_17_gut_template:   { eager: 365, on_call: 7078, skill_body: 2131, template: 4162, first_run: [9991, 10724] }
+  round_18_skill_dedup:    { eager: 365, on_call: 7007, skill_body: 2060, template: 4162, first_run: [9920, 10653] }
+  cycle3_cumulative_delta:
+    skill_body_tokens: +51 (R-3 add +122, S-2 slim -71)
+    template_tokens: -382
+    on_call_net: -331 (-4.5%)
+    first_run_both: -331
+
+v3_strict_threshold_check:
+  pass_rate: { threshold: '>= 0.90', observed: 0.97, pass: true }
+  metadata_tokens: { threshold: '<= 80', observed: 70, pass: true }
+  per_invocation_footprint: { threshold: '<= 5000', observed: 2402, pass: true }
+  trigger_F1: { threshold: '>= 0.90', observed: 1.0, pass: true }
+  near_miss_FP_rate: { threshold: '<= 0.05', observed: 0.0, pass: true }
+  routing_token_overhead: { threshold: '<= 0.08', observed: 0.0340, pass: true }
+  pass_k: { threshold: '>= 0.65', observed: 1.0, pass: true }
+  wall_clock_p95: { threshold: '<= 20 s', observed: 1.78, pass: true }
+  routing_latency_p95: { threshold: '<= 800 ms', observed: 0.18, pass: true }
+
+verdict: { pass_v1_baseline: true, pass_v2_tightened: true, pass_v3_strict: true, blockers: [] }
+
+rationale: |
+  Round 18 (feedback_for_v0.8.0 Issue S-2): SKILL.md When/Skip sections deduplicated
+  against the alwaysApply rule. SKILL now explicitly defers trigger vocab to the rule
+  + 2 illustrative examples. SKILL body 2131 -> 2060 (-71 tokens).
+  R3=1.0 confirmed: trigger vocab is union of rule+SKILL and the eval's vocabulary
+  loader still catches the illustrative examples.
+
+provenance:
+  raw_metrics_json: round_18/raw/eval_metrics.json
+  feedback_issue: "S-2 (P4)"

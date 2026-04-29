@@ -1,0 +1,297 @@
+# Si-Chip Next-Action Plan — round_13 -> round_14 (POST-v0.2.0-SHIP / v0.3.0 candidates)
+# Conforms to templates/next_action_plan.template.yaml (spec §8.1 step 4 / §8.2 evidence #5).
+# Round 13 is the v0.2.0 SHIP-PREP REVERT-ONLY round per L0 PATH=REVERT_ONLY
+# decision (PATH B in Round 12's v0.2.0_ship_decision.yaml). The v0.2.0 ship
+# happens at gate=relaxed (= v1_baseline; same gate as v0.1.0 ship); the L0
+# ship-commit step (subsequent to this dogfood round) bumps SKILL.md
+# frontmatter 0.1.12 -> 0.2.0 + spec ref v0.2.0-rc1 -> v0.2.0 final.
+#
+# This next_action_plan PRE-SPECIFIES the v0.3.0 candidate actions (a1-a4)
+# that L0 / future dogfood rounds should pick up AFTER the v0.2.0 ship tag.
+
+round_id: round_14_or_v0_3_0_round_1  # next round may be v0.3.0 round 1 OR a v0.2.x maintenance round
+generated_at: '2026-04-29T08:11:00+00:00'
+basis_metrics_report: .local/dogfood/2026-04-28/round_13/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-28/round_13/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-28/round_13/iteration_delta_report.yaml
+target_gate: relaxed_until_real_llm_runner_lands  # spec §5.4: relaxed -> v1_baseline; v0.3.0 plan promotes to v2_tightened iff a1 lands AND real k=4 sampling clears 0.55
+
+actions:
+  - id: a1
+    title: 'Implement evals/si-chip/runners/real_llm_runner.py (real-LLM evaluation; v0.3.0 must-have)'
+    owner: Implement
+    applies_to_metric: T2_pass_k                 # the carry-forward v2_tightened blocker since Round 1
+    primitive: implement
+    exit_criterion: |
+      evals/si-chip/runners/real_llm_runner.py exists and EXECUTES against the
+      6 case yaml files in evals/si-chip/cases/ via the canonical real-LLM
+      eval harness (devolaflow.evaluators or anthropic.api SDK):
+        * Per-case real k=4 sampling (4 independent draws per prompt with
+          temperature > 0; pass_k = fraction with at least 1 of 4 passes).
+        * Output shape mirrors with_ability_runner.run_case (per-prompt
+          outcomes + per-case summary + ROUTING/BODY token counts).
+        * Generates baselines under
+          evals/si-chip/baselines/with_si_chip_real_llm/ + no_ability_real_llm/.
+        * aggregate_eval.py picks up the new baselines naturally
+          (back-compat with deterministic baselines).
+      Acceptance: T2_pass_k from real k=4 sampling >= 0.55 on at least
+      one case (so v2_tightened can clear; carry-forward blocker since
+      Round 1 finally unblocked). pass_rate from real LLM is allowed to
+      vary modestly (no strict >= 0.85 requirement; the simulator's 0.85
+      is the deterministic ceiling, real LLM may sit 0.78-0.92).
+    blocker_for_v0_3_0: true
+    deferred_from_round_13_reason: |
+      Round 13 sandbox lacks LLM API auth + outbound https. PATH A in
+      Round 12's v0.2.0_ship_decision.yaml is deferred per L0 directive;
+      v0.2.0 ships at gate=relaxed (v1_baseline) instead.
+    prerequisites:
+      - 'LLM API key (Anthropic or compatible)'
+      - 'outbound HTTPS to api.anthropic.com (or compatible endpoint)'
+      - 'devolaflow.evaluators OR anthropic SDK installed'
+      - 'rate-limit budget (~ 6 cases × 20 prompts × 4 samples × 2 arms = 960 LLM calls per dogfood round; estimated cost $20-30 at Sonnet 4.6 prices)'
+    notes: |
+      Per spec §5: Si-Chip does NOT train router models. The real-LLM runner
+      EVALUATES via existing models — no learned weights; no online learning.
+      §11 forever-out compliance preserved. The runner replaces the
+      deterministic SHA-256 simulator's pass_k_4 = pass_rate^4 PROXY with
+      genuine k=4 sampling, naturally clearing the v2_tightened T2_pass_k
+      blocker (typical real k=4 across 4 draws per prompt yields ~0.6-0.7
+      pass_k for our case difficulty profile).
+
+  - id: a2
+    title: 'Fill G2/G3/G4 generalizability sub-metrics (D4 1/4 -> 4/4; v0.3.0 must-have)'
+    owner: Implement
+    applies_to_metric:
+      - G2_cross_domain_transfer_pass
+      - G3_OOD_robustness
+      - G4_model_version_stability
+    primitive: implement
+    exit_criterion: |
+      All 3 G2/G3/G4 sub-metrics populated in metrics_report.yaml from
+      real-LLM runner outputs:
+        * G2_cross_domain_transfer_pass: real-LLM run against a
+          cross-domain prompt bank (evals/si-chip/cross_domain/ NEW) —
+          measures how well the ability transfers to scenarios outside
+          its training/seed domain. Range [0.0, 1.0].
+        * G3_OOD_robustness: real-LLM run against the OOD robustness
+          suite (evals/si-chip/ood_robustness/ NEW) — measures
+          out-of-distribution prompt handling. Range [0.0, 1.0].
+        * G4_model_version_stability: real-LLM run against multiple
+          model versions (e.g., sonnet_4_5 vs sonnet_4_6 vs sonnet_4_7;
+          composer_2_fast vs composer_2_default) and reports the
+          worst-case pass_rate gap. Range [0.0, 1.0]; lower = more
+          stable across versions.
+      Tied to a1: requires the real-LLM runner from a1 to land first.
+    deferred_from_round_13_reason: 'D4 fills require real-LLM runs which require the v0.3.0 real-LLM runner (a1 above).'
+    prerequisites:
+      - 'a1 (real-LLM runner) landed and producing baselines'
+      - 'evals/si-chip/cross_domain/ + evals/si-chip/ood_robustness/ prompt yaml files authored (~50-100 prompts each)'
+    notes: |
+      D4 G1 was filled in Round 10 with a 2-model × 2-pack PARTIAL PROXY
+      (carried byte-identical through Rounds 11-13). The full G1 also
+      benefits from a1 (the 96-cell matrix is the authoritative G1).
+      v2_tightened+ promotion ties G1 to the full 96-cell matrix per
+      §5.3. After a1 + a2 + the full G1 fill, D4 reaches 4/4 populated
+      (FULL COVERAGE).
+
+  - id: a3
+    title: 'Fill L5/L6/L7 latency-path sub-metrics (D3 4/7 -> 7/7; v0.3.0 must-have)'
+    owner: Implement
+    applies_to_metric:
+      - L5_detour_index
+      - L6_replanning_rate
+      - L7_think_act_split
+    primitive: implement
+    exit_criterion: |
+      All 3 L5/L6/L7 sub-metrics populated in metrics_report.yaml from
+      real-LLM runner outputs:
+        * L5_detour_index: ratio of off-path tool calls / total tool calls
+          per task; measures wandering. Range [0.0, 1.0]; lower = more
+          direct. Tied to per-tool-call instrumentation in real-LLM
+          runner.
+        * L6_replanning_rate: fraction of tasks where the agent
+          backtracked / re-planned mid-execution. Range [0.0, 1.0].
+        * L7_think_act_split: ratio of "thinking" tokens to "acting"
+          tokens (act = tool calls + final answer). Range [0.0, +inf).
+      Tied to a1: requires the real-LLM runner from a1 to land first.
+    deferred_from_round_13_reason: 'D3 fills require real-LLM execution traces which require the v0.3.0 real-LLM runner (a1 above).'
+    prerequisites:
+      - 'a1 (real-LLM runner) landed and producing per-step traces'
+      - 'OTel GenAI semconv emitted by the real-LLM runner (gen_ai.client.operation.duration / gen_ai.tool.name / mcp.method.name) — see spec §3.2 frozen constraint #3'
+    notes: |
+      D3 L1/L2/L3/L4 were filled in Round 4 with the deterministic
+      simulator. The deterministic simulator emits unique prompt_ids per
+      case (degenerate L4 = 0.0); L5/L6/L7 require genuine multi-step
+      execution traces which the simulator does not produce. After a3,
+      D3 reaches 7/7 populated (FULL COVERAGE).
+
+  - id: a4
+    title: 'Promote to v2_tightened gate after a1 lands (v0.3.0 ship gate)'
+    owner: Verify
+    applies_to_metric:                     # All v2_tightened hard threshold rows
+      - T1_pass_rate
+      - T2_pass_k
+      - C1_metadata_tokens
+      - C4_per_invocation_footprint
+      - L2_wall_clock_p95
+      - R3_trigger_F1
+      - R4_near_miss_FP_rate
+      - R6_routing_latency_p95
+      - R7_routing_token_overhead
+    primitive: verify
+    exit_criterion: |
+      Both v0.3.0 round_1 metrics_report.yaml AND v0.3.0 round_2
+      metrics_report.yaml pass every v2_tightened hard threshold:
+        * pass_rate >= 0.82
+        * pass_k >= 0.55          # CRITICAL: requires a1 (real k=4 sampling)
+        * trigger_F1 >= 0.85
+        * near_miss_FP_rate <= 0.10
+        * metadata_tokens <= 100
+        * per_invocation_footprint <= 7000
+        * wall_clock_p95 <= 30 s
+        * routing_latency_p95 <= 1200 ms
+        * routing_token_overhead <= 0.12
+        * iteration_delta any axis >= +0.10  (v0.3.0 work itself satisfies — a1 is a major efficiency-axis win)
+      Emit v0.3.0_ship_decision.yaml with verdict (SHIP_ELIGIBLE iff the
+      v2_tightened readiness check is FULLY clean across BOTH v0.3.0
+      rounds; otherwise SHIP_BLOCKED with the explicit blocker list).
+    deferred_from_round_13_reason: 'v2_tightened promotion requires CONSECUTIVE TWO ROUNDS clearing every v2 threshold (spec §4.2). Round 11 (T2_pass_k -0.0022 + iteration_delta -0.05) and Round 12 (T2_pass_k -0.055; honest 7-case experiment) both failed; Round 13 reverts to Round 11 byte-identical (T2_pass_k -0.0022 still). v0.3.0 ship cycle picks this up after a1 lands.'
+    notes: |
+      Per spec §4.2 promotion rule, v0.3.0 ship at v2_tightened requires
+      CONSECUTIVE TWO ROUNDS passing every v2_tightened hard threshold.
+      v0.3.0 round_1 + round_2 are the two consecutive rounds. T2_pass_k
+      = 0.5478 is the single known carry-forward blocker; a1 (real-LLM
+      runner with real k=4 sampling) is the unblock path.
+
+expected_iteration_delta_axes:
+  - task_quality           # via a1 real-LLM runner: real k=4 sampling lifts T2_pass_k naturally; pass_rate may shift +/- 5%
+  - latency_path           # via a3 L5/L6/L7 fills: 3 new sub-metrics measured first time
+  - generalizability       # via a2 G2/G3/G4 fills: 3 new sub-metrics measured first time
+
+# Pre-commitment: v0.3.0 round_1 + round_2 must show movement on at least one
+# efficiency axis at the v2_tightened +0.10 bucket (per spec §4.1) AND every
+# v2_tightened hard threshold passing across BOTH rounds to unblock v0.3.0
+# ship.
+
+deferred_from_round_13:
+  - id: t2_pass_k_v2_margin
+    title: 'T2_pass_k v2_tightened margin (0.5478 vs 0.55; delta -0.0022)'
+    deferral_reason: |
+      Carry-forward blocker since Round 1 (the deterministic SHA-256
+      simulator emits pass_k_4 = pass_rate^4 PROXY which is a lower bound
+      on real k=4 sampling). PATH A in Round 12's v0.2.0_ship_decision.yaml
+      (real-LLM runner) is deferred to v0.3.0 (a1 above) per L0
+      PATH=REVERT_ONLY decision (Round 13 sandbox lacks LLM API auth).
+    refer_to: '.local/dogfood/2026-04-28/round_13/raw/notes.md §6 bullet 1'
+  - id: g1_full_96_cell_upgrade
+    title: 'G1 full 96-cell matrix from real-LLM runner'
+    deferral_reason: |
+      Round 10 populates G1 with a 2-model × 2-pack PARTIAL PROXY
+      (carried through Rounds 11/12/13). Authoritative G1 requires
+      real-LLM runs against the full 96-cell profile (§5.3 full:
+      6 model × 4 depth × 4 pack). v2_tightened+ promotion gate ties G1
+      to the full matrix; v0.3.0 cycle (a1 + a2) handles the upgrade.
+    refer_to: '.local/dogfood/2026-04-28/round_10/basic_ability_profile.yaml#decision.risk_flags'
+  - id: g2_g3_g4_fill
+    title: 'G2/G3/G4 fills (D4 1/4 -> 4/4)'
+    deferral_reason: |
+      Spec §3.1 D4 G2/G3/G4 require real-LLM runs against a cross-domain
+      prompt bank + OOD robustness suite + multi-model-version stability
+      baseline. All three are tied to a1 + a2 in v0.3.0.
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[1] (a2)'
+  - id: l5_l6_l7_fill
+    title: 'L5/L6/L7 fills (D3 4/7 -> 7/7)'
+    deferral_reason: |
+      Spec §3.1 D3 L5/L6/L7 require per-step execution traces which the
+      deterministic simulator does not produce. Tied to a1 + a3 in v0.3.0.
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[2] (a3)'
+  - id: r1_r2_fill
+    title: 'R1_trigger_precision + R2_trigger_recall fills (D6 6/8 -> 8/8)'
+    deferral_reason: |
+      Neither has a §4.1 hard threshold (informational only). Populating
+      them requires a real-LLM runner emitting per-prompt routing-
+      descriptor-match scores (not the deterministic simulator's
+      per-prompt correctness bool). Tied to a1 in v0.3.0.
+    refer_to: '.local/dogfood/2026-04-28/round_10/basic_ability_profile.yaml#decision.risk_flags'
+  - id: full_96_cell_profile_stays_v2_only
+    title: 'Full 96-cell router-test profile stays gated to v2_tightened+'
+    deferral_reason: |
+      Round 9 added the INTERMEDIATE profile (16 cells) as a v1_baseline
+      widening; the FULL 96-cell profile still requires v2_tightened+ per
+      spec §5.3. 4 of the 6 full-profile models (haiku_4_5, sonnet_4_6,
+      opus_4_7, gpt_5_mini) require real-LLM invocation; deferred to
+      v0.3.0 cycle (tied to a1).
+    refer_to: 'templates/router_test_matrix.template.yaml#profiles.full'
+  - id: u4_live_wall_clock
+    title: 'U4 live wall-clock (dry_run=False) sampling for p50 + p95'
+    deferral_reason: 'Round 13 U4 carried from Round 6-12 dry-run floor estimate (0.0073 s). Real-LLM-runner-driven live wall-clock sampling is a v0.3.0+ candidate.'
+    refer_to: 'round_6/metrics_report.yaml provenance.u4_derivation.interpretation_note'
+  - id: c5_heuristic_proxy
+    title: 'C5_context_rot_risk is currently a HEURISTIC PROXY (not ground-truth)'
+    deferral_reason: 'Round 7 C5 = 0.2601 uses a deterministic formula proxy. Full ground-truth requires real-LLM runner-driven context-rot measurement (post-v0.2.0).'
+    refer_to: '.local/dogfood/2026-04-28/round_7/raw/c5_derivation.json'
+  - id: v2_pattern_coverage
+    title: 'V2 credential-surface scanner is PATTERN-BASED; entropy-based scan deferred'
+    deferral_reason: |
+      Round 8 V2 scanner covers 4 canonical patterns. Full coverage would
+      integrate truffleHog / gitleaks-style entropy scanning — out of
+      scope for Round 13/14 (v0.3.0+ candidate).
+    refer_to: '.local/dogfood/2026-04-28/round_8/basic_ability_profile.yaml#decision.risk_flags'
+  - id: r8_tfidf_cosine_mean_parallel
+    title: 'Compute R8 tfidf_cosine_mean alongside max_jaccard for cross-validation'
+    deferral_reason: |
+      Round 9 populates R8 with method="max_jaccard" (byte-identical to
+      C6 by construction). The method="tfidf_cosine_mean" variant is
+      IMPLEMENTED in count_tokens.py and tested, but not hoisted into
+      metrics_report.yaml. v0.3.0+ candidate for cross-validation.
+    refer_to: '.agents/skills/si-chip/scripts/count_tokens.py::skill_md_description_competition_index'
+  - id: golden_set_real_llm_eval
+    title: 'evals/si-chip/golden_set/ real-LLM eval consumption'
+    deferral_reason: |
+      Round 10 seeded golden_set/ with 12+12 prompts as an opt-in source.
+      The deterministic runner does NOT consume it. Real-LLM eval via
+      nines --golden-dir is tied to a1 in v0.3.0.
+    refer_to: 'evals/si-chip/golden_set/README.md'
+  - id: real_llm_runner_implementation
+    title: 'Implement evals/si-chip/runners/real_llm_runner.py (real-LLM evaluation; tied to v0.3.0)'
+    deferral_reason: |
+      Round 13 sandbox lacks LLM API auth + outbound https. Tied to a1.
+      Once a1 lands, v0.3.0 round_1 + round_2 can clear v2_tightened
+      naturally.
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[0] (a1)'
+  - id: codex_native_skill_md_runtime
+    title: 'Codex native SKILL.md runtime support (vs current bridge-only)'
+    deferral_reason: |
+      Spec §11.2 deferred. Currently Codex is bridge-only via AGENTS.md +
+      .codex/profiles/si-chip.md + .codex/instructions/si-chip-bridge.md
+      per §7.2 priority 3. Native SKILL.md runtime is a Codex platform
+      change outside Si-Chip's control; revisit after Codex publishes
+      a SKILL.md runtime spec.
+    refer_to: 'spec §11.2'
+  - id: plugin_distribution
+    title: 'Plugin distribution (commands / hooks / marketplace upgrade)'
+    deferral_reason: |
+      Spec §11.1 forever-out for v0.x: marketplace + distribution surface
+      are PERMANENTLY OUT for v0.x. Re-evaluation gated to spec bump
+      v0.2.x -> v1.x AND continuous v3_strict pass for 2+ rounds.
+    refer_to: 'spec §11.2 deferred items'
+
+continuing_through_master_plan:
+  - 'L0 ship-commit step (subsequent to this dogfood round): bump SKILL.md frontmatter 0.1.12 -> 0.2.0; bump spec ref v0.2.0-rc1 -> v0.2.0; build docs/skills/si-chip-0.2.0.tar.gz; tag v0.2.0; update CHANGELOG; create GitHub release'
+  - 'v0.3.0 round_1: a1 (real-LLM runner) + a2-pre (G2/G3/G4 prompt yaml authoring)'
+  - 'v0.3.0 round_2: a2 + a3 fills + a4 v2_tightened verify; emit v0.3.0_ship_decision.yaml'
+  - 'v0.3.0 ship: spec bump v0.2.0 -> v0.3.0 + tag v0.3.0 + new tarball + CHANGELOG'
+
+provenance:
+  generator: 'Round 13 dogfood — L3 Task Agent (SHIP-PREP REVERT-ONLY)'
+  spec_version: v0.2.0-rc1                                      # Round 13 stays at v0.2.0-rc1; v0.2.0 final bump is the L0 ship-commit step.
+  basis_round: round_13
+  cites:
+    - .local/dogfood/2026-04-28/round_13/raw/notes.md           # diagnose output (Step 3)
+    - .local/dogfood/2026-04-28/round_13/raw/revert_diff.json   # revert enumeration
+    - .local/dogfood/2026-04-28/round_13/metrics_report.yaml
+    - .local/dogfood/2026-04-28/round_13/iteration_delta_report.yaml
+    - .local/dogfood/2026-04-28/round_12/next_action_plan.yaml  # carry-forward audit
+    - .local/dogfood/2026-04-28/v0.2.0_ship_decision.yaml       # Round 12 v1; will be overwritten by v2 this round
+    - .local/research/spec_v0.2.0-rc1.md                        # §3/§4/§5/§6/§7/§8/§11 Normative + §13.4 reconciled prose; §4.1 thresholds, §4.2 promotion rule, §6.4 reactivation triggers
+    - .agents/skills/si-chip/references/half-retirement-r9-summary.md

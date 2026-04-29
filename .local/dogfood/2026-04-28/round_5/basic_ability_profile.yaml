@@ -1,0 +1,116 @@
+basic_ability:
+  id: si-chip
+  intent: 'Persistent BasicAbility optimization factory: capture, profile, evaluate,
+    diagnose, improve, router-test, half-retire-review, iterate, package/register
+    the Si-Chip skill against itself.'
+  current_surface:
+    type: mixed
+    path: .agents/skills/si-chip/
+    shape_hint: markdown_first
+  packaging:
+    install_targets:
+      cursor: true
+      claude_code: true
+      codex: false
+    source_of_truth: .agents/skills/si-chip/
+    generated_targets:
+    - .cursor/skills/si-chip/
+    - .claude/skills/si-chip/
+  lifecycle:
+    stage: evaluated
+    last_reviewed_at: '2026-04-28'   # Round 5 review date (today, per L1 task spec)
+    next_review_at: '2026-05-28'     # last_reviewed_at + 30 days (cadence per spec §6 review window)
+  eval_state:
+    has_eval_set: true
+    has_no_ability_baseline: true
+    has_self_eval: true
+    has_router_test: true
+    has_iteration_delta: true
+  metrics:
+    task_quality:
+      T1_pass_rate: 0.85
+      T2_pass_k: 0.5477708333333333
+      T3_baseline_delta: 0.35
+      T4_error_recovery_rate: null
+    context_economy:
+      C1_metadata_tokens: 82                     # Carried from Round 4; v0.1.3 -> v0.1.4 frontmatter bump THIS round adds 0 tokens (verified).
+      C2_body_tokens: 2020                       # Carried (unchanged; SKILL.md body untouched this round).
+      C3_resolved_tokens: null
+      C4_per_invocation_footprint: 3602.0        # = C1(82) + C2(2020) + USER_PROMPT_FOOTPRINT(1500); identical to Round 4.
+      C5_context_rot_risk: null                  # Round 7 (master plan).
+      C6_scope_overlap_score: null               # Round 7 (master plan).
+    latency_path:
+      L1_wall_clock_p50: 1.2153333333333334      # Carried from Round 4 (deterministic runner).
+      L2_wall_clock_p95: 1.4693333333333334
+      L3_step_count: 20
+      L4_redundant_call_ratio: 0.0
+      L5_detour_index: null                      # Real-LLM upgrade required.
+      L6_replanning_rate: null
+      L7_think_act_split: null
+    generalizability:
+      G1_cross_model_pass_matrix: null           # Round 10 (master plan).
+      G2_cross_domain_transfer_pass: null
+      G3_OOD_robustness: null
+      G4_model_version_stability: null
+    usage_cost:
+      U1_description_readability: 19.580000000000002   # NEW IN ROUND 5: Flesch-Kincaid grade level of SKILL.md description frontmatter (20 words, 2 sentences, 53 syllables); formula 0.39*(20/2) + 11.8*(53/20) - 15.59 = 19.58. Range [0.0, 24.0] sanity PASS; no §4.1 hard threshold. See raw/u1_fk_derivation.json.
+      U2_first_time_success_rate: 0.75                  # NEW IN ROUND 5: 45 correct should_trigger / 60 total should_trigger across 6 cases. Deterministic single-pass runner; `correct==True on expected=="trigger"` IS first-time success.
+      U3_setup_steps_count: null                        # Round 6 (master plan).
+      U4_time_to_first_success: null                    # Round 6 (master plan).
+    routing_cost:
+      R1_trigger_precision: null
+      R2_trigger_recall: null
+      R3_trigger_F1: 0.8933952528379773
+      R4_near_miss_FP_rate: 0.05                 # Re-derived from prompt_outcomes (identical to Round 4; deterministic).
+      R5_router_floor: composer_2/fast
+      R6_routing_latency_p95: 1100.0             # Carried from Round 4 (router_floor_report.yaml hoist via aggregate_eval.hoist_r6_routing_latency_p95). v1_baseline (<= 2000 ms) PASS.
+      R7_routing_token_overhead: 0.023295454545454546  # Carried from Round 4: 9840/422400 = 0.02330. v1_baseline (<= 0.20) PASS.
+      R8_description_competition_index: null     # Round 9 (master plan).
+    governance_risk:
+      V1_permission_scope: null                  # Round 8 (master plan).
+      V2_credential_surface: null                # Round 8 (master plan).
+      V3_drift_signal: null                      # Round 8 (master plan).
+      V4_staleness_days: null                    # Round 8 (master plan).
+  value_vector:
+    task_delta: 0.35                             # = pass_with(0.85) - pass_without(0.50); R6 T3 — unchanged from Round 4.
+    token_delta: -1.4013333333333333             # = (1500 - 3602) / 1500 = -1.4013; identical to Round 4 (no frontmatter token movement this round).
+    latency_delta: -0.5374956400418557           # = (no_ability L2 0.9557 - with-ability L2 1.4693) / no_ability L2 0.9557; carried unchanged from Round 4 (baselines are deterministic).
+    context_delta: -1.4013333333333333           # = (1500 - 3602) / 1500; same formula as token_delta.
+    path_efficiency_delta: null                  # L5 detour_index still not measured (Round 5 fills D5/U1 + D5/U2 only; L5 real-LLM upgrade pending).
+    routing_delta: 0.8933952528379773            # = trigger_F1_with(0.8934) - trigger_F1_without(0.0); unchanged.
+    governance_risk_delta: 0.0                   # No risk regression introduced; D7 — unchanged.
+  router_floor: composer_2/default               # Cheapest model x depth tuple where BOTH packs reach pass_rate >= 0.80 (per round_5/router_floor_report.yaml; identical to Round 4).
+  decision:
+    action: keep
+    rationale: 'Round 5 task_delta unchanged at +0.35 satisfies §6.2 keep condition (task_delta >= +0.10). NEW: D5 usage_cost dimension reaches 2/4 sub-metric coverage (U1, U2 newly populated). Iteration_delta clause satisfied via "measurement-fill" axis bonus on usage_cost (was 0.0 since Round 1; now non-zero — per master plan acceptance criterion #5).'
+    risk_flags:
+    - 'U1 = 19.58 (clamped FK grade) is high — reflects dense technical vocabulary (BasicAbility, router-testing, half-retiring, Si-Chip). Master plan round_5 risk_flag explicitly acknowledges this: the number may be unflattering but surfacing it is the value. Dropping below 12 (post-graduate boundary) would require rephrasing the description; out of scope for Round 5 (body untouched this round).'
+    - 'U2 = 0.75 < pass_rate 0.85 because U2 counts only should_trigger prompts while pass_rate counts both slices (should_trigger + should_not). The simulator near-miss outcomes concentrate on the should_trigger slice, dragging U2 down. Real-LLM retry-aware instrumentation would allow U2 > pass_rate if retries recover miss attempts.'
+    - 'L4_redundant_call_ratio = 0.0 carried from Round 4 is a degenerate VALID value (every prompt_id within a case is unique by construction). Documented in master plan risk_flag and metrics_report l4_derivation.degenerate_path_note.'
+    - 'router_floor cells remain simulated (deterministic SHA-256-based); R6_routing_latency_p95 = 1100 ms is sweep-latency, not yet a real-LLM latency. Real-LLM swap path documented at evals/si-chip/runners/with_ability_runner.py.'
+provenance:
+  generator: 'Round 5 dogfood — L1 Stage Agent'
+  script_version: 0.1.0
+  spec_version: v0.1.0
+  generated_at: '2026-04-28T19:10:00+00:00'
+  basis_round: round_4
+  copied_from: .local/dogfood/2026-04-28/round_4/basic_ability_profile.yaml
+  step_edits_applied:
+    step1: ['lifecycle.last_reviewed_at -> 2026-04-28 (today)', 'lifecycle.next_review_at -> 2026-05-28 (30-day cadence)']
+    step2: ['metrics.usage_cost.U1_description_readability null -> 19.58 (NEW)', 'metrics.usage_cost.U2_first_time_success_rate null -> 0.75 (NEW)']
+    step5: ['eval_state.has_router_test -> true (re-emitted; cells unchanged from Round 4)']
+    step6: ['decision.action remains keep; decision.rationale rewritten for Round 5 U1/U2 fill', 'decision.risk_flags expanded with U1 FK-grade-high note + U2 vs pass_rate note']
+    step7: ['eval_state.has_iteration_delta -> true (round_5 vs round_4)']
+    step8: ['lifecycle stage remains evaluated; package-register sync to .cursor/.claude trees + tarball happens this round (frontmatter version 0.1.3 -> 0.1.4 only)']
+round_5:
+  source_round: round_4
+  copied_from: .local/dogfood/2026-04-28/round_4/basic_ability_profile.yaml
+  edits_applied:
+    - 'lifecycle.last_reviewed_at: 2026-04-28 (Round 5 today)'
+    - 'lifecycle.next_review_at: 2026-05-28 (today + 30 days)'
+    - 'metrics.usage_cost.U1_description_readability: null -> 19.58 (NEW; Round 5 Edit A+B)'
+    - 'metrics.usage_cost.U2_first_time_success_rate: null -> 0.75 (NEW; Round 5 Edit B)'
+    - 'decision.rationale rewritten for Round 5'
+    - 'decision.risk_flags expanded with U1 FK-grade-high note + U2 vs pass_rate note'
+  generated_at: '2026-04-28T19:10:00+00:00'
+  spec_version: v0.1.0

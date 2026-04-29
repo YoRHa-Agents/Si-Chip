@@ -1,0 +1,1003 @@
+#!/usr/bin/env python3
+"""Unit tests for ``tools/spec_validator.py``.
+
+Workspace rule "Mandatory Verification": Round 9 (task spec §6) extends
+the validator's ``check_router_matrix_cells`` invariant to accept BOTH
+the pre-Round-9 0.1.0 schema (mvp:8 + full:96) AND the Round 9 0.1.1
+schema (+ additive intermediate:16). These tests lock down that
+behaviour:
+
+* **0.1.1 happy path** — real template on disk: intermediate invariants
+  hold (cells==16, gate_binding=="relaxed", axis product=16);
+  default-mode ``--json`` exits 0 with 8/8 PASS.
+* **0.1.0 backward compatibility** — pre-Round-9 template shape on a
+  temp fixture: validator still passes (no intermediate assertion
+  when schema is 0.1.0).
+* **0.1.1 negative path** — template with wrong intermediate cells
+  fails the ROUTER_MATRIX_CELLS invariant.
+
+Stage 4 Wave 2a (v0.3.0-rc1, 2026-04-29) extends the BLOCKER set
+additively from 9 to 11:
+
+* ``CORE_GOAL_FIELD_PRESENT`` — checks that the BasicAbilityProfile
+  schema declares a REQUIRED ``core_goal`` block per spec §14.1.1.
+* ``ROUND_KIND_TEMPLATE_VALID`` — checks that the iteration-delta and
+  next-action-plan templates declare ``round_kind`` from the §15.1.1
+  4-value enum (``code_change`` / ``measurement_only`` / ``ship_prep``
+  / ``maintenance``).
+
+Both new BLOCKERs PASS-as-SKIP for legacy ``$schema_version < "0.2.0"``
+inputs to preserve backward-compat with Round 1-13 / Round 1-10
+artefacts. The historical 9 BLOCKERs continue to PASS unchanged.
+
+Run::
+
+    python -m pytest tools/test_spec_validator.py -q
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import tempfile
+import textwrap
+import unittest
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
+
+_THIS_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _THIS_DIR.parent
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
+
+import spec_validator as sv  # noqa: E402
+
+# Surface tools.round_kind so tests can verify the spec_validator imports
+# the live module instead of a vendor copy.
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+from tools.round_kind import ROUND_KINDS  # noqa: E402
+
+
+REAL_TEMPLATES_DIR = _REPO_ROOT / "templates"
+SPEC_V0_3_0_RC1 = _REPO_ROOT / ".local/research/spec_v0.3.0-rc1.md"
+SPEC_V0_2_0 = _REPO_ROOT / ".local/research/spec_v0.2.0.md"
+
+
+def _write_template(
+    tmp_templates_dir: Path,
+    router_template_yaml: str,
+) -> None:
+    """Copy the real BAP schema, value-vector template, and write a router fixture.
+
+    Only the router_test_matrix template is varied across tests; the
+    other templates are read from the real ``templates/`` tree so the
+    BAP_SCHEMA + VALUE_VECTOR_AXES invariants remain intact.
+    """
+
+    tmp_templates_dir.mkdir(parents=True, exist_ok=True)
+    # Copy the unchanged template files from the real tree.
+    for name in (
+        "basic_ability_profile.schema.yaml",
+        "half_retire_decision.template.yaml",
+        "iteration_delta_report.template.yaml",
+        "next_action_plan.template.yaml",
+        "self_eval_suite.template.yaml",
+    ):
+        src = REAL_TEMPLATES_DIR / name
+        if src.exists():
+            (tmp_templates_dir / name).write_text(
+                src.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+    (tmp_templates_dir / "router_test_matrix.template.yaml").write_text(
+        router_template_yaml, encoding="utf-8",
+    )
+
+
+class CheckRouterMatrixCellsSchema011Tests(unittest.TestCase):
+    """Round 9 schema 0.1.1 (intermediate additive) happy path."""
+
+    def test_real_template_passes_intermediate_invariants(self) -> None:
+        """Real templates/router_test_matrix.template.yaml is schema 0.1.1."""
+
+        result = sv.check_router_matrix_cells(REAL_TEMPLATES_DIR)
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(result.id, "ROUTER_MATRIX_CELLS")
+        ev = result.evidence
+        self.assertEqual(ev["schema_version"], "0.1.1")
+        self.assertEqual(ev["mvp"], 8)
+        self.assertEqual(ev["full"], 96)
+        self.assertEqual(ev["intermediate"]["cell_counts_intermediate"], 16)
+        self.assertEqual(ev["intermediate"]["profile_cells"], 16)
+        self.assertEqual(ev["intermediate"]["profile_gate_binding"], "relaxed")
+        self.assertEqual(ev["intermediate"]["profile_axis_product"], 16)
+
+    def test_intermediate_axis_product_equals_16(self) -> None:
+        """2 models × 2 depths × 4 scenario_packs = 16 for intermediate."""
+
+        path = REAL_TEMPLATES_DIR / "router_test_matrix.template.yaml"
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        inter = data["profiles"]["intermediate"]
+        self.assertEqual(
+            len(inter["models"])
+            * len(inter["thinking_depths"])
+            * len(inter["scenario_packs"]),
+            16,
+        )
+        self.assertEqual(inter["cells"], 16)
+        self.assertEqual(inter["gate_binding"], "relaxed")
+
+
+class CheckRouterMatrixCellsSchema010BackwardCompatTests(unittest.TestCase):
+    """Pre-Round-9 schema 0.1.0 (no intermediate) must still pass."""
+
+    def test_schema_010_template_passes_without_intermediate(self) -> None:
+        """Synthetic 0.1.0-shaped template: validator should accept it."""
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp_templates = Path(td) / "templates"
+            _write_template(
+                tmp_templates,
+                textwrap.dedent(
+                    """\
+                    $schema_version: "0.1.0"
+                    $spec_section: "§5"
+                    $source_of_truth: ".agents/skills/si-chip/"
+                    metadata:
+                      name: "si-chip-router-test-matrix"
+                      version: "0.1.0"
+                      description: "legacy 0.1.0 template (pre-Round-9)"
+                    cell_counts:
+                      mvp: 8
+                      full: 96
+                    profiles:
+                      mvp:
+                        cells: 8
+                        models: [composer_2, sonnet_shallow]
+                        thinking_depths: [fast, default]
+                        scenario_packs: [trigger_basic, near_miss]
+                      full:
+                        cells: 96
+                        models: [composer_2, haiku_4_5, sonnet_4_6, opus_4_7, gpt_5_mini, deterministic_memory_router]
+                        thinking_depths: [fast, default, extended, round_escalated]
+                        scenario_packs: [trigger_basic, near_miss, multi_skill_competition, execution_handoff]
+                    profile_to_gate_binding:
+                      relaxed: v1_baseline
+                      standard: v2_tightened
+                      strict: v3_strict
+                    """
+                ),
+            )
+            result = sv.check_router_matrix_cells(tmp_templates)
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.evidence["schema_version"], "0.1.0")
+            # No intermediate block on schema 0.1.0.
+            self.assertNotIn("intermediate", result.evidence)
+
+
+class CheckRouterMatrixCellsSchema011NegativeTests(unittest.TestCase):
+    """Round 9 schema 0.1.1 with wrong intermediate count must fail."""
+
+    def test_wrong_intermediate_cell_count_fails(self) -> None:
+        """cell_counts.intermediate=12 (not 16) → BLOCKER fails."""
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp_templates = Path(td) / "templates"
+            _write_template(
+                tmp_templates,
+                textwrap.dedent(
+                    """\
+                    $schema_version: "0.1.1"
+                    $spec_section: "§5"
+                    $source_of_truth: ".agents/skills/si-chip/"
+                    metadata:
+                      name: "si-chip-router-test-matrix"
+                      version: "0.1.1"
+                      description: "malformed fixture"
+                    cell_counts:
+                      mvp: 8
+                      intermediate: 12   # WRONG — must be 16
+                      full: 96
+                    profiles:
+                      mvp:
+                        cells: 8
+                        models: [composer_2, sonnet_shallow]
+                        thinking_depths: [fast, default]
+                        scenario_packs: [trigger_basic, near_miss]
+                      intermediate:
+                        cells: 12          # WRONG — must be 16
+                        models: [composer_2, sonnet_shallow]
+                        thinking_depths: [fast, default]
+                        scenario_packs: [trigger_basic, near_miss, multi_skill_competition]
+                        gate_binding: relaxed
+                      full:
+                        cells: 96
+                        models: [composer_2, haiku_4_5, sonnet_4_6, opus_4_7, gpt_5_mini, deterministic_memory_router]
+                        thinking_depths: [fast, default, extended, round_escalated]
+                        scenario_packs: [trigger_basic, near_miss, multi_skill_competition, execution_handoff]
+                    """
+                ),
+            )
+            result = sv.check_router_matrix_cells(tmp_templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+
+    def test_wrong_intermediate_gate_binding_fails(self) -> None:
+        """intermediate.gate_binding='standard' (not relaxed) → fails."""
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp_templates = Path(td) / "templates"
+            _write_template(
+                tmp_templates,
+                textwrap.dedent(
+                    """\
+                    $schema_version: "0.1.1"
+                    $spec_section: "§5"
+                    $source_of_truth: ".agents/skills/si-chip/"
+                    metadata:
+                      name: "si-chip-router-test-matrix"
+                      version: "0.1.1"
+                      description: "malformed fixture"
+                    cell_counts:
+                      mvp: 8
+                      intermediate: 16
+                      full: 96
+                    profiles:
+                      mvp:
+                        cells: 8
+                        models: [composer_2, sonnet_shallow]
+                        thinking_depths: [fast, default]
+                        scenario_packs: [trigger_basic, near_miss]
+                      intermediate:
+                        cells: 16
+                        models: [composer_2, sonnet_shallow]
+                        thinking_depths: [fast, default]
+                        scenario_packs: [trigger_basic, near_miss, multi_skill_competition, execution_handoff]
+                        gate_binding: standard   # WRONG — §11 scope: intermediate must stay at relaxed, not a §5.4 binding change
+                      full:
+                        cells: 96
+                        models: [composer_2, haiku_4_5, sonnet_4_6, opus_4_7, gpt_5_mini, deterministic_memory_router]
+                        thinking_depths: [fast, default, extended, round_escalated]
+                        scenario_packs: [trigger_basic, near_miss, multi_skill_competition, execution_handoff]
+                    """
+                ),
+            )
+            result = sv.check_router_matrix_cells(tmp_templates)
+            self.assertFalse(result.passed, msg=result.message)
+
+    def test_unsupported_schema_version_fails(self) -> None:
+        """$schema_version='0.2.0' → validator refuses (not yet bumped)."""
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp_templates = Path(td) / "templates"
+            _write_template(
+                tmp_templates,
+                textwrap.dedent(
+                    """\
+                    $schema_version: "0.2.0"
+                    cell_counts: {mvp: 8, full: 96}
+                    profiles:
+                      mvp:
+                        cells: 8
+                        models: [composer_2, sonnet_shallow]
+                        thinking_depths: [fast, default]
+                        scenario_packs: [trigger_basic, near_miss]
+                      full:
+                        cells: 96
+                        models: [composer_2, haiku_4_5, sonnet_4_6, opus_4_7, gpt_5_mini, deterministic_memory_router]
+                        thinking_depths: [fast, default, extended, round_escalated]
+                        scenario_packs: [trigger_basic, near_miss, multi_skill_competition, execution_handoff]
+                    """
+                ),
+            )
+            result = sv.check_router_matrix_cells(tmp_templates)
+            self.assertFalse(result.passed)
+            self.assertIn("0.2.0", result.message)
+
+
+class SpecValidatorJsonCliPassesTests(unittest.TestCase):
+    """End-to-end: ``tools/spec_validator.py --json`` still exits 0 (>= 9/9 PASS).
+
+    Stage 4 Wave 2a additively widened the BLOCKER set from 9 to 11 (added
+    CORE_GOAL_FIELD_PRESENT and ROUND_KIND_TEMPLATE_VALID; both PASS-as-SKIP
+    against pre-v0.3.0 schemas). The original 9 historical BLOCKERs still
+    PASS at default v0.2.0 spec mode; this test enforces the historical
+    floor while remaining forward-compatible with the v0.3.0 widening.
+    """
+
+    def test_default_mode_9_of_9_pass(self) -> None:
+        """Round 12 added the 9th invariant REACTIVATION_DETECTOR_EXISTS;
+        Stage 4 Wave 2a widened to 11 BLOCKERs but the 9 historical
+        invariants must still PASS unchanged at default v0.2.0 spec mode.
+        """
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        # Historical floor: at least 9 BLOCKERs (Round 12). Wave 2a adds 2
+        # more (10 / 11) but the floor is preserved so older callers / CI
+        # gates that count >= 9 are not surprised.
+        self.assertGreaterEqual(len(payload["results"]), 9)
+        for r in payload["results"]:
+            with self.subTest(invariant=r["id"]):
+                self.assertTrue(r["passed"], msg=r["message"])
+        matrix = next(
+            r for r in payload["results"] if r["id"] == "ROUTER_MATRIX_CELLS"
+        )
+        self.assertEqual(matrix["evidence"]["schema_version"], "0.1.1")
+        # The 9th invariant must be REACTIVATION_DETECTOR_EXISTS.
+        ids = [r["id"] for r in payload["results"]]
+        self.assertIn("REACTIVATION_DETECTOR_EXISTS", ids)
+
+
+class CheckReactivationDetectorExistsTests(unittest.TestCase):
+    """Round 12 §6.4 invariant — REACTIVATION_DETECTOR_EXISTS."""
+
+    def test_real_repo_passes_invariant(self) -> None:
+        """The shipped detector + tests must satisfy the BLOCKER."""
+
+        result = sv.check_reactivation_detector_exists(repo_root=_REPO_ROOT)
+        self.assertEqual(result.id, "REACTIVATION_DETECTOR_EXISTS")
+        self.assertEqual(result.severity, "BLOCKER")
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(
+            result.evidence["expected_trigger_ids"],
+            list(sv.EXPECTED_REACTIVATION_TRIGGER_IDS),
+        )
+        self.assertEqual(result.evidence["missing_in_detector"], [])
+        self.assertEqual(result.evidence["missing_in_tests"], [])
+
+    def test_missing_detector_fails_blocker(self) -> None:
+        """An empty repo without the detector file must FAIL the BLOCKER."""
+
+        with tempfile.TemporaryDirectory() as td:
+            empty_root = Path(td)
+            (empty_root / "tools").mkdir()
+            result = sv.check_reactivation_detector_exists(repo_root=empty_root)
+            self.assertFalse(result.passed)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("missing detector", result.message)
+
+    def test_missing_trigger_id_in_detector_fails_blocker(self) -> None:
+        """A detector that omits one trigger ID must FAIL the BLOCKER."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            # Omit "manual_invocation_rebound" deliberately.
+            kept = [
+                tid for tid in sv.EXPECTED_REACTIVATION_TRIGGER_IDS
+                if tid != "manual_invocation_rebound"
+            ]
+            (root / "tools" / "reactivation_detector.py").write_text(
+                "# detector stub\n"
+                + "\n".join(f"# {tid}" for tid in kept)
+                + "\n",
+                encoding="utf-8",
+            )
+            (root / "tools" / "test_reactivation_detector.py").write_text(
+                "# test stub\n"
+                + "\n".join(
+                    f"# test for {tid}"
+                    for tid in sv.EXPECTED_REACTIVATION_TRIGGER_IDS
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            result = sv.check_reactivation_detector_exists(repo_root=root)
+            self.assertFalse(result.passed)
+            self.assertIn(
+                "manual_invocation_rebound", result.evidence["missing_in_detector"]
+            )
+
+    def test_missing_test_file_fails_blocker(self) -> None:
+        """A detector with no sibling test file must FAIL the BLOCKER."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "tools").mkdir()
+            (root / "tools" / "reactivation_detector.py").write_text(
+                "\n".join(f"# {tid}" for tid in sv.EXPECTED_REACTIVATION_TRIGGER_IDS),
+                encoding="utf-8",
+            )
+            result = sv.check_reactivation_detector_exists(repo_root=root)
+            self.assertFalse(result.passed)
+            self.assertIn("missing tests", result.message)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Stage 4 Wave 2a tests — v0.3.0-rc1 BLOCKER widening
+# ─────────────────────────────────────────────────────────────────────
+
+
+def _bap_schema_min_v0_2_0() -> Dict[str, Any]:
+    """Return a minimum-shape v0.2.0 BAP schema usable in test fixtures.
+
+    Mirrors the real templates/basic_ability_profile.schema.yaml shape
+    just enough for ``check_core_goal_field_present`` to exercise its
+    happy-path (and provides the surface that negative tests can
+    selectively mutate).
+    """
+
+    return {
+        "$schema_version": "0.2.0",
+        "properties": {
+            "basic_ability": {
+                "required": [
+                    "id",
+                    "intent",
+                    "core_goal",
+                    "current_surface",
+                    "packaging",
+                    "lifecycle",
+                    "eval_state",
+                    "metrics",
+                    "value_vector",
+                    "router_floor",
+                    "decision",
+                ],
+                "properties": {
+                    "id": {"type": "string"},
+                    "intent": {"type": "string"},
+                    "core_goal": {
+                        "type": "object",
+                        "required": [
+                            "statement",
+                            "test_pack_path",
+                            "minimum_pass_rate",
+                        ],
+                        "properties": {
+                            "statement": {"type": "string", "minLength": 16},
+                            "test_pack_path": {"type": "string"},
+                            "minimum_pass_rate": {
+                                "type": "number",
+                                "const": 1.0,
+                            },
+                        },
+                    },
+                    "current_surface": {"type": "object"},
+                    "packaging": {"type": "object"},
+                    "lifecycle": {"type": "object"},
+                    "eval_state": {"type": "object"},
+                    "metrics": {"type": "object"},
+                    "value_vector": {"type": "object"},
+                    "router_floor": {"type": ["string", "null"]},
+                    "decision": {"type": "object"},
+                },
+            },
+        },
+    }
+
+
+def _bap_schema_min_v0_1_0() -> Dict[str, Any]:
+    """Return a minimum-shape v0.1.0 BAP schema (no core_goal)."""
+
+    return {
+        "$schema_version": "0.1.0",
+        "properties": {
+            "basic_ability": {
+                "required": [
+                    "id",
+                    "intent",
+                    "current_surface",
+                    "packaging",
+                    "lifecycle",
+                    "eval_state",
+                    "metrics",
+                    "value_vector",
+                    "router_floor",
+                    "decision",
+                ],
+                "properties": {
+                    "id": {"type": "string"},
+                    "intent": {"type": "string"},
+                    "current_surface": {"type": "object"},
+                    "packaging": {"type": "object"},
+                    "lifecycle": {"type": "object"},
+                    "eval_state": {"type": "object"},
+                    "metrics": {"type": "object"},
+                    "value_vector": {"type": "object"},
+                    "router_floor": {"type": ["string", "null"]},
+                    "decision": {"type": "object"},
+                },
+            },
+        },
+    }
+
+
+def _write_only_bap_schema(
+    tmp_dir: Path, schema_data: Dict[str, Any]
+) -> Path:
+    """Write ``schema_data`` as the BAP schema in ``tmp_dir/templates``.
+
+    Used by tests that only touch BAP_SCHEMA / CORE_GOAL_FIELD_PRESENT
+    and don't need other templates to be present.
+    """
+
+    templates = tmp_dir / "templates"
+    templates.mkdir(parents=True, exist_ok=True)
+    target = templates / "basic_ability_profile.schema.yaml"
+    target.write_text(
+        yaml.safe_dump(schema_data, sort_keys=False),
+        encoding="utf-8",
+    )
+    return templates
+
+
+def _write_round_kind_templates(
+    tmp_dir: Path,
+    iteration_delta: Optional[Dict[str, Any]] = None,
+    next_action_plan: Optional[Dict[str, Any]] = None,
+) -> Path:
+    """Write minimal round-kind templates into ``tmp_dir/templates``.
+
+    Either parameter may be omitted to skip writing that template.
+    Returns the templates directory.
+    """
+
+    templates = tmp_dir / "templates"
+    templates.mkdir(parents=True, exist_ok=True)
+    if iteration_delta is not None:
+        (templates / "iteration_delta_report.template.yaml").write_text(
+            yaml.safe_dump(iteration_delta, sort_keys=False),
+            encoding="utf-8",
+        )
+    if next_action_plan is not None:
+        (templates / "next_action_plan.template.yaml").write_text(
+            yaml.safe_dump(next_action_plan, sort_keys=False),
+            encoding="utf-8",
+        )
+    return templates
+
+
+def _round_kind_template_v0_2_0(name: str, value: str = "code_change") -> Dict[str, Any]:
+    """Return a minimal v0.2.0 round-kind-bearing template."""
+
+    return {
+        "$schema_version": "0.2.0",
+        "metadata": {"name": name, "version": "0.2.0"},
+        "required_fields": ["round_kind"],
+        "schema": {
+            "round_kind": {
+                "type": "string",
+                "required": True,
+                "enum": sorted(ROUND_KINDS),
+                "description": "spec v0.3.0-rc1 §15.1.1 enum",
+            },
+        },
+        "example_instance": {
+            "round_kind": value,
+        },
+    }
+
+
+def _round_kind_template_v0_1_0(name: str) -> Dict[str, Any]:
+    """Return a minimal v0.1.0 round-kind template (no round_kind required)."""
+
+    return {
+        "$schema_version": "0.1.0",
+        "metadata": {"name": name, "version": "0.1.0"},
+        "required_fields": ["round_id"],
+        "schema": {"round_id": {"type": "string", "required": True}},
+        "example_instance": {"round_id": "r0"},
+    }
+
+
+class V030Rc1AcceptanceTests(unittest.TestCase):
+    """v0.3.0-rc1 spec acceptance: 11/11 BLOCKER PASS via subprocess."""
+
+    def test_v0_3_0_rc1_spec_loads_11_of_11_pass(self) -> None:
+        """``--spec spec_v0.3.0-rc1.md --json`` exits 0 with 11/11 PASS."""
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--spec",
+                str(SPEC_V0_3_0_RC1),
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        self.assertEqual(len(payload["results"]), 11)
+        passed_count = sum(1 for r in payload["results"] if r["passed"])
+        self.assertEqual(passed_count, 11)
+        ids = [r["id"] for r in payload["results"]]
+        self.assertIn("CORE_GOAL_FIELD_PRESENT", ids)
+        self.assertIn("ROUND_KIND_TEMPLATE_VALID", ids)
+        # spec_path is echoed back in the report.
+        self.assertEqual(payload["spec_path"], str(SPEC_V0_3_0_RC1.resolve()))
+
+    def test_v0_2_0_default_mode_still_9_of_9_pass(self) -> None:
+        """Default v0.2.0 spec still PASS; 9 historical + 2 new BLOCKERs (= 11 PASS)."""
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        self.assertEqual(len(payload["results"]), 11)
+        # All 9 historical BLOCKERs MUST be present and PASSed.
+        historical = {
+            "BAP_SCHEMA",
+            "R6_KEYS",
+            "THRESHOLD_TABLE",
+            "ROUTER_MATRIX_CELLS",
+            "VALUE_VECTOR_AXES",
+            "PLATFORM_PRIORITY",
+            "DOGFOOD_PROTOCOL",
+            "FOREVER_OUT_LIST",
+            "REACTIVATION_DETECTOR_EXISTS",
+        }
+        observed_ids = {r["id"] for r in payload["results"]}
+        self.assertEqual(historical & observed_ids, historical)
+        for r in payload["results"]:
+            with self.subTest(invariant=r["id"]):
+                self.assertTrue(r["passed"], msg=r["message"])
+
+    def test_strict_prose_count_v0_3_0_rc1_passes(self) -> None:
+        """``--strict-prose-count`` against v0.3.0-rc1 spec exits 0."""
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--spec",
+                str(SPEC_V0_3_0_RC1),
+                "--strict-prose-count",
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        # SUPPORTED_SPEC_VERSIONS must include v0.3.0-rc1.
+        self.assertIn("v0.3.0-rc1", sv.SUPPORTED_SPEC_VERSIONS)
+        # Prose-count maps must include v0.3.0-rc1 (37 sub-metrics, 30 cells).
+        self.assertEqual(sv.EXPECTED_R6_PROSE_BY_SPEC["v0.3.0-rc1"], 37)
+        self.assertEqual(
+            sv.EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC["v0.3.0-rc1"], 30
+        )
+
+
+class CheckCoreGoalFieldPresentTests(unittest.TestCase):
+    """v0.3.0 §14 BLOCKER — CORE_GOAL_FIELD_PRESENT."""
+
+    def test_real_v0_2_0_schema_passes(self) -> None:
+        """The real shipped BAP schema satisfies §14.1.1 / §14.3."""
+
+        result = sv.check_core_goal_field_present(REAL_TEMPLATES_DIR)
+        self.assertEqual(result.id, "CORE_GOAL_FIELD_PRESENT")
+        self.assertEqual(result.severity, "BLOCKER")
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(result.evidence["schema_version"], "0.2.0")
+        self.assertNotIn("skipped_reason", result.evidence)
+
+    def test_core_goal_field_present_blocker_skips_for_v0_1_0_schema(self) -> None:
+        """v0.1.0 schemas predate v0.3.0 → PASS-as-SKIP, no FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            templates = _write_only_bap_schema(
+                Path(td), _bap_schema_min_v0_1_0()
+            )
+            result = sv.check_core_goal_field_present(templates)
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.evidence["schema_version"], "0.1.0")
+            self.assertEqual(
+                result.evidence["skipped_reason"], "schema_pre_v0_3_0"
+            )
+
+    def test_core_goal_field_present_blocker_fails_when_missing(self) -> None:
+        """v0.2.0 schema without core_goal block → BLOCKER FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            schema = _bap_schema_min_v0_2_0()
+            del schema["properties"]["basic_ability"]["properties"]["core_goal"]
+            schema["properties"]["basic_ability"]["required"].remove("core_goal")
+            templates = _write_only_bap_schema(Path(td), schema)
+            result = sv.check_core_goal_field_present(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("core_goal block missing", result.message)
+
+    def test_core_goal_minimum_pass_rate_must_be_const_1_0(self) -> None:
+        """v0.2.0 schema with minimum_pass_rate.const != 1.0 → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            schema = _bap_schema_min_v0_2_0()
+            schema["properties"]["basic_ability"]["properties"]["core_goal"][
+                "properties"
+            ]["minimum_pass_rate"]["const"] = 0.95
+            templates = _write_only_bap_schema(Path(td), schema)
+            result = sv.check_core_goal_field_present(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn("const != 1.0", result.message)
+
+    def test_core_goal_required_subfield_missing_fails(self) -> None:
+        """v0.2.0 schema with core_goal.required missing 'statement' → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            schema = _bap_schema_min_v0_2_0()
+            schema["properties"]["basic_ability"]["properties"]["core_goal"][
+                "required"
+            ] = ["test_pack_path", "minimum_pass_rate"]
+            templates = _write_only_bap_schema(Path(td), schema)
+            result = sv.check_core_goal_field_present(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn(
+                "core_goal.required missing 'statement'", result.message
+            )
+
+    def test_core_goal_not_in_basic_ability_required_fails(self) -> None:
+        """v0.2.0 schema where basic_ability.required omits core_goal → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            schema = _bap_schema_min_v0_2_0()
+            schema["properties"]["basic_ability"]["required"] = [
+                k
+                for k in schema["properties"]["basic_ability"]["required"]
+                if k != "core_goal"
+            ]
+            templates = _write_only_bap_schema(Path(td), schema)
+            result = sv.check_core_goal_field_present(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn(
+                "basic_ability.required does not list core_goal",
+                result.message,
+            )
+
+
+class CheckRoundKindTemplateValidTests(unittest.TestCase):
+    """v0.3.0 §15 BLOCKER — ROUND_KIND_TEMPLATE_VALID."""
+
+    def test_round_kind_template_valid_pass(self) -> None:
+        """Real shipped templates declare round_kind from the §15.1.1 enum."""
+
+        result = sv.check_round_kind_template_valid(REAL_TEMPLATES_DIR)
+        self.assertEqual(result.id, "ROUND_KIND_TEMPLATE_VALID")
+        self.assertEqual(result.severity, "BLOCKER")
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(
+            sorted(result.evidence["expected_enum"]),
+            sorted(ROUND_KINDS),
+        )
+        # Both real templates are at $schema_version 0.2.0.
+        per_t = result.evidence["per_template"]
+        self.assertEqual(
+            per_t["iteration_delta_report.template.yaml"]["schema_version"],
+            "0.2.0",
+        )
+        self.assertEqual(
+            per_t["next_action_plan.template.yaml"]["schema_version"],
+            "0.2.0",
+        )
+
+    def test_round_kind_template_valid_fail_on_unknown_kind(self) -> None:
+        """A v0.2.0 template with round_kind=bogus must FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            iteration_delta = _round_kind_template_v0_2_0(
+                "iteration_delta_report", value="bogus"
+            )
+            next_action = _round_kind_template_v0_2_0(
+                "next_action_plan", value="code_change"
+            )
+            templates = _write_round_kind_templates(
+                Path(td),
+                iteration_delta=iteration_delta,
+                next_action_plan=next_action,
+            )
+            result = sv.check_round_kind_template_valid(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("'bogus'", result.message)
+            self.assertIn(
+                "iteration_delta_report.template.yaml", result.message
+            )
+
+    def test_round_kind_template_valid_skips_legacy_template(self) -> None:
+        """v0.1.0 template with no round_kind → PASS-as-SKIP per backward compat."""
+
+        with tempfile.TemporaryDirectory() as td:
+            iteration_delta = _round_kind_template_v0_1_0(
+                "iteration_delta_report"
+            )
+            next_action = _round_kind_template_v0_1_0("next_action_plan")
+            templates = _write_round_kind_templates(
+                Path(td),
+                iteration_delta=iteration_delta,
+                next_action_plan=next_action,
+            )
+            result = sv.check_round_kind_template_valid(templates)
+            self.assertTrue(result.passed, msg=result.message)
+            per_t = result.evidence["per_template"]
+            self.assertEqual(
+                per_t["iteration_delta_report.template.yaml"]["skipped_reason"],
+                "template_pre_v0_2_0",
+            )
+            self.assertEqual(
+                per_t["next_action_plan.template.yaml"]["skipped_reason"],
+                "template_pre_v0_2_0",
+            )
+
+    def test_round_kind_template_missing_field_fails(self) -> None:
+        """v0.2.0 template that does NOT declare round_kind anywhere → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            iteration_delta = {
+                "$schema_version": "0.2.0",
+                "metadata": {"name": "iteration_delta_report"},
+                "required_fields": ["round_id"],
+                "schema": {"round_id": {"type": "string"}},
+                "example_instance": {"round_id": "r0"},
+            }
+            next_action = _round_kind_template_v0_2_0(
+                "next_action_plan", value="code_change"
+            )
+            templates = _write_round_kind_templates(
+                Path(td),
+                iteration_delta=iteration_delta,
+                next_action_plan=next_action,
+            )
+            result = sv.check_round_kind_template_valid(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn("round_kind field missing", result.message)
+
+    def test_round_kind_template_widened_enum_fails(self) -> None:
+        """v0.2.0 template that widens schema.round_kind.enum → FAIL.
+
+        Spec §15.1.1 freezes the enum at exactly 4 values; any widening
+        would silently let agents pick a non-spec value through the
+        template.
+        """
+
+        with tempfile.TemporaryDirectory() as td:
+            iteration_delta = _round_kind_template_v0_2_0(
+                "iteration_delta_report"
+            )
+            iteration_delta["schema"]["round_kind"]["enum"] = sorted(
+                ROUND_KINDS
+            ) + ["wishful_thinking"]
+            next_action = _round_kind_template_v0_2_0(
+                "next_action_plan", value="code_change"
+            )
+            templates = _write_round_kind_templates(
+                Path(td),
+                iteration_delta=iteration_delta,
+                next_action_plan=next_action,
+            )
+            result = sv.check_round_kind_template_valid(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn("wishful_thinking", result.message)
+
+
+class LegacyArtefactBackwardCompatTests(unittest.TestCase):
+    """Round 1-13 Si-Chip + Round 1-10 chip-usage-helper artefacts must still load.
+
+    These artefacts predate v0.3.0 and never had ``core_goal`` blocks; the
+    validator must not regress on them. The check loads each YAML with
+    ``yaml.safe_load`` and confirms (a) the BAP shape is intact, (b) no
+    ``core_goal`` block is present (= legacy), and (c) the
+    BAP_SCHEMA-style key set matches the v0.1.0 expected set (10 keys).
+    """
+
+    LEGACY_CHIP_USAGE_HELPER = (
+        _REPO_ROOT
+        / ".local/dogfood/2026-04-29/abilities/chip-usage-helper/round_10/basic_ability_profile.yaml"
+    )
+    LEGACY_SI_CHIP_ROUND_13 = (
+        _REPO_ROOT / ".local/dogfood/2026-04-28/round_13/basic_ability_profile.yaml"
+    )
+
+    def _assert_legacy_profile(self, path: Path) -> None:
+        """Common assertions for legacy v0.1.0 BAP profiles."""
+
+        self.assertTrue(path.exists(), msg=f"legacy fixture missing: {path}")
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        self.assertIsInstance(data, dict)
+        self.assertIn("basic_ability", data)
+        bap = data["basic_ability"]
+        self.assertIsInstance(bap, dict)
+        # Legacy artefact: MUST NOT carry core_goal (predates v0.3.0).
+        self.assertNotIn(
+            "core_goal",
+            bap,
+            msg=(
+                "legacy artefact unexpectedly grew a core_goal block; "
+                "Stage 4 Wave 2a expects round_<= 13 / round_<= 10 to "
+                "remain v0.1.0-shaped per §16.2 Si-Chip self-dogfood "
+                "history retention"
+            ),
+        )
+        # The 10 v0.1.0 BAP keys MUST all be present.
+        v0_1_0_keys = sv.EXPECTED_BAP_KEYS_BY_SCHEMA["0.1.0"]
+        observed = set(bap.keys())
+        missing = v0_1_0_keys - observed
+        self.assertFalse(
+            missing,
+            msg=f"legacy {path.name} missing v0.1.0 keys: {sorted(missing)}",
+        )
+
+    def test_legacy_chip_usage_helper_round_10_profile_still_validates(
+        self,
+    ) -> None:
+        """chip-usage-helper Round 10 profile: yaml.safe_load + v0.1.0 shape OK."""
+
+        self._assert_legacy_profile(self.LEGACY_CHIP_USAGE_HELPER)
+
+    def test_legacy_si_chip_round_13_profile_still_validates(self) -> None:
+        """Si-Chip Round 13 profile: yaml.safe_load + v0.1.0 shape OK."""
+
+        self._assert_legacy_profile(self.LEGACY_SI_CHIP_ROUND_13)
+
+
+class BapSchemaVersionAwareTests(unittest.TestCase):
+    """Stage 4 Wave 2a: BAP_SCHEMA branches on schema's own $schema_version."""
+
+    def test_real_v0_2_0_schema_yields_11_keys(self) -> None:
+        """Real templates at $schema_version 0.2.0 → expect 11 keys (with core_goal)."""
+
+        result = sv.check_bap_schema(REAL_TEMPLATES_DIR)
+        self.assertEqual(result.id, "BAP_SCHEMA")
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(result.evidence["schema_version"], "0.2.0")
+        self.assertIn("core_goal", result.evidence["actual"])
+
+    def test_v0_1_0_schema_yields_10_keys(self) -> None:
+        """v0.1.0 schema fixture → expects the 10-key set (no core_goal)."""
+
+        with tempfile.TemporaryDirectory() as td:
+            templates = _write_only_bap_schema(
+                Path(td), _bap_schema_min_v0_1_0()
+            )
+            result = sv.check_bap_schema(templates)
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.evidence["schema_version"], "0.1.0")
+            self.assertNotIn("core_goal", result.evidence["actual"])
+            self.assertEqual(len(result.evidence["actual"]), 10)
+
+    def test_unknown_schema_version_fails_with_explicit_message(self) -> None:
+        """Unknown $schema_version → FAIL with explicit 'unknown' message."""
+
+        with tempfile.TemporaryDirectory() as td:
+            schema = _bap_schema_min_v0_1_0()
+            schema["$schema_version"] = "9.9.9"
+            templates = _write_only_bap_schema(Path(td), schema)
+            result = sv.check_bap_schema(templates)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn("unknown $schema_version", result.message)
+            self.assertIn("9.9.9", result.message)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

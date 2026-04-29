@@ -1,0 +1,56 @@
+# Si-Chip Trigger Eval Pack — Round 14 (v0.3.0-rc1 multi-ability layout §16.1)
+# Fed to tools/cjk_trigger_eval.py + tools/eval_skill.py for R1/R2/R3/R4.
+# 20 should_trigger + 20 should_not_trigger = 40 prompts (matches
+# chip-usage-helper's pack size for round-to-round comparability).
+
+should_trigger:
+  # --- EN / ASCII: core Si-Chip verbs (the 8 dogfood steps)
+  - "evaluate this skill for v0.3 readiness"
+  - "diagnose why this skill is slow"
+  - "profile si-chip against its own eval set"
+  - "draft next round's plan"
+  - "compare this round to last round"
+  # --- EN: strong anchors
+  - "compute the router_floor for chip-usage-helper"
+  - "generate a metrics_report for the new ability"
+  - "what's the iteration_delta vs Round 13"
+  - "verify core_goal hasn't regressed"
+  - "run dogfood round 14 on si-chip"
+  # --- EN: retire / reactivation
+  - "should we retire skill X"
+  - "is this skill a reactivation candidate"
+  - "run the half-retire review for si-chip"
+  # --- EN: v0.3.0 additions
+  - "what round_kind should this round be"
+  - "this round is measurement_only; confirm"
+  - "update the core_goal_test_pack to cover the new case"
+  # --- CJK / ZH
+  - "我想给这个 skill 做半退役评估"
+  - "运行 dogfood 第 14 轮"
+  - "给 si-chip 生成指标报告"
+  - "核心目标有没有回归"
+
+should_not_trigger:
+  # §11.1 forever-out — must be suppressed by discriminators
+  - "publish this skill on a marketplace"
+  - "把这个 skill 发布到商店"
+  - "train a router model on these traces"
+  - "train a ranker to pick which skill fires"
+  - "auto-convert this Markdown into a CLI"
+  - "convert this SKILL.md into a bash command"
+  # Implementation-only (SKILL.md 'When NOT To Trigger' #5)
+  - "just write this Python file"
+  - "只写一个 python 脚本就行"
+  - "fix this typescript bug"
+  - "just implement the function, no tests"
+  # Unrelated / informational
+  - "explain what BPE tokens are"
+  - "what is MCP?"
+  - "how do BPE tokenizers work"
+  - "send a feishu message"
+  - "list running docker containers"
+  - "generate a haiku"
+  - "what's the weather tomorrow"
+  - "how to install node on macOS"
+  - "render this markdown in a notebook"
+  - "describe the quicksort algorithm"

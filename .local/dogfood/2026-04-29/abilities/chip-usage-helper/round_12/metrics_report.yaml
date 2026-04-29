@@ -1,0 +1,46 @@
+ability_id: chip-usage-helper
+round_id: round_12
+prior_round_id: round_11
+generated_at: '2026-04-29T09:54:30+00:00'
+spec_version: v0.1.0
+gate_bound: v3_strict
+
+mvp_8: { T1_pass_rate: 0.97, T2_pass_k: 1.0, T3_baseline_delta: 0.92, C1_metadata_tokens: 70, C4_per_invocation_footprint: 2856, L2_wall_clock_p95: 1.78, R3_trigger_F1: 1.0, R5_router_floor: composer_2/fast }
+
+token_tiers_progress:
+  v0.7.0_baseline:        { eager: 812, on_call: 8017, payload: [4128, 7056], first_run: [12957, 15885] }
+  round_11_compact_json:  { eager: 812, on_call: 8017, payload: [2548, 4599], first_run: [11377, 13428] }
+  round_12_template_types: { eager: 812, on_call: 7231, payload: [2548, 4599], first_run: [10591, 12642] }
+  cumulative_delta_vs_baseline:
+    first_run_min: -2366
+    first_run_max: -3243
+    pct_min: -18.3
+    pct_max: -20.4
+
+v3_strict_threshold_check:
+  pass_rate: { threshold: '>= 0.90', observed: 0.97, pass: true }
+  metadata_tokens: { threshold: '<= 80', observed: 70, pass: true }
+  per_invocation_footprint: { threshold: '<= 5000', observed: 2856, pass: true }
+  wall_clock_p95: { threshold: '<= 20 s', observed: 1.78, pass: true }
+  routing_latency_p95: { threshold: '<= 800 ms', observed: 0.18, pass: true }
+  routing_token_overhead: { threshold: '<= 0.08', observed: 0.0352, pass: true }
+  trigger_F1: { threshold: '>= 0.90', observed: 1.0, pass: true }
+  near_miss_FP_rate: { threshold: '<= 0.05', observed: 0.0, pass: true }
+  pass_k: { threshold: '>= 0.65', observed: 1.0, pass: true }
+
+verdict:
+  pass_v1_baseline: true
+  pass_v2_tightened: true
+  pass_v3_strict: true
+  blockers: []
+
+rationale: |
+  Round 12 lands feedback_for_v0.7.0 Issue #1: extract canvas template's TS type
+  declarations to a sibling templates/types.d.ts file. Template body shrinks from 696
+  to 553 lines (-143 lines, -20%). Token effect: canvas template 5330 -> 4544 tokens
+  (-786 tokens). On-call total 8017 -> 7231. Cumulative first-run delta vs v0.7.0
+  baseline: -18% to -20%.
+
+provenance:
+  raw_metrics_json: round_12/raw/eval_metrics.json
+  feedback_issue: "Issue #1 ⭐⭐⭐"

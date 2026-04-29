@@ -1,0 +1,29 @@
+round_id: round_17
+prior_round_id: round_16
+computed_at: '2026-04-29T11:30:30+00:00'
+spec_version: v0.1.0
+cycle: token_economy_v3
+axis_status:
+  task_quality: { positive_axis: false, delta: 0.0 }
+  context_economy:
+    positive_axis: true
+    delta: 0.0354                    # (7338-7078)/7338 ON-CALL drop
+    rationale: "Template -382 tokens (gutted default data); SKILL +122 (R-3 note); net ON-CALL -260 (-3.5%)."
+  latency_path: { positive_axis: false, delta: 0.0 }
+  generalizability: { positive_axis: false, delta: 0.0 }
+  usage_cost: { positive_axis: false, delta: 0.0 }
+  routing_cost: { positive_axis: true, delta: 0.006, rationale: "R7 0.0338 -> 0.0318 (SKILL body grew slightly; C1 unchanged; ratio drops)" }
+  governance_risk: { positive_axis: false, delta: 0.0 }
+v3_strict_threshold_check: { pass: true, blockers: [] }
+monotonicity_check_status:
+  pass_rate_no_regression: { r16: 0.97, r17: 0.97, pass: true }
+  per_metric:
+    template_tokens: { r16: 4544, r17: 4162, pct_change: -8.4, pass: true, note: "IMPROVEMENT" }
+    skill_body_tokens: { r16: 2009, r17: 2131, pct_change: +6.1, pass: true, note: "R-3 note added; trade-off accepted" }
+    test_count: { r16: 101, r17: 101, pass: true }
+  overall_pass: true
+promotion_state: { current_gate: v3_strict, consecutive_v3_passes: 12 }
+headline:
+  primary_improvement_axis: context_economy
+  cycle_3_cumulative_delta_vs_v080: -260 tokens (-3.5%)
+provenance: { target_commit_base: 22e2bf6, feedback_source: feedback_for_v0.8.0_token_usage_verification.md }

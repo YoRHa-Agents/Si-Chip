@@ -1,0 +1,166 @@
+# Si-Chip Next-Action Plan — round_14 -> round_15 (v0.3.0-rc1 measurement_only)
+# Conforms to templates/next_action_plan.template.yaml ($schema_version 0.2.0).
+# Spec sections: §8.1 step 4 + §15.1 (round_kind) + §15.2 (per-kind iteration_delta clause).
+
+ability_id: si-chip
+round_id: round_15                                    # the round THIS plan targets
+emitted_at: '2026-04-29T11:00:00+00:00'
+generated_at: '2026-04-29T11:00:00+00:00'             # template-required field name
+targets_round: round_15_measurement_only
+bound_gate: v1_baseline
+target_branch: feat/v0.3.0-core-goal-invariant
+target_gate: relaxed                                  # spec §5.4: relaxed -> v1_baseline
+spec_version: v0.3.0-rc1
+
+# ── §15.1 round_kind classification (THIS round = code_change) ──────────
+# Note: this `round_kind` field describes ROUND 14 (the round the plan was
+# emitted IN). The PLAN itself is for Round 15 (which will be measurement_only;
+# see actions[*] below). Per spec §15.1 every next_action_plan.yaml carries
+# the round_kind of its emitting round.
+round_kind: code_change                               # NEW v0.3.0 §15.1; round 14 IS a code_change round
+round_kind_rationale: |
+  Round 14 modifies multiple ability source surfaces:
+    - .local/research/spec_v0.3.0-rc1.md (NEW; 1216 lines)
+    - .local/research/r11_core_goal_invariant.md (NEW; design brief)
+    - templates/{basic_ability_profile.schema, iteration_delta_report.template,
+      next_action_plan.template}.yaml (additive; $schema_version 0.1.0 -> 0.2.0)
+    - tools/{cjk_trigger_eval, eval_skill, multi_handler_redundant_call,
+      round_kind}.py + 4 sibling test files (NEW; 3134 LoC; 70 unit tests)
+    - tools/spec_validator.py + tools/test_spec_validator.py (extended to
+      11 BLOCKERs; CORE_GOAL_FIELD_PRESENT + ROUND_KIND_TEMPLATE_VALID added)
+    - .agents/skills/si-chip/SKILL.md -> v0.3.0-rc1 (additive +47 lines)
+    - .agents/skills/si-chip/references/{core-goal-invariant,round-kind,
+      multi-ability-layout}-r11-summary.md + scripts/eval_skill_quickstart.md (NEW)
+    - .cursor/skills/si-chip/* and .claude/skills/si-chip/* (mirror sync;
+      SHA-256 byte-identical, V3_drift_signal re-verified 0.0)
+  Per §15.1.2 decision tree: ability source files modified (Q1 = YES)
+  AND not a release-finalization round (Q2 = NO; v0.3.0 final ship is a
+  separate ship_prep round) -> round_kind = code_change.
+
+# ── Inputs basis ─────────────────────────────────────────────────────────
+basis_metrics_report: .local/dogfood/2026-04-29/round_14/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-29/round_14/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-28/round_13/iteration_delta_report.yaml
+
+# ── Actions for Round 15 (measurement_only) ─────────────────────────────
+actions:
+  - id: round_15_a1
+    action_id: round_15_a1
+    title: 'Round 15 (measurement_only) — re-run core_goal_test_pack and assert C0 = 1.0 + monotonicity vs Round 14'
+    priority: P1
+    owner: Verify
+    primitive: verify
+    targets_metric: C0_core_goal_pass_rate
+    applies_to_metric: C0_core_goal_pass_rate
+    exit_criterion: |
+      Round 15's metrics_report.yaml.core_goal_check satisfies:
+        c0_pass_rate_this_round == 1.0 (per §14.3.1 universal MUST = 1.0)
+        c0_pass_rate_prior_round == 1.0 (Round 14's value)
+        c0_no_regression == true
+        rollback_required == false
+        cases_run == 5
+        cases_passed == 5
+        failed_case_ids == []
+      Per §14.3.2: any decrease vs prior_round.C0 = round failure regardless
+      of axis_status; per §15.3 measurement_only requires `C0 == 1.0 AND
+      C0 == prior_round.C0`.
+    description: |
+      Round 15 (round_kind: measurement_only) MUST re-run the same
+      core_goal_test_pack.yaml authored in Round 14 and assert C0 = 1.0 +
+      monotonicity (no decrease vs Round 14's 1.0). Validates the
+      no-regression invariant on the same source tree (no code changes
+      between Rounds 14 and 15; only re-measurement). This is the FIRST
+      monotonicity check ever performed for Si-Chip's core_goal — the
+      Round 14 -> Round 15 pair is the Si-Chip self-witness for §14.3.2.
+
+  - id: round_15_a2
+    action_id: round_15_a2
+    title: 'Round 15 — re-run spec_validator dual-spec; both MUST exit 0 with 11/11 BLOCKERs PASS'
+    priority: P1
+    owner: Verify
+    primitive: verify
+    targets_metric: spec_validator_dual_spec_pass
+    applies_to_metric: spec_validator_dual_spec_pass
+    exit_criterion: |
+      Both invocations exit 0 AND both report verdict=PASS AND both list
+      11 BLOCKERs all_passed=true:
+        python tools/spec_validator.py --json
+        python tools/spec_validator.py --spec .local/research/spec_v0.3.0-rc1.md --json
+      Regression-guard for the Stage 4 wave 2a spec_validator extension
+      landed in Round 14 (CORE_GOAL_FIELD_PRESENT + ROUND_KIND_TEMPLATE_VALID).
+    description: |
+      Round 15 MUST re-run spec_validator.py under both --spec
+      .local/research/spec_v0.2.0.md and --spec
+      .local/research/spec_v0.3.0-rc1.md; both MUST exit 0 with 11/11
+      BLOCKERs PASS. This is the regression-guard for the spec_validator
+      extension landed in Round 14 (per §13.5.4 acceptance criteria).
+
+  - id: round_15_a3
+    action_id: round_15_a3
+    title: 'Round 15 — re-run governance_scan; assert V3_drift_signal == 0.0'
+    priority: P2
+    owner: Verify
+    primitive: verify
+    targets_metric: V3_drift_signal
+    applies_to_metric: V3_drift_signal
+    exit_criterion: |
+      Round 15's metrics_report.yaml.metrics.governance_risk.V3_drift_signal
+      equals 0.0; raw/governance_scan.json reports 3/3 SHA-256 byte-equality
+      across .agents / .cursor / .claude SKILL.md mirrors.
+      governance_risk_delta DERIVED LIVE = 0.0 (continuation of the Round 8
+      audit-gap closure; per Round 13 / Round 14 convention).
+    description: |
+      Round 15 MUST re-run tools/governance_scan.py and assert
+      V3_drift_signal == 0.0 across the 3 SKILL.md mirrors. This guards
+      against accidental editor-saves desyncing the mirrors between
+      Round 14 ship and Round 15 measurement. 15th consecutive
+      ALL_TREES_DRIFT_ZERO round target.
+
+# ── Expected iteration_delta axes ───────────────────────────────────────
+expected_iteration_delta_axes:
+  # Round 15 is measurement_only per §15.2 RELAXED clause: monotonicity-only
+  # (no axis regression below v1_baseline; not required to show improvement).
+  # The expected pattern is "axis_status flat, but C0 = 1.0 holds and v1
+  # gates all PASS" — so this list is empty / informational. We still record
+  # generalizability + governance_risk as the LIKELY-positive axes if any
+  # incidental movement occurs (e.g. if Stage 4 tools land an improvement
+  # to multi_handler_redundant_call's L4 surface).
+  - generalizability                                 # §16 multi-ability layout amortizes harness usage across 2 abilities
+  - governance_risk                                  # 11-BLOCKER spec_validator continues to gate every round
+
+# ── Forward-pointer: deferred items from Round 13 ───────────────────────
+deferred_from_round_13:
+  - id: real_llm_runner
+    title: 'evals/si-chip/runners/real_llm_runner.py (real-LLM evaluation; v0.3.x must-have)'
+    deferral_reason: 'Sandbox lacks LLM API auth + outbound HTTPS in current Round 14 / 15 cycle. Tied to v0.3.x ship gate; pre-specified in Round 13 next_action_plan a1.'
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[0] (a1)'
+  - id: g2_g3_g4_fill
+    title: 'G2_cross_domain_transfer_pass + G3_OOD_robustness + G4_model_version_stability fills'
+    deferral_reason: 'Tied to a1 above (real-LLM runner).'
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[1] (a2)'
+  - id: l5_l6_l7_fill
+    title: 'L5_detour_index + L6_replanning_rate + L7_think_act_split fills'
+    deferral_reason: 'Tied to a1 above (real-LLM runner).'
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[2] (a3)'
+
+# ── Round 14 -> v0.3.0 final ship roadmap (informational; not in actions) ─
+continuing_through_master_plan:
+  - 'Round 15: measurement_only re-verify of Round 14 (this plan''s scope).'
+  - 'Round 16+: real-LLM runner integration when API auth + outbound HTTPS available (Round 13 next_action_plan a1).'
+  - 'v0.3.0 final ship: spec frontmatter `compiled_into_rules: true` + `promoted_from: v0.3.0-rc1`; .rules/compile-config.yaml rerun (per §12 add-on).'
+  - 'AGENTS.md §13: v0.2.0 8 hard rules + v0.3.0 §17 rules 9 + 10 = 10 hard rules total post-ship.'
+
+provenance:
+  generator: 'Round 14 dogfood — L3 Task Agent (v0.3.0-rc1 code_change Stage 6a)'
+  spec_version: v0.3.0-rc1
+  basis_round: round_14
+  target_commit_base: 6dc04e3e344486cc3b621af5f3a5258b9e744588
+  cites:
+    - .local/dogfood/2026-04-29/round_14/metrics_report.yaml
+    - .local/dogfood/2026-04-29/round_14/iteration_delta_report.yaml
+    - .local/dogfood/2026-04-29/round_14/raw/spec_validator_v0_2_0.json
+    - .local/dogfood/2026-04-29/round_14/raw/spec_validator_v0_3_0_rc1.json
+    - .local/dogfood/2026-04-29/round_14/raw/core_goal_test_pack_run.json
+    - .local/research/spec_v0.3.0-rc1.md
+    - .agents/skills/si-chip/references/round-kind-r11-summary.md
+    - .agents/skills/si-chip/references/core-goal-invariant-r11-summary.md

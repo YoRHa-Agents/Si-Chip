@@ -1,0 +1,52 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T08:23:00+00:00'
+targets_round: round_10
+bound_gate: v3_strict
+target_branch: feature/si-chip
+
+# Round 10: FINAL CONVERGENCE round.
+# The ability is at 33/37 sub-metric coverage with all v3_strict thresholds passing for
+# 4 consecutive rounds. Round 10 should:
+#   1. Mark v3_strict promotion definitive (5 consecutive — clearly converged).
+#   2. Run one final 'whole-product' verification (full test suite + eval).
+#   3. Surface the SUMMARY.md feedback file.
+#   4. Make the ship decision.
+
+actions:
+  - action_id: a1
+    priority: P0
+    targets_metric: "ship_decision"
+    description: |
+      Compute and emit the chip-usage-helper SHIP_ELIGIBLE verdict at gate v3_strict.
+      Confirm: 5 consecutive v3-row-complete passes; 99/99 tests; all measured v3_strict
+      thresholds pass; coverage >= 33/37 sub-metrics.
+    scope_writable_files:
+      - .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_10/ship_decision.yaml
+    acceptance_criteria:
+      - "Verdict = SHIP_ELIGIBLE at gate v3_strict"
+
+  - action_id: a2
+    priority: P0
+    targets_metric: "summary_feedback"
+    description: |
+      Synthesize the 9 rounds of feedback notes into a single SUMMARY.md file at
+      .local/feedbacks/feedbacks_while_using/chip-usage-helper/SUMMARY.md
+      that gives Si-Chip the cross-ability dogfood feedback (R1-R20+ meta-feedback
+      items captured across rounds 1-9).
+    scope_writable_files:
+      - .local/feedbacks/feedbacks_while_using/chip-usage-helper/SUMMARY.md
+    acceptance_criteria:
+      - "SUMMARY.md exists; aggregates >= 15 actionable feedback items"
+
+  - action_id: a3
+    priority: P0
+    targets_metric: "open_pr"
+    description: |
+      Push feature/si-chip and open MR to main on git.neodrive.neolix.net.
+    scope_writable_files: []
+    acceptance_criteria:
+      - "Branch pushed; PR/MR URL recorded"
+
+anticipated_iteration_delta_axes: []
+expected_delta_bucket: "n/a (final convergence round)"
+provenance: { target_commit_base: 393b692 }

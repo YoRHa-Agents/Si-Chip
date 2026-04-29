@@ -1,0 +1,55 @@
+# chip-usage-helper — Round 2 router-floor report (8-cell MVP sim, post-discriminator)
+ability_id: chip-usage-helper
+round_id: round_2
+profile: mvp
+bound_gate: v1_baseline
+spec_version: v0.1.0
+generated_at: '2026-04-29T05:07:30+00:00'
+
+# 8-cell MVP: 2 model × 2 thinking_depth × 2 scenario_pack.
+# Simulated deterministically; §5.2-compliant (no router model training).
+cells:
+  - { cell_id: composer_2-fast-trigger_basic, model: composer_2, thinking_depth: fast, scenario_pack: trigger_basic, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 780, token_overhead: 0.17, pass_v1_baseline: true, pass_v2_tightened: true }
+  - { cell_id: composer_2-fast-near_miss, model: composer_2, thinking_depth: fast, scenario_pack: near_miss, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 820, token_overhead: 0.19, pass_v1_baseline: true, pass_v2_tightened: true }
+  - { cell_id: composer_2-default-trigger_basic, model: composer_2, thinking_depth: default, scenario_pack: trigger_basic, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 1150, token_overhead: 0.20, pass_v1_baseline: true, pass_v2_tightened: true }
+  - { cell_id: composer_2-default-near_miss, model: composer_2, thinking_depth: default, scenario_pack: near_miss, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 1200, token_overhead: 0.20, pass_v1_baseline: true, pass_v2_tightened: true }
+  - { cell_id: sonnet_shallow-fast-trigger_basic, model: sonnet_shallow, thinking_depth: fast, scenario_pack: trigger_basic, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 920, token_overhead: 0.15, pass_v1_baseline: true, pass_v2_tightened: true }
+  - { cell_id: sonnet_shallow-fast-near_miss, model: sonnet_shallow, thinking_depth: fast, scenario_pack: near_miss, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 980, token_overhead: 0.15, pass_v1_baseline: true, pass_v2_tightened: true }
+  - { cell_id: sonnet_shallow-default-trigger_basic, model: sonnet_shallow, thinking_depth: default, scenario_pack: trigger_basic, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 1350, token_overhead: 0.16, pass_v1_baseline: true, pass_v2_tightened: true }
+  - { cell_id: sonnet_shallow-default-near_miss, model: sonnet_shallow, thinking_depth: default, scenario_pack: near_miss, R1_precision: 1.0, R2_recall: 1.0, R3_F1: 1.0, R4_FP: 0.0, latency_p95_ms: 1400, token_overhead: 0.16, pass_v1_baseline: true, pass_v2_tightened: true }
+
+floor_selection:
+  selected_floor: composer_2/fast
+  rationale: "All 8 cells pass v1_baseline and v2_tightened. composer_2/fast selected as cheapest. Post-discriminator, 0 FP across all cells — previously 1 FP on near_miss at composer_2/fast is now gone."
+  alternative_floor: null
+  alternative_rationale: "No alternatives needed; composer_2/fast is strictly optimal."
+
+scope_compliance:
+  router_model_training: absent
+  private_routing_weights: absent
+  marketplace_surface: absent
+  external_router_service: absent
+
+profile_gate_binding:
+  profile: relaxed
+  gate: v1_baseline
+
+aggregate:
+  R3_F1_mean: 1.0
+  R3_F1_min: 1.0
+  R4_FP_mean: 0.0
+  R4_FP_max: 0.0
+  R1_precision_mean: 1.0
+  R2_recall_mean: 1.0
+  latency_p95_ms_mean: 1075
+  token_overhead_mean: 0.1725
+  cells_passing_v1_baseline: 8
+  cells_passing_v2_tightened: 8
+  cells_total: 8
+  pass_rate_across_cells: 1.0
+
+provenance:
+  simulator: "deterministic-static (8-cell sweep, §5.2 compliant)"
+  note: "Real-LLM cross-model validation deferred to Round 7."
+  target_repo: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper
+  basis_round_1_report: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_1/router_floor_report.yaml

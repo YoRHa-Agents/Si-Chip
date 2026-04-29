@@ -1,0 +1,235 @@
+{
+  "round_11_id": "round_11",
+  "round_13_id": "round_13",
+  "metrics_byte_identical": true,
+  "per_dimension": {
+    "task_quality": {
+      "T1_pass_rate": {
+        "round_11": 0.85,
+        "round_13": 0.85,
+        "identical": true
+      },
+      "T2_pass_k": {
+        "round_11": 0.5477708333333333,
+        "round_13": 0.5477708333333333,
+        "identical": true
+      },
+      "T3_baseline_delta": {
+        "round_11": 0.35,
+        "round_13": 0.35,
+        "identical": true
+      },
+      "T4_error_recovery_rate": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      }
+    },
+    "context_economy": {
+      "C1_metadata_tokens": {
+        "round_11": 85,
+        "round_13": 85,
+        "identical": true
+      },
+      "C2_body_tokens": {
+        "round_11": 2125,
+        "round_13": 2125,
+        "identical": true
+      },
+      "C3_resolved_tokens": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      },
+      "C4_per_invocation_footprint": {
+        "round_11": 3710,
+        "round_13": 3710,
+        "identical": true
+      },
+      "C5_context_rot_risk": {
+        "round_11": 0.2601,
+        "round_13": 0.2601,
+        "identical": true
+      },
+      "C6_scope_overlap_score": {
+        "round_11": 0.043478260869565216,
+        "round_13": 0.043478260869565216,
+        "identical": true
+      }
+    },
+    "latency_path": {
+      "L1_wall_clock_p50": {
+        "round_11": 1.2153333333333334,
+        "round_13": 1.2153333333333334,
+        "identical": true
+      },
+      "L2_wall_clock_p95": {
+        "round_11": 1.4693333333333334,
+        "round_13": 1.4693333333333334,
+        "identical": true
+      },
+      "L3_step_count": {
+        "round_11": 20,
+        "round_13": 20,
+        "identical": true
+      },
+      "L4_redundant_call_ratio": {
+        "round_11": 0.0,
+        "round_13": 0.0,
+        "identical": true
+      },
+      "L5_detour_index": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      },
+      "L6_replanning_rate": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      },
+      "L7_think_act_split": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      }
+    },
+    "generalizability": {
+      "G1_cross_model_pass_matrix": {
+        "round_11": {
+          "composer_2": {
+            "trigger_basic": 0.9,
+            "near_miss": 0.83
+          },
+          "sonnet_shallow": {
+            "trigger_basic": 0.88,
+            "near_miss": 0.81
+          }
+        },
+        "round_13": {
+          "composer_2": {
+            "trigger_basic": 0.9,
+            "near_miss": 0.83
+          },
+          "sonnet_shallow": {
+            "trigger_basic": 0.88,
+            "near_miss": 0.81
+          }
+        },
+        "identical": true
+      },
+      "G2_cross_domain_transfer_pass": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      },
+      "G3_OOD_robustness": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      },
+      "G4_model_version_stability": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      }
+    },
+    "usage_cost": {
+      "U1_description_readability": {
+        "round_11": 19.580000000000002,
+        "round_13": 19.580000000000002,
+        "identical": true
+      },
+      "U2_first_time_success_rate": {
+        "round_11": 0.75,
+        "round_13": 0.75,
+        "identical": true
+      },
+      "U3_setup_steps_count": {
+        "round_11": 1,
+        "round_13": 1,
+        "identical": true
+      },
+      "U4_time_to_first_success": {
+        "round_11": 0.007293148897588253,
+        "round_13": 0.007293148897588253,
+        "identical": true
+      }
+    },
+    "routing_cost": {
+      "R1_trigger_precision": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      },
+      "R2_trigger_recall": {
+        "round_11": null,
+        "round_13": null,
+        "identical": true
+      },
+      "R3_trigger_F1": {
+        "round_11": 0.8933952528379773,
+        "round_13": 0.8933952528379773,
+        "identical": true
+      },
+      "R4_near_miss_FP_rate": {
+        "round_11": 0.05,
+        "round_13": 0.05,
+        "identical": true
+      },
+      "R5_router_floor": {
+        "round_11": "composer_2/fast",
+        "round_13": "composer_2/fast",
+        "identical": true
+      },
+      "R6_routing_latency_p95": {
+        "round_11": 1100.0,
+        "round_13": 1100.0,
+        "identical": true
+      },
+      "R7_routing_token_overhead": {
+        "round_11": 0.023295454545454546,
+        "round_13": 0.023295454545454546,
+        "identical": true
+      },
+      "R8_description_competition_index": {
+        "round_11": 0.043478260869565216,
+        "round_13": 0.043478260869565216,
+        "identical": true
+      }
+    },
+    "governance_risk": {
+      "V1_permission_scope": {
+        "round_11": 0,
+        "round_13": 0,
+        "identical": true
+      },
+      "V2_credential_surface": {
+        "round_11": 0,
+        "round_13": 0,
+        "identical": true
+      },
+      "V3_drift_signal": {
+        "round_11": 0.0,
+        "round_13": 0.0,
+        "identical": true
+      },
+      "V4_staleness_days": {
+        "round_11": 0,
+        "round_13": 0,
+        "identical": true
+      }
+    }
+  },
+  "mismatches": [],
+  "summary": {
+    "all_37_sub_metrics_identical": true,
+    "n_metrics_checked": 37
+  },
+  "acceptance_criterion_4_check": {
+    "description": "Round 13 metrics_report.yaml T2_pass_k == Round 11 T2_pass_k == 0.5477708333333333 (exact)",
+    "round_11_t2_pass_k": 0.5477708333333333,
+    "round_13_t2_pass_k": 0.5477708333333333,
+    "both_equal_canonical": true
+  }
+}

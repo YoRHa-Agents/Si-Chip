@@ -1,0 +1,103 @@
+# Si-Chip golden_set — near_miss pack
+#
+# Purpose: opt-in source of 12 prompts that MUST NOT trigger Si-Chip.
+# Sourced from the existing evals/si-chip/cases/*.yaml should_not_trigger
+# entries — i.e. semantically adjacent to Si-Chip's trigger surface but
+# not legitimate invocations (generic definitions, unrelated planning,
+# read-only file access, opinion/hot-take requests).
+#
+# Schema per entry mirrors trigger_basic.yaml:
+#   - prompt_id:    unique id within this file (gs_nm_NNN)
+#   - prompt:       verbatim text from the source case
+#   - expected:     "no_trigger" (for this pack)
+#   - rationale:    one-line why Si-Chip should NOT trigger
+#   - source_case:  evals/si-chip/cases/<id>.yaml + should_not_trigger/<id>
+#
+# Non-authoritative — this is a PARTIAL generalizability / false-positive
+# proxy that supports Round 10+ G1 measurement and D6 R4_near_miss_FP_rate
+# re-derivation. The authoritative FP surface requires a real-LLM runner
+# with per-prompt routing-descriptor confidence (Round 12+ upgrade path).
+pack: near_miss
+expected_outcome: no_trigger
+generated_at: '2026-04-28T22:00:00+00:00'
+spec_version: v0.1.0
+source_round: round_10
+prompts:
+  - prompt_id: gs_nm_001
+    prompt: "Build a project plan for our Q3 roadmap."
+    expected: no_trigger
+    rationale: "generic project planning — no si-chip/BasicAbility context"
+    source_case: "profile_self.yaml#should_not_trigger.n01"
+  - prompt_id: gs_nm_002
+    prompt: "Show me the schema file at templates/basic_ability_profile.schema.yaml."
+    expected: no_trigger
+    rationale: "file read — si-chip profile step is NOT required; agent reads file directly"
+    source_case: "profile_self.yaml#should_not_trigger.n04"
+  - prompt_id: gs_nm_003
+    prompt: "Print today's date in ISO format."
+    expected: no_trigger
+    rationale: "unrelated utility request — no si-chip trigger surface"
+    source_case: "profile_self.yaml#should_not_trigger.n06"
+  - prompt_id: gs_nm_004
+    prompt: "What does pass_rate mean in software testing?"
+    expected: no_trigger
+    rationale: "generic definition — not a si-chip diagnose step"
+    source_case: "metrics_gap.yaml#should_not_trigger.n03"
+  - prompt_id: gs_nm_005
+    prompt: "Explain what OpenTelemetry is."
+    expected: no_trigger
+    rationale: "generic OTel definition — si-chip diagnose MUST NOT fire"
+    source_case: "metrics_gap.yaml#should_not_trigger.n05"
+  - prompt_id: gs_nm_006
+    prompt: "Tell me about Anthropic's Sonnet model."
+    expected: no_trigger
+    rationale: "third-party model info — not a si-chip router-test request"
+    source_case: "router_matrix.yaml#should_not_trigger.n04"
+  - prompt_id: gs_nm_007
+    prompt: "Generate a leaderboard of model latencies on a public benchmark."
+    expected: no_trigger
+    rationale: "public benchmark table — not a si-chip router_floor_report"
+    source_case: "router_matrix.yaml#should_not_trigger.n07"
+  - prompt_id: gs_nm_008
+    prompt: "Tell me what 'half-retire' means in software lifecycle theory."
+    expected: no_trigger
+    rationale: "pure terminology — no si-chip review is requested"
+    source_case: "half_retire_review.yaml#should_not_trigger.n04"
+  - prompt_id: gs_nm_009
+    prompt: "Give me a hot take on whether all small skills should be retired by default."
+    expected: no_trigger
+    rationale: "opinion request — si-chip produces evidence, not hot takes"
+    source_case: "half_retire_review.yaml#should_not_trigger.n08"
+  - prompt_id: gs_nm_010
+    prompt: "Plan my weekend itinerary."
+    expected: no_trigger
+    rationale: "personal planning — unrelated to si-chip improve step"
+    source_case: "next_action_plan.yaml#should_not_trigger.n02"
+  - prompt_id: gs_nm_011
+    prompt: "Define what 'action plan' means in agile."
+    expected: no_trigger
+    rationale: "generic agile terminology — not a si-chip next_action_plan"
+    source_case: "next_action_plan.yaml#should_not_trigger.n06"
+  - prompt_id: gs_nm_012
+    prompt: "Plan a database migration."
+    expected: no_trigger
+    rationale: "DB operations planning — no si-chip context"
+    source_case: "next_action_plan.yaml#should_not_trigger.n09"
+provenance:
+  generator: "Round 10 dogfood — L3 Task Agent"
+  basis:
+    - "evals/si-chip/cases/profile_self.yaml"
+    - "evals/si-chip/cases/metrics_gap.yaml"
+    - "evals/si-chip/cases/router_matrix.yaml"
+    - "evals/si-chip/cases/half_retire_review.yaml"
+    - "evals/si-chip/cases/next_action_plan.yaml"
+  runner_reference: "evals/si-chip/baselines/with_si_chip_round4/<case_id>/result.json prompt_outcomes"
+  notes: |
+    12 prompts cover the full surface of false-positive adjacency: generic
+    planning verbs (gs_nm_001, gs_nm_010), definition/informational
+    requests (gs_nm_004, gs_nm_005, gs_nm_008, gs_nm_011), file-read
+    requests that look like si-chip steps but are not (gs_nm_002),
+    unrelated utility (gs_nm_003, gs_nm_012), third-party model info
+    (gs_nm_006, gs_nm_007), and opinion requests (gs_nm_009). Trigger
+    discrimination on this set is the R3_trigger_F1 / R4_near_miss_FP_rate
+    target.

@@ -1,0 +1,36 @@
+{
+  "round_id": "round_8",
+  "prior_round_id": "round_7",
+  "rationale": "C5 and C6 are byte-identical to Round 7. The Round 7 frontmatter bump (0.1.6 -> 0.1.7) adds 0 tokens (verified via o200k_base('0.1.6') == o200k_base('0.1.7')), so body_tokens stays at 2020; references_dir is unchanged (same 5 .md files referenced); neighbor glob matches the same 23 lark-* SKILL.md paths. Both C5 and C6 are deterministic static computations — re-running count_tokens.skill_md_context_rot_risk and count_tokens.skill_md_scope_overlap_score yields byte-identical output.",
+  "c5_context_rot_risk": {
+    "round_7": 0.2601,
+    "round_8": 0.2601,
+    "delta": 0.0,
+    "byte_identical": true,
+    "formula": "clip(body_tokens/typical_window + 0.05*fanout_depth, 0, 1) = clip(2020/200_000 + 0.05*5, 0, 1) = 0.2601",
+    "inputs": {
+      "body_tokens": 2020,
+      "typical_window": 200000,
+      "fanout_depth": 5,
+      "referenced_files": [
+        "basic-ability-profile.md",
+        "half-retirement-r9-summary.md",
+        "metrics-r6-summary.md",
+        "router-test-r8-summary.md",
+        "self-dogfood-protocol.md"
+      ]
+    },
+    "full_derivation_path": ".local/dogfood/2026-04-28/round_7/raw/c5_derivation.json"
+  },
+  "c6_scope_overlap_score": {
+    "round_7": 0.043478260869565216,
+    "round_8": 0.043478260869565216,
+    "delta": 0.0,
+    "byte_identical": true,
+    "method": "max Jaccard similarity across 23 neighbor SKILL.md descriptions under /root/.claude/skills/lark-*/SKILL.md",
+    "top_offender": "lark-whiteboard-cli at 1/23 = 0.0435",
+    "full_derivation_path": ".local/dogfood/2026-04-28/round_7/raw/c6_overlap_pairs.json"
+  },
+  "verification_method": "Comparing the round_7 c5_derivation.json + c6_overlap_pairs.json inputs to round_8 re-run inputs: SKILL.md body byte-identical (only frontmatter version field moved from '0.1.6' to '0.1.7'); references_dir unchanged (same 5 files); neighbor glob unchanged (same 23 lark-* SKILL.md paths). Deterministic computation -> byte-identical output.",
+  "generated_at": "2026-04-28T21:00:00+00:00"
+}

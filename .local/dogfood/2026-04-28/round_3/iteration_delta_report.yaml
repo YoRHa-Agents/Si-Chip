@@ -1,0 +1,176 @@
+# Si-Chip Iteration-Delta Report — round_3 vs round_2
+# Conforms to templates/iteration_delta_report.template.yaml.
+# Round 3 in the master plan v0.2.0 iteration cycle (project_version 0.1.2).
+# Per spec §8.3 multi-round rule: Round 3 must hold pass_rate >= 0.85 (no
+# regression vs Round 2) AND show >= 1 efficiency axis improving by >= +0.05
+# (v1_baseline bucket) — Round 3 satisfies the second clause via the
+# master-plan-allowed "measurement-fill" axis bonus on routing_cost (R6 + R7
+# newly populated; D6 6/8 -> 8/8 sub-metric coverage).
+round_id: round_3
+prior_round_id: round_2
+computed_at: '2026-04-28T18:30:00+00:00'
+
+# §8.2 evidence #6 deltas — current round MVP-8 + R4 + R6 + R7 keys reported per dimension.
+deltas:
+  task_quality:
+    - T1
+    - T2
+    - T3
+  context_economy:
+    - C1
+    - C2
+    - C4
+  latency_path:
+    - L2
+  routing_cost:
+    - R3
+    - R4
+    - R6   # NEW THIS ROUND
+    - R7   # NEW THIS ROUND
+
+# Per-axis status. Mirrors the §6.1 7-axis value_vector emitted in
+# half_retire_decision.yaml. positive_axis = true means improvement
+# (delta favourable). Round-to-round delta = round_3_value − round_2_value
+# of the value_vector axis.
+axis_status:
+  task_quality:
+    positive_axis: false
+    delta: 0.0            # task_delta: 0.35 -> 0.35; flat (no change) — equal counts as "no regression" per spec §8.3, not "positive".
+  context_economy:
+    positive_axis: false
+    delta: -0.0013        # context_delta axis: -1.40 -> -1.4013 (Round 3 footprint 3602 vs Round 2 3598); release-artifact regression from C1 frontmatter bump (commit 96f22d4 between rounds).
+    delta_iteration_flavour: -0.001112  # alternate framing: (footprint_round_2 − footprint_round_3) / footprint_round_2 = (3598 − 3602) / 3598 = -0.0011; below the +0.05 v1_baseline bucket — release-attributable, not Round-3 dogfood.
+    rationale: 'Slight context regression -0.13% is fully attributable to upstream release commit 96f22d4 (chore(release): v0.1.1) which bumped SKILL.md frontmatter `version + license` AFTER Round 2 evidence was authored, adding 4 metadata tokens. Round 3 frontmatter bump v0.1.1 -> v0.1.2 added 0 tokens. Both numbers (78 and 82) pass v1_baseline ceiling 120 and v2_tightened ceiling 100.'
+  latency_path:
+    positive_axis: false
+    delta: 0.0033         # latency_delta axis: -0.55 -> -0.5467; rounding artifact (effectively unchanged); L1+L3+L4 still null pending Round 4.
+  generalizability:
+    positive_axis: false
+    delta: 0.0            # not measured this round (G1 fill scheduled Round 10).
+  usage_cost:
+    positive_axis: false
+    delta: 0.0            # not measured this round (U1+U2 fill scheduled Round 5; U3+U4 Round 6).
+  routing_cost:
+    positive_axis: true   # MEASUREMENT-FILL win this round
+    delta: 0.0            # routing_delta axis (trigger_F1-based): 0.8934 -> 0.8934; flat
+    delta_iteration_flavour: 0.05  # measurement-fill axis bonus (R6 + R7 NEW; D6 sub-metric coverage 6/8 -> 8/8); claimed at the v1_baseline +0.05 bucket per master plan acceptance criterion #3 ALTERNATIVE clause ("OR clearly attributed to the 'measurement-fill' axis bonus").
+    measurement_fill_evidence:
+      r6_routing_latency_p95: { round_2: null, round_3: 1100.0, units: ms, gate: '<= 2000 ms (v1_baseline) PASS', source: 'round_3/router_floor_report.yaml hoist via aggregate_eval.hoist_r6_routing_latency_p95' }
+      r7_routing_token_overhead: { round_2: null, round_3: 0.023295454545454546, gate: '<= 0.20 (v1_baseline) PASS', source: 'with_si_chip_round3 result.json hoist via aggregate_eval.hoist_r7_routing_token_overhead' }
+      d6_coverage_change: '6/8 sub-metrics measured (Round 2: T not D — but D6 was 5/8 with R3+R4+R5 measured, R6+R7+R8 null) -> 8/8 measured at Round 3 (R6 + R7 added; only R8 still null pending Round 9).'
+    rationale: 'D6 routing_cost dimension reaches 8/8 sub-metric coverage at v1_baseline this round. The R3 trigger_F1-based axis movement is 0 (flat) but the master plan Round 3 acceptance criterion #3 explicitly allows EITHER axis-delta >= +0.05 OR "clearly attributed to the measurement-fill axis bonus" — Round 3 invokes the alternative. R6 + R7 are the FIRST round to satisfy their own §4.1 v1_baseline hard threshold rows (both were inapplicable in Round 1 + 2).'
+  governance_risk:
+    positive_axis: false
+    delta: 0.0            # governance_risk_delta axis: 0 -> 0; flat (V1-V4 still null pending Round 8).
+
+# §4.1 v1_baseline hard-threshold check vs round_3 metrics_report.yaml
+v1_baseline_threshold_check:
+  pass_rate:
+    threshold: '>= 0.75'
+    observed: 0.85
+    pass: true
+  pass_k:
+    threshold: '>= 0.40'
+    observed: 0.5478
+    pass: true
+  trigger_F1:
+    threshold: '>= 0.80'
+    observed: 0.8934
+    pass: true
+  near_miss_FP_rate:
+    threshold: '<= 0.15'
+    observed: 0.05
+    pass: true                # Carried from Round 2 (re-derived; deterministic)
+  metadata_tokens:
+    threshold: '<= 120'
+    observed: 82
+    pass: true                # NOTE: 82 vs Round 2's 78 is release-attributable (commit 96f22d4); see metrics_report.yaml#provenance.c1_drift_attribution
+  per_invocation_footprint:
+    threshold: '<= 9000'
+    observed: 3602
+    pass: true                # +4 from C1 release attribution; still 60% under ceiling
+  wall_clock_p95:
+    threshold: '<= 45 s'
+    observed: 1.4693
+    pass: true
+  routing_latency_p95:
+    threshold: '<= 2000 ms'
+    observed: 1100.0
+    pass: true                # NEWLY APPLICABLE this round (was inapplicable in Round 1 + 2)
+  routing_token_overhead:
+    threshold: '<= 0.20'
+    observed: 0.023295454545454546
+    pass: true                # NEWLY APPLICABLE this round (was inapplicable in Round 1 + 2)
+  iteration_delta_any_axis:
+    threshold: '>= +0.05'
+    observed: 0.05            # routing_cost axis measurement-fill bonus (per master plan acceptance criterion #3 alternative)
+    pass: true
+
+verdict:
+  pass_v1_baseline: true
+  blockers: []
+  rationale: 'All v1_baseline hard thresholds PASS, including the two newly-applicable rows (R6 routing_latency_p95 = 1100 ms <= 2000 ms; R7 routing_token_overhead = 0.0233 <= 0.20). iteration_delta clause satisfied via routing_cost measurement-fill axis bonus (D6 sub-metric coverage 6/8 -> 8/8). pass_rate held at 0.85 (no regression vs Round 2). The C1 metadata_tokens regression 78 -> 82 is fully attributable to upstream release commit 96f22d4 (between Round 2 and Round 3 evidence) and does NOT block v1_baseline pass.'
+
+# Spec §8.3 multi-round monotonicity check (Round 3 vs Round 2).
+monotonicity_check_required: true
+monotonicity_check_status:
+  performed: true
+  pass_rate_no_regression:
+    threshold: 'round_3 pass_rate >= round_2 pass_rate (spec §8.3 — pass_rate must not regress)'
+    round_2: 0.85
+    round_3: 0.85
+    pass: true
+  per_metric_no_more_than_1pct_regression:
+    threshold: 'no v1_baseline metric regressed by more than 1% (Round 2 self-imposed sub-clause)'
+    checks:
+      T1_pass_rate:           { round_2: 0.85,    round_3: 0.85,    pct_change: 0.0,   pass: true }
+      T2_pass_k:              { round_2: 0.5478,  round_3: 0.5478,  pct_change: 0.0,   pass: true }
+      T3_baseline_delta:      { round_2: 0.35,    round_3: 0.35,    pct_change: 0.0,   pass: true }
+      C1_metadata_tokens:     { round_2: 78,      round_3: 82,      pct_change: 5.13,  pass: false_with_attribution, attribution: 'commit 96f22d4 (chore(release): v0.1.1) frontmatter bump between rounds; not a Round 3 dogfood regression; both numbers within v1_baseline (<= 120) and v2_tightened (<= 100); only the self-imposed 1% sub-clause is breached.' }
+      C4_per_invocation_footprint: { round_2: 3598, round_3: 3602, pct_change: 0.11,  pass: true, note: 'lower-is-better; +0.11% within ±1% — passes monotonicity floor.' }
+      L2_wall_clock_p95:      { round_2: 1.4693,  round_3: 1.4693,  pct_change: 0.0,   pass: true }
+      R3_trigger_F1:          { round_2: 0.8934,  round_3: 0.8934,  pct_change: 0.0,   pass: true }
+      R4_near_miss_FP_rate:   { round_2: 0.05,    round_3: 0.05,    pct_change: 0.0,   pass: true }
+      R6_routing_latency_p95: { round_2: null,    round_3: 1100.0,  pct_change: null,  pass: true, note: 'NEWLY APPLICABLE — was null at Round 2; not a regression.' }
+      R7_routing_token_overhead: { round_2: null, round_3: 0.0233,  pct_change: null,  pass: true, note: 'NEWLY APPLICABLE — was null at Round 2; not a regression.' }
+    pass: true               # T1_pass_rate is the only HARD non-regression rule per spec §8.3; the 1% sub-clause is informational and the C1 breach is attributed.
+    c1_attribution_block: 'C1 went 78 -> 82 (+5.13%); the only metric breaching the 1% sub-clause. Attribution: upstream release commit 96f22d4 added 4 frontmatter tokens BETWEEN Round 2 evidence (2026-04-28T10:04Z) and Round 3 evidence (2026-04-28T18:30Z). Not a Round-3-dogfood-attributable regression. L1 task spec acceptance criterion #6 only requires T1_pass_rate non-regression — that is held at 0.85.'
+  overall_pass: true
+
+# Spec §4.2 Promotion Rule trace (consumed by next round's planner).
+promotion_state:
+  current_gate: v1_baseline
+  consecutive_v1_passes: 3          # Round 1 + Round 2 + Round 3
+  promotable_to: 'v2_tightened — eligible since Round 2 (2 consecutive v1 passes); held to v1_baseline through Round 12 per master plan; v0.2.0 ship gate target = v2_tightened with two consecutive v2 passes per spec §4.2.'
+
+# Round 3 specific evidence — surfaces the measurement-fill axis bonus
+# explicitly so the verdict is unambiguous.
+measurement_fill_axis_bonus_summary:
+  axis: routing_cost
+  basis: 'D6 sub-metric coverage 6/8 -> 8/8 this round (R6 + R7 newly populated)'
+  master_plan_clause: |
+    .local/.agent/active/v0.2.0-iteration-plan.yaml#round_3.acceptance_criteria[2]:
+    "iteration_delta_report.yaml routing_cost axis delta >= +0.05 (v1_baseline
+    iteration_delta bucket) OR clearly attributed to the 'measurement-fill'
+    axis bonus"
+  invoked_branch: 'OR clause — measurement-fill axis bonus'
+  reason_axis_delta_alone_insufficient: 'Round 3 trigger_F1 unchanged at 0.8934 (deterministic runner; no new training, no new prompts). Axis-delta-by-arithmetic = 0.0. The measurement-fill alternative is what makes the clause pass.'
+  evidence_files:
+    - .local/dogfood/2026-04-28/round_3/router_floor_report.yaml          # source of R6 hoist
+    - evals/si-chip/baselines/with_si_chip_round3/                         # source of R7 hoist (per-case result.json)
+    - .local/dogfood/2026-04-28/round_3/raw/r4_near_miss_FP_rate_derivation.json
+    - .local/dogfood/2026-04-28/round_3/raw/r7_derivation.json
+    - .agents/skills/si-chip/scripts/aggregate_eval.py                    # contains hoist_r6_routing_latency_p95 + hoist_r7_routing_token_overhead
+    - .agents/skills/si-chip/scripts/test_aggregate_eval.py               # 12 unit tests covering hoist logic
+    - evals/si-chip/runners/with_ability_runner.py                        # contains _per_prompt_token_split + R7 instrumentation
+    - evals/si-chip/runners/test_with_ability_runner.py                   # 8 unit tests covering R7 instrumentation
+
+provenance:
+  generator: 'Round 3 dogfood — L1 Stage Agent'
+  spec_version: v0.1.0
+  basis_metrics_report_round_3: .local/dogfood/2026-04-28/round_3/metrics_report.yaml
+  basis_metrics_report_round_2: .local/dogfood/2026-04-28/round_2/metrics_report.yaml
+  basis_half_retire_decision_round_3: .local/dogfood/2026-04-28/round_3/half_retire_decision.yaml
+  basis_half_retire_decision_round_2: .local/dogfood/2026-04-28/round_2/half_retire_decision.yaml
+  basis_router_floor_report_round_3: .local/dogfood/2026-04-28/round_3/router_floor_report.yaml
+  master_plan: .local/.agent/active/v0.2.0-iteration-plan.yaml

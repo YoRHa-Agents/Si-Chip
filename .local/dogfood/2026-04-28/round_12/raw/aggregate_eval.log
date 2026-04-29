@@ -1,0 +1,51 @@
+$ python .agents/skills/si-chip/scripts/aggregate_eval.py \
+    --runs-dir evals/si-chip/baselines/with_si_chip_round12/ \
+    --baseline-dir evals/si-chip/baselines/no_ability_round12/ \
+    --skill-md .agents/skills/si-chip/SKILL.md \
+    --router-floor-report .local/dogfood/2026-04-28/round_12/router_floor_report.yaml \
+    --install-telemetry .local/dogfood/2026-04-28/round_12/raw/install_telemetry.json \
+    --governance-report .local/dogfood/2026-04-28/round_12/raw/governance_scan.json \
+    --references-dir .agents/skills/si-chip/references/ \
+    --neighbor-skills-glob '/root/.claude/skills/lark-*/SKILL.md' \
+    --r8-method max_jaccard \
+    --out .local/dogfood/2026-04-28/round_12/raw/aggregator_raw_output.yaml \
+    --verbose
+
+INFO si_chip.aggregate_eval: devolaflow version: 9.1.0
+INFO si_chip.aggregate_eval: C6 neighbor glob matched 23 path(s)
+INFO si_chip.aggregate_eval: with-ability runs: 7, no-ability runs: 7
+INFO si_chip.aggregate_eval: devolaflow version: 9.1.0
+WARNING si_chip.aggregate_eval: schema lacks 'basic_ability.metrics' mapping; skipping cross-check
+/home/agent/workspace/Si-Chip/.local/dogfood/2026-04-28/round_12/raw/aggregator_raw_output.yaml
+
+# Per-case pass_rate / pass_k_4 (deterministic SHA-256 under seed=42)
+docs_boundary       : pass_rate=0.9500 pass_k_4=0.8145
+half_retire_review  : pass_rate=0.8500 pass_k_4=0.5220
+metrics_gap         : pass_rate=0.9500 pass_k_4=0.8145
+next_action_plan    : pass_rate=0.7500 pass_k_4=0.3164
+profile_self        : pass_rate=0.8000 pass_k_4=0.4096
+reactivation_review : pass_rate=0.6500 pass_k_4=0.1785   # NEW Round 12; 7th case per Option A
+router_matrix       : pass_rate=0.8000 pass_k_4=0.4096
+
+# Cross-case aggregates
+mean pass_rate (T1)         : 0.821429   (was 0.8500 with 6 cases)
+mean pass_k_4   (T2)        : 0.495019   (was 0.5478 with 6 cases — REGRESSION)
+mean trigger_F1 (R3)        : 0.872910   (was 0.8934 with 6 cases)
+mean latency_p95_s (L2)     : 1.4707     (was 1.4693 with 6 cases)
+mean latency_p50_s (L1)     : 1.2021     (was 1.2153 with 6 cases)
+sum routing_stage_tokens    : 11900      (was 9840 with 6 cases)
+sum body_invocation_tokens  : 507500     (was 422400 with 6 cases)
+R7_routing_token_overhead   : 0.023448   (was 0.023295 with 6 cases)
+
+# v2_tightened threshold check (per raw/v2_tightened_round_12_check.md)
+T1 0.8214 >= 0.82  PASS by +0.001
+T2 0.4950 >= 0.55  FAIL by -0.055   (REGRESSION vs Round 11; SOLE Round 12 v2 blocker)
+R3 0.8729 >= 0.85  PASS by +0.023
+R4 0.0429 <= 0.10  PASS by margin
+C1 85     <= 100   PASS by margin
+C4 3710   <= 7000  PASS by margin
+L2 1.4707 <= 30 s  PASS by ~20x
+R6 1100   <= 1200  PASS by margin (carried byte-identical from Round 11; aggregator natural derivation returns null because router_floor_report.yaml has nested mvp_profile.cells shape)
+R7 0.0234 <= 0.12  PASS by margin
+
+# Verdict: BLOCKED (consecutive_v2_passes = 0)

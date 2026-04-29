@@ -1,0 +1,20 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T10:08:00+00:00'
+targets_round: post_v071_maintenance
+bound_gate: v3_strict
+target_branch: main (after MR merges)
+
+# Post-cycle-2 maintenance plan. Next review at 2026-05-29.
+
+actions:
+  - action_id: maintenance_c2_a1
+    priority: P3
+    description: "If v0.7.1 packaging happens downstream, re-run eval to confirm static token tiers still match (packaging changes typically don't affect prose surfaces)."
+  - action_id: maintenance_c2_a2
+    priority: P3
+    description: "If a user explicitly requests top-20 leaderboard via leaderboardSize=20, record the frequency of that request in V1 telemetry (not yet implemented). If >5% of calls request 20+, reconsider default."
+  - action_id: maintenance_c2_a3
+    priority: P3
+    description: "Monitor whether agents struggle to write canvas field names post-SKILL-contract-compression. If R3/R4 regress or user-visible errors surface, roll back round_13 partially (restore a few high-frequency field examples in SKILL.md)."
+
+provenance: { spec_version: v0.1.0, target_commit_base: 5a893e4 }

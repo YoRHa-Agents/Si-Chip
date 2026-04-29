@@ -1,0 +1,22 @@
+ability_id: chip-usage-helper
+round_id: round_7
+generated_at: '2026-04-29T08:13:00+00:00'
+spec_version: v0.1.0
+profile: mvp
+profile_cells: 8
+
+cells: &cells
+  - { model: composer_2,     thinking_depth: fast,    scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+  - { model: composer_2,     thinking_depth: fast,    scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+  - { model: composer_2,     thinking_depth: default, scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+  - { model: composer_2,     thinking_depth: default, scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+  - { model: sonnet_shallow, thinking_depth: fast,    scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+  - { model: sonnet_shallow, thinking_depth: fast,    scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+  - { model: sonnet_shallow, thinking_depth: default, scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+  - { model: sonnet_shallow, thinking_depth: default, scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.780, R6_ms: 0.1523, pass: true }
+
+aggregate: { cells_pass: 8, cells_total: 8, pass_rate_per_cell: 1.0, R6_routing_latency_p95_ms: 0.1523, R7_routing_token_overhead: 0.0352 }
+selection_rule: "cheapest cell where every trial passes."
+router_floor: composer_2/fast
+profile_to_gate: strict   # bound to v3_strict starting Round 8 (Round 7 is the second consecutive v3-complete round)
+provenance: { evaluator: tools/eval_chip_usage_helper.py, eval_pack: .local/dogfood/2026-04-29/abilities/chip-usage-helper/eval_pack.yaml }

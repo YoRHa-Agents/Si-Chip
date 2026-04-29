@@ -1,0 +1,14 @@
+ability_id: chip-usage-helper
+version: '0.7.0+round_14'
+decided_at: '2026-04-29T10:00:30+00:00'
+decision: keep
+value_vector: { task_delta: 0.92, token_delta: 0.218, latency_delta: 0.0349, context_delta: 0.137, path_efficiency_delta: 0.0, routing_delta: 1.0, governance_risk_delta: 0.0 }
+rule_evaluation:
+  bound_gate: v3_strict
+  fired_rule: keep
+  fired_condition: "task_delta (+0.92) >> +0.10; cumulative token_delta (+0.218) clears v3_strict"
+  axis_movement: "EAGER tier -55% (-447 tokens/session); compounds across non-triggering sessions"
+retained_core: ["8 MCP tools", "rules/usage-helper.mdc (slim)", "commands/usage-report.md", "templates/types.d.ts", "compressed SKILL.md (now contains identity + error paths)"]
+review: { next_review_at: '2026-05-29', triggers: [new_model_no_ability_baseline_gap, new_scenario_or_domain_match, router_test_requires_ability_for_cheap_model, efficiency_axis_becomes_significant, upstream_api_change_wrapper_stabilizes, manual_invocation_rebound] }
+provenance: { round_id: round_14, prior_round_id: round_13, spec_version: v0.1.0 }
+rationale: "EAGER ↓ ON-CALL ↑ trade-off; net positive because EAGER pays every session unconditionally. Trigger semantics fully preserved (R3=1.0)."

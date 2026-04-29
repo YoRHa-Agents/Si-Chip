@@ -1,0 +1,180 @@
+# Si-Chip Next-Action Plan — round_6 -> round_7
+# Conforms to templates/next_action_plan.template.yaml (spec §8.1 step 4 / §8.2 evidence #5).
+# target_gate stays bound to v1_baseline ("relaxed") per master plan
+# (.local/.agent/active/v0.2.0-iteration-plan.yaml#round_7); promotion to
+# v2_tightened is held until Round 12 readiness check.
+round_id: round_7
+generated_at: '2026-04-28T19:30:00+00:00'
+basis_metrics_report: .local/dogfood/2026-04-28/round_6/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-28/round_6/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-28/round_6/iteration_delta_report.yaml
+target_gate: relaxed  # spec §5.4: relaxed -> v1_baseline
+
+actions:
+  - id: a1
+    title: Populate C5_context_rot_risk via body-tokens-ratio + reference-fanout heuristic
+    owner: Implement
+    applies_to_metric: C5_context_rot_risk
+    primitive: implement
+    exit_criterion: 'C5_context_rot_risk non-null in round_7 metrics_report.yaml AND in [0.0, 1.0] (range sanity)'
+    notes: |
+      Round 6 closes D5 usage_cost (4/4 sub-metric coverage). Round 7
+      targets D2 context_economy: the last two nulls (C3 stays null
+      per resolved-on-demand semantics; C5 + C6 are the Round 7 target).
+      C5 = deterministic proxy based on the 2026 frontier-model
+      context-rot studies cited in references/metrics-r6-summary.md.
+      Formula candidate: ``C5 = clip(body_tokens / typical_context_window
+      + 0.05 * reference_fanout_depth, 0.0, 1.0)`` where
+      typical_context_window = 200_000 (Sonnet 4.6 baseline;
+      extendable to 1_000_000 for Opus-class). For Si-Chip v0.1.5:
+      body_tokens = 2020; fanout_depth = 1 (references loaded
+      on-demand, not recursively). Expected C5 ~= 0.06 (LOW — slim
+      body).
+
+      Add a helper `.agents/skills/si-chip/scripts/count_tokens.py::
+      context_rot_risk(body_tokens, fanout_depth, typical_window)`
+      with doctests; hoist via
+      aggregate_eval.hoist_c5_context_rot_risk; extend test_count_tokens.py
+      and test_aggregate_eval.py with a minimum of 8 new tests.
+
+      Dependencies: no install.sh or runner changes required; C5 is
+      a static-analysis metric on SKILL.md body + references index.
+
+  - id: a2
+    title: Populate C6_scope_overlap_score via Jaccard similarity to neighbor skills
+    owner: Implement
+    applies_to_metric: C6_scope_overlap_score
+    primitive: implement
+    exit_criterion: 'C6_scope_overlap_score non-null in round_7 metrics_report.yaml AND in [0.0, 1.0] (range sanity)'
+    notes: |
+      C6 = Jaccard similarity between Si-Chip SKILL.md description
+      tokens (normalized: lowercase, strip punct, stopword-filtered)
+      and the next N neighbor skills in the workspace
+      `.agents/skills/*/SKILL.md`. Workspace is currently Si-Chip-only
+      so the fallback neighbor set is `/root/.claude/skills/lark-*/SKILL.md`
+      families (28+ neighbors). Record the chosen neighbor set in
+      round_7/raw/c6_overlap_pairs.json with per-pair Jaccard.
+
+      Formula:
+        1. Tokenize each description (NFKD + lowercase + strip
+           non-alphanumeric; split on whitespace).
+        2. Filter stopwords (minimal list: "the", "a", "an", "when",
+           "use", "this", "for", "it", "with", "...").
+        3. Compute Jaccard = |A ∩ B| / |A ∪ B| per pair.
+        4. C6 = max(Jaccard) across the neighbor set (conservative
+           choice — surfaces the WORST description-competition
+           offender).
+
+      Add helper in count_tokens.py; hoist in aggregate_eval.py;
+      record deriv in raw/c6_overlap_pairs.json.
+
+  - id: a3
+    title: Add unit tests for C5/C6 helpers (per workspace Mandatory Verification rule)
+    owner: Test
+    applies_to_metric: C5_context_rot_risk
+    primitive: test
+    exit_criterion: 'count_tokens.py + aggregate_eval.py test files extended with >= 12 new tests total covering C5 formula, C6 Jaccard, degenerate paths, range sanity'
+    notes: |
+      Cover:
+      - C5 formula correctness on slim body (expected 0.01-0.10)
+      - C5 formula at saturation (body_tokens == typical_window → 1.0)
+      - C5 formula degenerate path (body_tokens == 0 → 0.05 * fanout_depth)
+      - C5 range clamp to [0.0, 1.0]
+      - C6 Jaccard on identical description (1.0)
+      - C6 Jaccard on disjoint descriptions (0.0)
+      - C6 Jaccard on partial overlap
+      - C6 max-reduction across neighbor set
+      - C6 stopword filtering behaviour
+      - Build-report integration (C5/C6 populated when helpers pass)
+      - Build-report degenerate path (helpers return None → metric null)
+      - 28-key invariant preserved after Round 7
+
+  - id: a4
+    title: Verify U3 + U4 have not regressed after SKILL.md v0.1.5 -> v0.1.6 frontmatter bump
+    owner: Verify
+    applies_to_metric: U3_setup_steps_count
+    primitive: verify
+    exit_criterion: 'U3 in round_7 metrics_report.yaml == 1 (unchanged); U4 within ±50% of round_6 (acceptable dry-run timing variance — sub-ms values have high relative jitter but absolute value stays << 60 s ceiling).'
+    notes: |
+      Master plan acceptance criterion implicit in §8.3 monotonicity:
+      no MVP-8 / R4 / R6 / R7 row may regress > 1%. U3 is deterministic
+      (header-parsed); it must stay at 1. U4 has timing jitter
+      (subprocess overhead + per-invocation cpu load) but the absolute
+      value stays below 1 s and the sanity ceiling is 60 s, so a ±50%
+      tolerance on the raw measurement is acceptable. Re-run
+      tools/install_telemetry.py --json against the v0.1.6 install.sh
+      and compare.
+
+  - id: a5
+    title: Flag top-3 blockers for Round 12 v2_tightened readiness
+    owner: Diagnose
+    applies_to_metric: T2_pass_k
+    primitive: diagnose
+    exit_criterion: 'round_7/raw/notes.md §5 lists top-3 v2_tightened blockers; iteration_delta_report.yaml promotion_state.blockers_for_v2 lists the same 3 items.'
+    notes: |
+      Tracking:
+      - T2_pass_k = 0.5478 (fails v2_tightened 0.55 by -0.0022; cases
+        need a small acceptance-criteria tweak or one more passing
+        case) — carry-forward from Round 1.
+      - R8_description_competition_index = null (Round 9 target).
+      - V1-V4 governance = null (Round 8 target).
+      No action this round; the Round 12 readiness check will validate.
+
+expected_iteration_delta_axes:
+  - context_economy     # via a1 (C5) + a2 (C6) — currently 4/6 D2 sub-metrics filled, target 6/6
+
+# Pre-commitment: round_7 must show movement on the context_economy axis (per
+# spec §4.1 v1_baseline iteration_delta row, any axis >= +0.05). The
+# measurement-fill flavour is acceptable per the same alternative clause
+# Rounds 3/4/5/6 invoked: "iteration_delta context_economy axis D2
+# coverage moves from 4/6 -> 6/6 (full-coverage flavour)" per master
+# plan round_7 acceptance_criteria.
+
+deferred_from_round_6:
+  - id: a4_round_4_deferred
+    title: 'Populate L5/L6/L7 (D3 latency_path completion to 7/7)'
+    deferral_reason: |
+      D3 stays at 4/7; L5_detour_index, L6_replanning_rate, L7_think_act_split
+      require a real-LLM run (the simulated runner has no detour / replanning
+      notion). Master plan defers these to post-v0.2.0 (the LLM-backed
+      runner upgrade) and does not enumerate them as gate-blocking rows.
+    refer_to: 'evals/si-chip/runners/with_ability_runner.py docstring "DETERMINISTIC SIMULATED BASELINE" section + Round 4 risk_flag.'
+  - id: a4_round_3_deferred
+    title: 'T2_pass_k v2_tightened margin (0.5478 vs 0.55; delta -0.0022)'
+    deferral_reason: |
+      CASE-LEVEL fix needed (slightly harder acceptance criteria or one more
+      passing case); not a Round 7 priority. Round 12 master plan
+      v2_tightened readiness check will revisit.
+    refer_to: '.local/dogfood/2026-04-28/round_4/raw/notes.md §5 bullet 1'
+  - id: u4_round_6_live_wall_clock
+    title: 'U4 live wall-clock (dry_run=False) sampling for p50 + p95'
+    deferral_reason: |
+      Round 6 U4 is a dry-run floor estimate (0.0073 s). A live wall-clock
+      (with network download + tar extraction) would capture the actual
+      user-experience time for the one-line install. Requires either
+      (a) a local tarball mirror at docs/skills/si-chip-0.1.5.tar.gz with
+      a file:// source-url that the installer can actually consume, or
+      (b) a dedicated CI job with network access. Round 12 + real-LLM
+      runner upgrade is the recommended path; the dry-run floor is
+      v1_baseline-adequate for the dogfood feedback loop.
+    refer_to: 'round_6/metrics_report.yaml provenance.u4_derivation.interpretation_note'
+
+continuing_through_master_plan:
+  - 'Round 7: C5 context_rot_risk + C6 scope_overlap_score (D2 fill 4/6 -> 6/6)'
+  - 'Round 8: V1+V2+V3+V4 governance_risk (D7 fill 0/4 -> 4/4)'
+  - 'Round 9: R8 description_competition_index + 16-cell intermediate router-test profile (D6 formal full coverage; templates bumped)'
+  - 'Round 10: G1 cross_model_pass_matrix (D4 fill 0/4 -> 1/4 plus golden_set seeded)'
+  - 'Round 11: spec internal reconciliation §3.1/§13.4 + §4.1/§13.4 (spec bump v0.1.0 -> v0.2.0-rc1)'
+  - 'Round 12: §6.4 reactivation detector + v2_tightened readiness verify (v0.2.0 ship gate)'
+
+provenance:
+  generator: 'Round 6 dogfood — L1 Stage Agent'
+  spec_version: v0.1.0
+  basis_round: round_6
+  cites:
+    - .local/dogfood/2026-04-28/round_6/raw/notes.md  # diagnose output (Step 3)
+    - .local/dogfood/2026-04-28/round_6/metrics_report.yaml
+    - .local/dogfood/2026-04-28/round_5/next_action_plan.yaml  # carry-forward audit
+    - .local/.agent/active/v0.2.0-iteration-plan.yaml  # master plan round_7 entry
+    - .local/research/spec_v0.1.0.md  # §4.1 thresholds, §4.2 promotion rule
+    - .agents/skills/si-chip/references/metrics-r6-summary.md  # C5/C6 derivation signals

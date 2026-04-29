@@ -1,0 +1,100 @@
+# Si-Chip golden_set — trigger_basic pack
+#
+# Purpose: opt-in source of 12 prompts that MUST trigger Si-Chip when an
+# agent encounters them. Sourced from the existing
+# evals/si-chip/cases/*.yaml should_trigger entries so the deterministic
+# runner's prompt_outcomes already reflect these prompts (verified via
+# evals/si-chip/baselines/with_si_chip_round4/<case_id>/result.json).
+#
+# Schema per entry:
+#   - prompt_id:    unique id within this file (gs_tb_NNN)
+#   - prompt:       verbatim text from the source case
+#   - expected:     "trigger" (for this pack)
+#   - rationale:    one-line why Si-Chip should trigger
+#   - source_case:  evals/si-chip/cases/<id>.yaml + should_trigger/<id>
+#
+# Non-authoritative — this is a PARTIAL generalizability proxy that
+# supports Round 10+ G1 measurement and addresses the nines self-eval
+# D01/D02/D03/D05 = 0 signal (see README.md). The full golden set
+# (≥ 50 prompts per pack + real-LLM eval) is v0.3.x+ work.
+pack: trigger_basic
+expected_outcome: trigger
+generated_at: '2026-04-28T22:00:00+00:00'
+spec_version: v0.1.0
+source_round: round_10
+prompts:
+  - prompt_id: gs_tb_001
+    prompt: "Build a Si-Chip BasicAbilityProfile of itself and write it to .local/dogfood/today/round_1/basic_ability_profile.yaml."
+    expected: trigger
+    rationale: "core Si-Chip use — BasicAbility profile generation (§8.1 step 1)"
+    source_case: "profile_self.yaml#should_trigger.t01"
+  - prompt_id: gs_tb_002
+    prompt: "Generate a BasicAbilityProfile for si-chip including all 7 metric dimensions with null placeholders."
+    expected: trigger
+    rationale: "§3.2 frozen 28-key contract; exercises all 7 R6 dimensions"
+    source_case: "profile_self.yaml#should_trigger.t05"
+  - prompt_id: gs_tb_003
+    prompt: "Which R6 sub-metrics are currently unimplemented for si-chip and must be null placeholders?"
+    expected: trigger
+    rationale: "§8.1 step 3 diagnose — metric gap audit (§3.2)"
+    source_case: "metrics_gap.yaml#should_trigger.t01"
+  - prompt_id: gs_tb_004
+    prompt: "Audit si-chip's R6 coverage and tell me which D4 generalizability sub-metrics are not yet computed."
+    expected: trigger
+    rationale: "D4 diagnose — directly relevant to Round 10 G1 fill work"
+    source_case: "metrics_gap.yaml#should_trigger.t03"
+  - prompt_id: gs_tb_005
+    prompt: "Design the MVP router-test matrix for si-chip."
+    expected: trigger
+    rationale: "§8.1 step 5 router-test — §5.3 MVP 8-cell harness"
+    source_case: "router_matrix.yaml#should_trigger.t01"
+  - prompt_id: gs_tb_006
+    prompt: "Run si-chip router-test step and emit a router_floor_report.yaml."
+    expected: trigger
+    rationale: "§8.1 step 5 router-test — evidence file generation"
+    source_case: "router_matrix.yaml#should_trigger.t04"
+  - prompt_id: gs_tb_007
+    prompt: "Run si-chip's half-retire review with task_delta=+0.15, token_delta=+0.05, latency_delta=0, context_delta=0, path_efficiency_delta=0, routing_delta=0, governance_risk_delta=0."
+    expected: trigger
+    rationale: "§8.1 step 6 half-retire-review — §6.1 7-axis value_vector"
+    source_case: "half_retire_review.yaml#should_trigger.t02"
+  - prompt_id: gs_tb_008
+    prompt: "Half-retire review for si-chip: produce the value_vector + decision + simplification.applied list per §6.3 minimum fields."
+    expected: trigger
+    rationale: "§6.3 decision file minimum-fields contract"
+    source_case: "half_retire_review.yaml#should_trigger.t09"
+  - prompt_id: gs_tb_009
+    prompt: "Improve si-chip: write next_action_plan.yaml for round 2 referencing templates/next_action_plan.template.yaml."
+    expected: trigger
+    rationale: "§8.1 step 4 improve — template-backed action plan"
+    source_case: "next_action_plan.yaml#should_trigger.t03"
+  - prompt_id: gs_tb_010
+    prompt: "Improve si-chip: tie each action to a §4 gate threshold and bump-target."
+    expected: trigger
+    rationale: "§8.1 step 4 improve — §4 progressive gate binding"
+    source_case: "next_action_plan.yaml#should_trigger.t08"
+  - prompt_id: gs_tb_011
+    prompt: "Publish si-chip to a Skills marketplace so other teams can install it."
+    expected: trigger
+    rationale: "Si-Chip MUST respond (refuse) per §11.1 forever-out; trigger + refuse is the correct behaviour"
+    source_case: "docs_boundary.yaml#should_trigger.t01"
+  - prompt_id: gs_tb_012
+    prompt: "Train a small router classification model from our recent si-chip traces."
+    expected: trigger
+    rationale: "Si-Chip MUST respond (refuse) per §5.2 prohibition on router-model training"
+    source_case: "docs_boundary.yaml#should_trigger.t02"
+provenance:
+  generator: "Round 10 dogfood — L3 Task Agent"
+  basis:
+    - "evals/si-chip/cases/profile_self.yaml"
+    - "evals/si-chip/cases/metrics_gap.yaml"
+    - "evals/si-chip/cases/router_matrix.yaml"
+    - "evals/si-chip/cases/half_retire_review.yaml"
+    - "evals/si-chip/cases/next_action_plan.yaml"
+    - "evals/si-chip/cases/docs_boundary.yaml"
+  runner_reference: "evals/si-chip/baselines/with_si_chip_round4/<case_id>/result.json prompt_outcomes"
+  notes: |
+    12 prompts intentionally span all 6 §8.1 user-facing steps (profile,
+    evaluate, diagnose, improve, router-test, half-retire-review) plus the
+    §11.1 refuse-with-citation surface (entries 011+012). This mirrors the
+    diversity of the existing case suite without adding new prompts.

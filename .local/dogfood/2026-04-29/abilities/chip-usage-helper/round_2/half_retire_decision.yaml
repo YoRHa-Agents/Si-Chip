@@ -1,0 +1,77 @@
+# chip-usage-helper — Round 2 half-retirement decision
+ability_id: chip-usage-helper
+version: '0.6.1+round_2'
+decided_at: '2026-04-29T05:07:40+00:00'
+decision: keep
+
+# §6.1 7-axis value vector vs no_ability_baseline (this round's measurements)
+value_vector:
+  task_delta: 0.90            # T3: 0.95 - 0.05
+  token_delta: -0.1344        # (1854_prev_body - 1991_new_body) / 1854 = -0.0739 vs Round 1 body. Reported as negative because footprint grew (-7.4% budget). vs no_ability (baseline tokens ~100 for fallback answer), token_delta comparison is not meaningful; use round-to-round instead.
+  latency_delta: -0.0237      # (1.771 - 1.813) / 1.771 = -0.0237 vs Round 1 p95 (tiny regression, noise)
+  context_delta: -0.1344      # (C4_round_1=2537 -> C4_round_2=2878) / 2537 = -0.1344 (budget grew; still plenty of room under v3_strict)
+  path_efficiency_delta: null
+  routing_delta: 1.0          # R3 with = 1.0, R3 without = 0.0
+  governance_risk_delta: 0.0
+
+# §6.2 rule evaluation
+rule_evaluation:
+  spec_section: "§6.2"
+  bound_gate: v1_baseline
+  bucket_threshold: 0.05
+  fired_rule: keep
+  fired_condition: "task_delta +0.90 >= +0.10 (keep)"
+  other_rules_checked:
+    half_retire: "NOT FIRED (task_delta +0.90 far outside near-zero band)"
+    retire: "NOT FIRED (task_delta and routing_delta strictly positive)"
+    disable_auto_trigger: "NOT FIRED (governance_risk_delta = 0.0)"
+  round_2_axis_movement_vs_round_1:
+    routing_delta_movement: "+0.0476 (0.9524 -> 1.0); v1 iteration_delta bucket (>=+0.05) NEARLY met; formal measurement: R3_delta=+0.0476, R4_delta=+0.10 (FP eliminated)"
+    context_delta_movement: "-0.1344 (footprint 2537 -> 2878; negative because growing)"
+    latency_delta_movement: "-0.0237 (tiny negative noise)"
+    task_delta_movement: "+0.05 (0.85 -> 0.90; iteration-flavour delta)"
+    note: "routing axis + task-quality axis both improved. Iteration_delta_report exposes the magnitude per §6.2 'efficiency axis at bucket' rule."
+
+simplification:
+  applied: []
+  bound_gate: v1_baseline
+
+retained_core:
+  - "SKILL.md (92 meta + 1991 body; up from 86/1854 due to added 'Skip when' discriminator)"
+  - "usage-helper.mdc (42 meta + 581 body; up from 40/557)"
+  - "commands/usage-report.md (unchanged)"
+  - "7 MCP tools (unchanged)"
+  - "canvas template (unchanged)"
+
+review:
+  next_review_at: '2026-05-29'
+  triggers:
+    - new_model_no_ability_baseline_gap
+    - new_scenario_or_domain_match
+    - router_test_requires_ability_for_cheap_model
+    - efficiency_axis_becomes_significant
+    - upstream_api_change_wrapper_stabilizes
+    - manual_invocation_rebound
+
+provenance:
+  round_id: round_2
+  prior_round_id: round_1
+  metrics_report_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_2/metrics_report.yaml
+  router_floor_report_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_2/router_floor_report.yaml
+  prior_half_retire_decision_path: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_1/half_retire_decision.yaml
+  decided_by: "si-chip.self_eval (chip-usage-helper round_2)"
+  spec_version: v0.1.0
+  target_repo: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper
+  target_branch: feature/si-chip
+  target_commit_changes:
+    - "chip_usage_helper/skills/chip-usage-helper/SKILL.md: description tightened + Skip-when expanded"
+    - "chip_usage_helper/rules/usage-helper.mdc: description updated + Do-not expanded"
+
+rationale: |
+  Round 2 value vector shows task_delta +0.90 (higher than Round 1's +0.85) and
+  routing_delta 1.0 (up from 0.9524). Keep decision fires on task_delta >= +0.10
+  with massive margin. Context-growth (C4 2537 -> 2878) is traded for routing
+  precision (FP 0.10 -> 0.0) — a favorable trade per §3 C4 gate (2878 << v1/v2/v3
+  ceilings). Two consecutive v1_baseline passes make the ability eligible for
+  v2_tightened per §4.2; promotion will be evaluated in Round 3 once U1/U2/L3/L4
+  null placeholders close.

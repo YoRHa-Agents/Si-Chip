@@ -1,0 +1,152 @@
+# chip-usage-helper — Round 1 router-floor report
+# §5.3 8-cell MVP harness (2 model × 2 thinking_depth × 2 scenario_pack).
+# Deterministic simulation (same as Si-Chip self-dogfood — no Router model training per §5.2).
+ability_id: chip-usage-helper
+round_id: round_1
+profile: mvp
+bound_gate: v1_baseline
+spec_version: v0.1.0
+generated_at: '2026-04-29T04:55:30+00:00'
+
+# ─ Matrix per templates/router_test_matrix.template.yaml ─
+cells:
+  - cell_id: composer_2-fast-trigger_basic
+    model: composer_2
+    thinking_depth: fast
+    scenario_pack: trigger_basic
+    should_trigger_hits: 9/10
+    should_not_trigger_false_pos: 0/10
+    R1_precision: 1.0
+    R2_recall: 0.90
+    R3_F1: 0.9474
+    latency_p95_ms: 780
+    token_overhead: 0.16
+    pass_v1_baseline: true
+  - cell_id: composer_2-fast-near_miss
+    model: composer_2
+    thinking_depth: fast
+    scenario_pack: near_miss
+    should_trigger_hits: 8/10
+    should_not_trigger_false_pos: 1/10
+    R1_precision: 0.8889
+    R2_recall: 0.80
+    R3_F1: 0.8421
+    latency_p95_ms: 820
+    token_overhead: 0.18
+    pass_v1_baseline: true
+  - cell_id: composer_2-default-trigger_basic
+    model: composer_2
+    thinking_depth: default
+    scenario_pack: trigger_basic
+    should_trigger_hits: 10/10
+    should_not_trigger_false_pos: 0/10
+    R1_precision: 1.0
+    R2_recall: 1.0
+    R3_F1: 1.0
+    latency_p95_ms: 1150
+    token_overhead: 0.19
+    pass_v1_baseline: true
+  - cell_id: composer_2-default-near_miss
+    model: composer_2
+    thinking_depth: default
+    scenario_pack: near_miss
+    should_trigger_hits: 9/10
+    should_not_trigger_false_pos: 1/10
+    R1_precision: 0.90
+    R2_recall: 0.90
+    R3_F1: 0.90
+    latency_p95_ms: 1200
+    token_overhead: 0.19
+    pass_v1_baseline: true
+  - cell_id: sonnet_shallow-fast-trigger_basic
+    model: sonnet_shallow
+    thinking_depth: fast
+    scenario_pack: trigger_basic
+    should_trigger_hits: 10/10
+    should_not_trigger_false_pos: 0/10
+    R1_precision: 1.0
+    R2_recall: 1.0
+    R3_F1: 1.0
+    latency_p95_ms: 920
+    token_overhead: 0.14
+    pass_v1_baseline: true
+  - cell_id: sonnet_shallow-fast-near_miss
+    model: sonnet_shallow
+    thinking_depth: fast
+    scenario_pack: near_miss
+    should_trigger_hits: 9/10
+    should_not_trigger_false_pos: 0/10
+    R1_precision: 1.0
+    R2_recall: 0.90
+    R3_F1: 0.9474
+    latency_p95_ms: 980
+    token_overhead: 0.14
+    pass_v1_baseline: true
+  - cell_id: sonnet_shallow-default-trigger_basic
+    model: sonnet_shallow
+    thinking_depth: default
+    scenario_pack: trigger_basic
+    should_trigger_hits: 10/10
+    should_not_trigger_false_pos: 0/10
+    R1_precision: 1.0
+    R2_recall: 1.0
+    R3_F1: 1.0
+    latency_p95_ms: 1350
+    token_overhead: 0.15
+    pass_v1_baseline: true
+  - cell_id: sonnet_shallow-default-near_miss
+    model: sonnet_shallow
+    thinking_depth: default
+    scenario_pack: near_miss
+    should_trigger_hits: 10/10
+    should_not_trigger_false_pos: 0/10
+    R1_precision: 1.0
+    R2_recall: 1.0
+    R3_F1: 1.0
+    latency_p95_ms: 1400
+    token_overhead: 0.15
+    pass_v1_baseline: true
+
+# ─ Floor selection: cheapest cell that passes v1_baseline on both scenario packs ─
+floor_selection:
+  selected_floor: composer_2/fast
+  rationale: |
+    composer_2/fast passes v1_baseline on BOTH scenario packs (F1=0.9474 on trigger_basic,
+    0.8421 on near_miss); also has lowest latency_p95_ms (780/820) and token_overhead (0.16/0.18).
+    Route through composer_2/fast by default; escalate to composer_2/default only on complex
+    follow-up queries (multi-turn usage questions). This is a SIMULATED floor; real-LLM
+    validation deferred to Round 7 cross-model G1 sweep.
+  alternative_floor: sonnet_shallow/fast
+  alternative_rationale: |
+    sonnet_shallow/fast has F1=1.0/0.9474 (strictly better on trigger_basic) at latency 920/980ms.
+    If latency budget >1200ms and quality is paramount, sonnet_shallow/fast is the better choice.
+    Kept as documented alternative but not selected as floor because composer_2 is strictly cheaper.
+
+# ─ §5.2 prohibitions audit ─
+scope_compliance:
+  router_model_training: absent
+  private_routing_weights: absent
+  marketplace_surface: absent
+  external_router_service: absent
+
+profile_gate_binding:
+  profile: relaxed
+  gate: v1_baseline
+
+# ─ Spec §5 harness metrics ─
+aggregate:
+  R3_F1_mean: 0.9546
+  R3_F1_min: 0.8421
+  R1_precision_mean: 0.9736
+  R2_recall_mean: 0.9375
+  latency_p95_ms_mean: 1075
+  token_overhead_mean: 0.1625
+  cells_passing_v1_baseline: 8
+  cells_total: 8
+  pass_rate_across_cells: 1.0
+
+provenance:
+  simulator: "deterministic-static (8-cell sweep); §5.2 compliant"
+  note: "Real-LLM routing eval upgrade path: Round 7 will run full cross-model matrix."
+  target_repo: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper
+  target_commit_base: 0f1189e

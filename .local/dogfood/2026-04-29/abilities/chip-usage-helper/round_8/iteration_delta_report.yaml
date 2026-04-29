@@ -1,0 +1,44 @@
+round_id: round_8
+prior_round_id: round_7
+computed_at: '2026-04-29T08:18:30+00:00'
+spec_version: v0.1.0
+
+axis_status:
+  task_quality: { positive_axis: false, delta: 0.0 }
+  context_economy: { positive_axis: false, delta: 0.0 }
+  latency_path:
+    positive_axis: true
+    delta: 0.5  # L5 newly populated explicitly + path_efficiency saturation (get-rankings refactor)
+    rationale: "L5 detour_index newly populated (was null) at 0.0 — confirms single-tool convergence. Plus, get-rankings.ts handler refactored to reuse teamFetch.events (parallel to Round 5's get-dashboard-data fix); the pattern was the same redundancy elimination."
+  generalizability: { positive_axis: false, delta: 0.0 }
+  usage_cost:
+    positive_axis: true
+    delta: 0.5    # U3, U4 newly populated (D5 goes from 2/4 -> 4/4)
+    rationale: "D5 usage_cost FULLY MEASURED. U3=3 setup steps, U4=1.71s npm-test proxy."
+  routing_cost: { positive_axis: false, delta: 0.0 }
+  governance_risk: { positive_axis: false, delta: 0.0 }
+
+v1_baseline_threshold_check: { pass: true, blockers: [] }
+v2_tightened_threshold_check: { pass: true, blockers: [] }
+v3_strict_threshold_check: { pass: true, blockers: [], note: "9/9 v3 rows pass for the THIRD consecutive round." }
+
+monotonicity_check_status:
+  pass_rate_no_regression: { r7: 0.97, r8: 0.97, pass: true }
+  per_metric:
+    L2: { r7: 1.780, r8: 1.821, pct_change: +2.30, pass: true, note: "test noise band 1.7-1.9s" }
+    L4: { r7: 0.0, r8: 0.0, pct_change: 0, pass: true }
+    L5: { r7: null, r8: 0.0, note: "newly populated" }
+    U3: { r7: null, r8: 3, note: "newly populated" }
+    U4: { r7: null, r8: 1.7091, note: "newly populated" }
+  overall_pass: true
+
+promotion_state:
+  current_gate: v3_strict
+  consecutive_v3_passes: 3      # rounds 6, 7, 8
+
+headline:
+  efficiency_axes_at_or_above_v3_bucket: 2  # latency_path (0.5), usage_cost (0.5)
+  primary_improvement_axis: latency_path
+  secondary_improvement_axis: usage_cost
+
+provenance: { target_commit_base: d3cc6a2 }

@@ -1,0 +1,58 @@
+# Si-Chip Round 10 — aggregator run log
+# Re-execution of .agents/skills/si-chip/scripts/aggregate_eval.py against
+# carried-forward Round 4 with-ability runs + no-ability baselines.
+# SKILL.md body unchanged Round 9 -> 10; frontmatter bumped 0.1.8 -> 0.1.9
+# (0-token delta; o200k_base("0.1.8") == o200k_base("0.1.9") = 5 tokens).
+# G1_cross_model_pass_matrix hoisted via the new
+# hoist_g1_cross_model_pass_matrix helper (Round 10 Edit A).
+
+INVOCATION:
+  python .agents/skills/si-chip/scripts/aggregate_eval.py \
+    --runs-dir evals/si-chip/baselines/with_si_chip_round4 \
+    --baseline-dir evals/si-chip/baselines/no_ability \
+    --skill-md .agents/skills/si-chip/SKILL.md \
+    --router-floor-report .local/dogfood/2026-04-28/round_8/router_floor_report.yaml \
+    --install-telemetry .local/dogfood/2026-04-28/round_6/raw/install_telemetry.json \
+    --references-dir .agents/skills/si-chip/references \
+    --neighbor-skills-glob "/root/.claude/skills/lark-*/SKILL.md" \
+    --governance-report .local/dogfood/2026-04-28/round_8/raw/governance_scan.json \
+    --r8-method max_jaccard \
+    --out .local/dogfood/2026-04-28/round_10/raw/aggregator_raw_output.yaml \
+    --verbose
+
+  (Round 8's flat router_floor_report.yaml is used because
+   --router-floor-report is also the R6 hoist source — hoist_r6 looks at
+   top-level "cells" not the nested mvp_profile.cells shape introduced in
+   Round 9. The Round 10 G1 hoist helper handles both shapes; the
+   canonical Round 10 evidence router_floor_report.yaml at
+   .local/dogfood/2026-04-28/round_10/router_floor_report.yaml is a
+   byte-identical copy of Round 9's nested version.)
+
+OBSERVATIONS:
+  devolaflow version: 9.1.0
+  C6 neighbor glob matched 23 path(s)
+  with-ability runs: 6, no-ability runs: 6
+  MVP-8 + R4 + R6 + R7 + L1 + L3 + L4 + U1 + U2 + U3 + U4 + C5 + C6 + V1-V4 + R8 carried byte-identical from Round 9.
+  G1_cross_model_pass_matrix: null -> {composer_2: {trigger_basic: 0.9, near_miss: 0.83}, sonnet_shallow: {trigger_basic: 0.88, near_miss: 0.81}} (NEW; max(pass_rate) across depths per (model, pack)).
+  G2_cross_domain_transfer_pass: null (stays null by scope for v0.1.x; v0.3.x+ work).
+  G3_OOD_robustness: null (stays null by scope for v0.1.x; v0.3.x+ work).
+  G4_model_version_stability: null (stays null by scope for v0.1.x; v0.3.x+ work).
+  SCRIPT_VERSION: 0.1.5 -> 0.1.6 (Round 10 Edit A).
+
+EXIT: rc=0 — aggregator_raw_output.yaml written.
+
+POST-PROCESSING (manual):
+  * Copy aggregator_raw_output.yaml fields to metrics_report.yaml (Round 10
+    L3 task spec — manual curation of the canonical metrics_report.yaml
+    with explanatory comments + provenance blocks).
+  * g1_derivation.json extracted from provenance.g1_derivation (includes
+    full per-cell trace + per_cell_max_derivation showing the max reduction
+    per (model, pack) + range-sanity check + partial-proxy disclosure).
+  * golden_set_index.json enumerates evals/si-chip/golden_set/ contents
+    (24 total prompts across 2 packs + README.md; all verbatim from
+    evals/si-chip/cases/*.yaml — 0 new prompts authored).
+  * router_floor_report.yaml carried byte-identical from Round 9 (no
+    router-test rerun this round; master plan explicitly calls for
+    re-emission not re-derivation).
+  * spec_validator.json written via python tools/spec_validator.py --json
+    (8/8 PASS; unchanged from Round 9).

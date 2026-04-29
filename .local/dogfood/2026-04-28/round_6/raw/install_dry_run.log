@@ -1,0 +1,21 @@
+// SI-CHIP INSTALLER / v0.1.5
+// YORHA AGENTS / GLORY TO MANKIND
+
+
+=> Installing Si-Chip (cursor) to /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+[dry-run] stage payload to /tmp/si_chip_round6_dry/.cursor/skills/si-chip.new
+[dry-run] rm -rf /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+[dry-run] mv /tmp/si_chip_round6_dry/.cursor/skills/si-chip.new /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+[dry-run] curl -fsSL https://yorha-agents.github.io/Si-Chip/skills/si-chip-0.1.5.tar.gz -o /tmp/tmp.Lv4ZrACX0d/si-chip-0.1.5.tar.gz
+[dry-run] verify gzip magic of /tmp/tmp.Lv4ZrACX0d/si-chip-0.1.5.tar.gz
+[dry-run] mkdir -p /tmp/si_chip_round6_dry/.cursor/skills/si-chip.new
+[dry-run] tar -xzf /tmp/tmp.Lv4ZrACX0d/si-chip-0.1.5.tar.gz -C /tmp/si_chip_round6_dry/.cursor/skills/si-chip.new
+[dry-run] verify /tmp/si_chip_round6_dry/.cursor/skills/si-chip (skipped)
+
+[OK] Installed Si-Chip v0.1.5 to /tmp/si_chip_round6_dry/.cursor/skills/si-chip
+     SKILL.md (1) + references (5) + scripts (3) = 9 files
+     Verify: python3 /tmp/si_chip_round6_dry/.cursor/skills/si-chip/scripts/count_tokens.py --file /tmp/si_chip_round6_dry/.cursor/skills/si-chip/SKILL.md --both
+     Note: count_tokens.py has a soft dependency on the 'tiktoken' Python package.
+           Install with: pip install tiktoken (optional; falls back to a heuristic).
+
+Done. Si-Chip v0.1.5 installation complete.

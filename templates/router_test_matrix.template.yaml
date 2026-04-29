@@ -4,21 +4,33 @@
 #              §5.4 router profile ↔ gate binding.
 # This file is DATA (not a WorkflowTemplate): it encodes the §5.3 table verbatim
 # so `spec_validator` and `router_test/harness.py` can consume it directly.
+#
+# SCHEMA VERSION HISTORY
+#   0.1.0 — Initial template (Si-Chip v0.1.0): mvp (8 cells) + full (96 cells)
+#           profiles; cell_counts {mvp: 8, full: 96}.
+#   0.1.1 — Round 9 (v0.1.8) ADDITIVE: intermediate profile (16 cells) added
+#           alongside mvp + full (mvp:8 and full:96 STRUCTURALLY UNCHANGED).
+#           intermediate is metadata-retrieval widening per spec §5.1 surface
+#           1+2 — NOT router model training (§5.2 forbidden); gate-bound to
+#           'relaxed' (same as mvp; NOT a §5.4 binding change). Validator
+#           accepts BOTH 0.1.0 and 0.1.1 schemas (backward compat).
 
-$schema_version: "0.1.0"
+$schema_version: "0.1.1"
 $spec_section: "§5"
 $source_of_truth: ".agents/skills/si-chip/"
 
 metadata:
   name: "si-chip-router-test-matrix"
-  version: "0.1.0"
-  description: "Router-test harness matrix. v0.1.0 starts with the mvp profile; full is required when an ability is bound to v2_tightened or above."
+  version: "0.1.1"
+  description: "Router-test harness matrix. v0.1.0 starts with the mvp profile; intermediate (16 cells) added in Round 9 as an ADDITIVE v1_baseline transitional widening; full is required when an ability is bound to v2_tightened or above."
 
 # Computed cell counts; spec_validator asserts these exactly.
-# mvp = 2 models * 2 thinking_depths * 2 scenario_packs = 8
-# full = 6 models * 4 thinking_depths * 4 scenario_packs = 96
+# mvp          = 2 models * 2 thinking_depths * 2 scenario_packs = 8
+# intermediate = 2 models * 2 thinking_depths * 4 scenario_packs = 16 (Round 9)
+# full         = 6 models * 4 thinking_depths * 4 scenario_packs = 96
 cell_counts:
   mvp: 8
+  intermediate: 16
   full: 96
 
 profiles:
@@ -53,6 +65,50 @@ profiles:
       - R5
       - R6
       - R7
+
+  # intermediate added in Round 9 (schema 0.1.1). ADDITIVE only — does NOT
+  # modify mvp:8 or full:96 structurally. Spec §11 forever-out compliance:
+  # this profile is metadata-retrieval widening (more cells for the same
+  # DESCRIPTION-routing question) per spec §5.1 surface 1+2; it is NOT a
+  # new router model, NOT online weight learning, NOT a §5.2 violation.
+  # Gate binding stays at 'relaxed' (same as mvp) — NOT a §5.4 binding
+  # escalation. An ability at v2_tightened+ still requires the full 96-cell
+  # matrix per §5.3; intermediate does NOT satisfy v2_tightened coverage.
+  intermediate:
+    description: "v1_baseline transitional matrix. 16 cells = 2 model × 2 thinking_depth × 4 scenario_pack. Bound to relaxed gate (same as mvp). Non-Normative additive profile per §5 router paradigm; does NOT modify mvp:8 or full:96."
+    cells: 16
+    models:
+      - composer_2
+      - sonnet_shallow
+    thinking_depths:
+      - fast
+      - default
+    scenario_packs:
+      - trigger_basic
+      - near_miss
+      - multi_skill_competition
+      - execution_handoff
+    dataset:
+      per_pack:
+        should_trigger: 10
+        should_not_trigger: 10
+      total_prompts_per_pack: 20
+    gate_binding: relaxed  # same as mvp; not a §5.4 binding change
+    required_metrics:
+      # Inherits mvp.required_metrics + R8 (description-competition; Round 9).
+      - T1
+      - T2
+      - T3
+      - L1
+      - L2
+      - R1
+      - R2
+      - R3
+      - R4
+      - R5
+      - R6
+      - R7
+      - R8
 
   full:
     description: "v2_tightened+ matrix. 96 cells = 6 model x 4 thinking_depth x 4 scenario_pack (spec §5.3)."

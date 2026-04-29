@@ -1,0 +1,39 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T10:05:30+00:00'
+targets_round: round_16
+bound_gate: v3_strict
+target_branch: feature/si-chip-token-econ
+
+# Round 16: final convergence for the token-economy cycle.
+# - Run one last eval to confirm stability.
+# - Emit ship_decision.yaml for v0.7.1 (token-economy release)
+# - Append cross-cycle summary to SUMMARY.md (R23-R34 new feedback items)
+# - Push branch to origin and open MR to main
+
+actions:
+  - action_id: a1
+    priority: P0
+    targets_metric: ship_decision_v071
+    description: |
+      Emit .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_16/ship_decision.yaml
+      with verdict SHIP_ELIGIBLE, gate v3_strict, cumulative token deltas vs v0.7.0.
+
+  - action_id: a2
+    priority: P0
+    targets_metric: summary_md_cycle_2_append
+    description: |
+      Append new R23-R34+ items to
+      .local/feedbacks/feedbacks_while_using/chip-usage-helper/SUMMARY.md (or
+      add a new "Cycle 2 — Token Economy" section), capturing meta-feedback
+      items 23-34+ collected across rounds 11-15.
+
+  - action_id: a3
+    priority: P0
+    targets_metric: open_mr
+    description: |
+      Push feature/si-chip-token-econ to origin; open MR to main on
+      git.neodrive.neolix.net with compact description citing Si-Chip evidence.
+
+anticipated_iteration_delta_axes: []
+expected_delta_bucket: "n/a (final ship round)"
+provenance: { target_commit_base: TBD_round_15 }

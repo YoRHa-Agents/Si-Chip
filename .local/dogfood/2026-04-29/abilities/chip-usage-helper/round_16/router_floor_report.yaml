@@ -1,0 +1,8 @@
+ability_id: chip-usage-helper
+round_id: round_16
+generated_at: '2026-04-29T10:08:00+00:00'
+spec: { profile: mvp, cells: 8, gate_bound: v3_strict }
+aggregate: { cells_pass: 8, cells_total: 8, R6_routing_latency_p95_ms: 0.18, R7_routing_token_overhead: 0.0338, leaderboard_default: 10 }
+router_floor: composer_2/fast
+profile_to_gate: strict
+note: "Cycle 2 convergence — routing surface unchanged from v0.7.0 baseline; only payload surface changed."

@@ -1,0 +1,21 @@
+ability_id: chip-usage-helper
+round_id: round_11
+generated_at: '2026-04-29T09:50:30+00:00'
+spec_version: v0.1.0
+profile: mvp
+profile_cells: 8
+gate_bound: v3_strict
+
+cells:
+  - { model: composer_2,     thinking_depth: fast,    scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+  - { model: composer_2,     thinking_depth: fast,    scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+  - { model: composer_2,     thinking_depth: default, scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+  - { model: composer_2,     thinking_depth: default, scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+  - { model: sonnet_shallow, thinking_depth: fast,    scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+  - { model: sonnet_shallow, thinking_depth: fast,    scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+  - { model: sonnet_shallow, thinking_depth: default, scenario_pack: trigger_basic, T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+  - { model: sonnet_shallow, thinking_depth: default, scenario_pack: near_miss,     T1: 0.97, R3: 1.0, L2_s: 1.749, R6_ms: 0.1761, payload_tokens_min: 2548, pass: true }
+aggregate: { cells_pass: 8, cells_total: 8 }
+router_floor: composer_2/fast
+profile_to_gate: strict
+provenance: { evaluator: tools/eval_chip_usage_helper.py }

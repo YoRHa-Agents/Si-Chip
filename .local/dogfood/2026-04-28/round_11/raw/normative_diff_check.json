@@ -1,0 +1,95 @@
+{
+  "generated_at": "2026-04-28T23:00:00+00:00",
+  "purpose": "§3/§4/§5/§6/§7/§8/§11 Normative structural (table / list / enum) byte-identity check between v0.1.0 and v0.2.0-rc1; prose-count differences are expected per §13.4 reconciliation.",
+  "normative_sections": {
+    "§3": {
+      "name": "Metric Taxonomy",
+      "v1_rows": 13,
+      "v2_rows": 13,
+      "structural_identical": false,
+      "prose_diffs": [
+        {
+          "row": 10,
+          "v1": "2. **完整 28 子指标** 的字段在 `BasicAbilityProfile.metrics` 中必须预留，未实现项以 `null` 显式占位，不得省略 key。",
+          "v2": "2. **完整 37 子指标**（§3.1 table 实际枚举数；v0.1.0 prose 写作 \"28\" — v0.2.0-rc1 对齐到 table 计数）的字段在 `BasicAbilityProfile.metrics` 中必须预留，未实现项以 `null` 显式占位，不得省略 key。"
+        }
+      ]
+    },
+    "§4": {
+      "name": "Progressive Gate Profiles",
+      "v1_rows": 16,
+      "v2_rows": 16,
+      "structural_identical": true,
+      "prose_diffs": []
+    },
+    "§5": {
+      "name": "Router Paradigm",
+      "v1_rows": 22,
+      "v2_rows": 22,
+      "structural_identical": true,
+      "prose_diffs": []
+    },
+    "§6": {
+      "name": "Half-Retirement",
+      "v1_rows": 21,
+      "v2_rows": 21,
+      "structural_identical": true,
+      "prose_diffs": []
+    },
+    "§7": {
+      "name": "Packaging & Platform Priority",
+      "v1_rows": 10,
+      "v2_rows": 10,
+      "structural_identical": true,
+      "prose_diffs": []
+    },
+    "§8": {
+      "name": "Self-Dogfood Protocol",
+      "v1_rows": 17,
+      "v2_rows": 17,
+      "structural_identical": false,
+      "prose_diffs": [
+        {
+          "row": 2,
+          "v1": "3. diagnose            按 R6 7 维 / 28 子指标定位瓶颈",
+          "v2": "3. diagnose            按 R6 7 维 / 37 子指标定位瓶颈"
+        },
+        {
+          "row": 9,
+          "v1": "2. `metrics_report` (json/yaml，覆盖 MVP 8 项 + 28 项 key 占位)",
+          "v2": "2. `metrics_report` (json/yaml，覆盖 MVP 8 项 + 37 项 key 占位；v0.1.0 prose \"28 项\" 对齐到 §3.1 table 枚举数 37)"
+        }
+      ]
+    },
+    "§11": {
+      "name": "Scope Boundaries",
+      "v1_rows": 10,
+      "v2_rows": 10,
+      "structural_identical": true,
+      "prose_diffs": []
+    }
+  },
+  "prose_count_changes": [
+    {
+      "section": "§3.2 item 2",
+      "from": "完整 28 子指标",
+      "to": "完整 37 子指标"
+    },
+    {
+      "section": "§8.1 step 3",
+      "from": "R6 7 维 / 28 子指标",
+      "to": "R6 7 维 / 37 子指标"
+    }
+  ],
+  "semantic_tables_byte_identical": {
+    "§3": true,
+    "§4": true,
+    "§5": true,
+    "§6": true,
+    "§7": true,
+    "§8": true,
+    "§11": true
+  },
+  "verdict": "NORMATIVE_TABLES_BYTE_IDENTICAL",
+  "prose_diff_expected": true
+}

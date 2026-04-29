@@ -1,0 +1,41 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T09:55:30+00:00'
+targets_round: round_14
+bound_gate: v3_strict
+target_branch: feature/si-chip-token-econ
+
+# Round 14: feedback Issue #3 — slim alwaysApply rule body.
+# Currently rules/usage-helper.mdc body = 718 tokens (rule_body in eval).
+# Target: ~150-200 tokens (per feedback) by moving Contract clauses 4-8
+# (identity / NDS Token / AiBillUpstreamError / get_me / get_rankings) into SKILL.md
+# error-paths and tools sections.
+
+actions:
+  - action_id: a1
+    priority: P0
+    targets_metric: eager_tokens_per_session
+    current: 812
+    expected: "<= 350 (-460 tokens; -57% of EAGER tier)"
+    description: |
+      Slim rules/usage-helper.mdc to keep ONLY:
+        - Frontmatter description (already 60 tokens — keep as-is)
+        - Trigger conditions (MONEY cue whitelist + black-list discriminators)
+        - "Read SKILL.md for everything else" pointer
+      Move Contract clauses 4-8 (identity resolution, NDS Token expired error,
+      AiBillUpstreamError handling, get_me / get_rankings nuances) to SKILL.md
+      ## Error paths and ## Available tools sections.
+      Crucially: EAGER tier is paid every session whether the skill triggers or not.
+      The savings here compound across the entire user's day.
+    scope_writable_files:
+      - rules/usage-helper.mdc
+      - skills/chip-usage-helper/SKILL.md
+    acceptance_criteria:
+      - "rule_body (eval token_tiers.eager.rule_body) <= 250 tokens"
+      - "EAGER total <= 350 tokens"
+      - "R3_trigger_F1 still 1.0; R4 still 0.0 (don't lose trigger semantics)"
+      - "All contract 4-8 information now lives in SKILL.md (no behavior loss for the agent)"
+      - "npm test 99/99 PASS"
+
+anticipated_iteration_delta_axes: [context_economy]
+expected_delta_bucket: "v3_strict (>= +0.15 cumulative)"
+provenance: { target_commit_base: TBD_round_13 }

@@ -1,0 +1,29 @@
+{
+  "round_id": "round_6",
+  "method": "mean across 6 cases of n_near_miss_FP / n_should_not (per-case prompt_outcomes)",
+  "per_case": {
+    "docs_boundary":     {"fp": 0, "neg": 10, "rate": 0.0},
+    "half_retire_review":{"fp": 0, "neg": 10, "rate": 0.0},
+    "metrics_gap":       {"fp": 0, "neg": 10, "rate": 0.0},
+    "next_action_plan":  {"fp": 2, "neg": 10, "rate": 0.2},
+    "profile_self":      {"fp": 1, "neg": 10, "rate": 0.1},
+    "router_matrix":     {"fp": 0, "neg": 10, "rate": 0.0}
+  },
+  "mean_rate_R4": 0.05,
+  "total_fp": 3,
+  "total_neg": 60,
+  "v1_baseline_ceiling": 0.15,
+  "v1_baseline_pass": true,
+  "v2_tightened_ceiling": 0.10,
+  "v2_tightened_pass": true,
+  "v3_strict_ceiling": 0.05,
+  "v3_strict_pass": true,
+  "stability_check_vs_round_5": {
+    "round_5_value": 0.05,
+    "round_6_value": 0.05,
+    "delta": 0.0,
+    "rationale": "Deterministic SHA-256-based runner; identical seed; identical prompts; same result. Carried byte-identically across Rounds 2/3/4/5/6."
+  },
+  "instrumentation_source": "evals/si-chip/runners/with_ability_runner.py per-prompt outcomes",
+  "comment": "Round 6 R4 = 0.05 (identical to Rounds 2/3/4/5). Deterministic re-derivation; not a regression."
+}
