@@ -1690,5 +1690,277 @@ class HoistR8Tests(unittest.TestCase):
         self.assertIsNone(r8)
 
 
+# ─────────────────────────── Round 10 tests ───────────────────────────
+# Workspace rule "Mandatory Verification": Round 10 (task spec §2) adds
+# ``hoist_g1_cross_model_pass_matrix`` + threads the existing
+# ``router_floor_report`` parameter into ``build_report`` so G1 (D4
+# generalizability first sub-metric) is populated. These tests cover
+# happy-path 8-cell mvp sweep on BOTH the flat and nested shapes, the
+# degenerate paths (missing / empty / malformed), the exact 2-model ×
+# 2-pack matrix shape, per-cell range invariant, and the spec §3.2
+# frozen 28-key contract.
+
+
+# Nested mvp_profile fixture (Round 9 emitted shape) — mirrors
+# .local/dogfood/2026-04-28/round_9/router_floor_report.yaml#mvp_profile
+# byte-for-byte so the Round 10 hoist is unit-tested against the real
+# Round 9 evidence surface.
+ROUND_9_NESTED_SWEEP = {
+    "round_id": "round_9",
+    "matrix_profile_primary": "mvp",
+    "matrix_profile_additional": "intermediate",
+    "schema_version": "0.1.1",
+    "mvp_profile": {
+        "profile": "mvp",
+        "cells_total": 8,
+        "pass_threshold": 0.80,
+        "cells": [
+            {"model": "composer_2", "thinking_depth": "fast",
+             "scenario_pack": "trigger_basic",
+             "pass_rate": 0.86, "latency_p50_ms": 720, "latency_p95_ms": 1100},
+            {"model": "composer_2", "thinking_depth": "fast",
+             "scenario_pack": "near_miss",
+             "pass_rate": 0.78, "latency_p50_ms": 740, "latency_p95_ms": 1180},
+            {"model": "composer_2", "thinking_depth": "default",
+             "scenario_pack": "trigger_basic",
+             "pass_rate": 0.90, "latency_p50_ms": 940, "latency_p95_ms": 1480},
+            {"model": "composer_2", "thinking_depth": "default",
+             "scenario_pack": "near_miss",
+             "pass_rate": 0.83, "latency_p50_ms": 980, "latency_p95_ms": 1560},
+            {"model": "sonnet_shallow", "thinking_depth": "fast",
+             "scenario_pack": "trigger_basic",
+             "pass_rate": 0.83, "latency_p50_ms": 880, "latency_p95_ms": 1340},
+            {"model": "sonnet_shallow", "thinking_depth": "fast",
+             "scenario_pack": "near_miss",
+             "pass_rate": 0.74, "latency_p50_ms": 900, "latency_p95_ms": 1400},
+            {"model": "sonnet_shallow", "thinking_depth": "default",
+             "scenario_pack": "trigger_basic",
+             "pass_rate": 0.88, "latency_p50_ms": 1180, "latency_p95_ms": 1820},
+            {"model": "sonnet_shallow", "thinking_depth": "default",
+             "scenario_pack": "near_miss",
+             "pass_rate": 0.81, "latency_p50_ms": 1230, "latency_p95_ms": 1900},
+        ],
+        "mvp_router_floor": "composer_2/default",
+    },
+}
+
+
+class HoistG1Tests(unittest.TestCase):
+    """Direct unit tests for :func:`hoist_g1_cross_model_pass_matrix`."""
+
+    def test_hoist_g1_happy_path_on_mvp_8_cell_sweep(self) -> None:
+        """Flat 8-cell sweep → 2×2 matrix with max-across-depths collapse."""
+
+        matrix, derivation = ae.hoist_g1_cross_model_pass_matrix(ROUND_2_SWEEP)
+        self.assertIsNotNone(matrix)
+        self.assertEqual(set(matrix.keys()), {"composer_2", "sonnet_shallow"})
+        self.assertEqual(
+            set(matrix["composer_2"].keys()), {"trigger_basic", "near_miss"}
+        )
+        self.assertEqual(
+            set(matrix["sonnet_shallow"].keys()), {"trigger_basic", "near_miss"}
+        )
+        # Collapse rule = max across depths. For composer_2 × trigger_basic:
+        # fast=0.86, default=0.90 → max = 0.90.
+        self.assertAlmostEqual(matrix["composer_2"]["trigger_basic"], 0.90, places=6)
+        self.assertAlmostEqual(matrix["composer_2"]["near_miss"], 0.83, places=6)
+        self.assertAlmostEqual(
+            matrix["sonnet_shallow"]["trigger_basic"], 0.88, places=6
+        )
+        self.assertAlmostEqual(matrix["sonnet_shallow"]["near_miss"], 0.81, places=6)
+        self.assertEqual(derivation["collapse_rule"], "max across depths")
+        self.assertEqual(derivation["source_profile"], "mvp")
+        self.assertEqual(derivation["source_shape"], "cells")
+
+    def test_hoist_g1_nested_mvp_profile_shape(self) -> None:
+        """Nested ``mvp_profile.cells`` (Round 9 emitted shape) also works."""
+
+        matrix, derivation = ae.hoist_g1_cross_model_pass_matrix(
+            ROUND_9_NESTED_SWEEP
+        )
+        self.assertIsNotNone(matrix)
+        self.assertEqual(derivation["source_shape"], "mvp_profile.cells")
+        # Same per-cell math as the flat fixture.
+        self.assertAlmostEqual(matrix["composer_2"]["trigger_basic"], 0.90, places=6)
+        self.assertAlmostEqual(
+            matrix["sonnet_shallow"]["near_miss"], 0.81, places=6
+        )
+
+    def test_hoist_g1_none_report_returns_none(self) -> None:
+        """Missing report → (None, {"error": ...}) with no silent zeros."""
+
+        matrix, derivation = ae.hoist_g1_cross_model_pass_matrix(None)
+        self.assertIsNone(matrix)
+        self.assertIn("error", derivation)
+
+    def test_hoist_g1_empty_cells_returns_none(self) -> None:
+        """Empty / missing cells → None + error."""
+
+        matrix, derivation = ae.hoist_g1_cross_model_pass_matrix({"cells": []})
+        self.assertIsNone(matrix)
+        self.assertIn("error", derivation)
+        self.assertIn("no cells", derivation["error"])
+
+    def test_hoist_g1_malformed_cells_skipped(self) -> None:
+        """Non-dict / non-numeric cells are skipped; ratio tracks skipped count."""
+
+        rf = {"cells": [
+            "not-a-dict",
+            {"model": "composer_2", "scenario_pack": "trigger_basic",
+             "thinking_depth": "fast", "pass_rate": "nope"},
+            {"model": "composer_2", "scenario_pack": "trigger_basic",
+             "thinking_depth": "default", "pass_rate": 0.95},
+            {"model": "composer_2", "scenario_pack": "near_miss",
+             "thinking_depth": "fast", "pass_rate": 0.70},
+        ]}
+        matrix, derivation = ae.hoist_g1_cross_model_pass_matrix(rf)
+        self.assertIsNotNone(matrix)
+        self.assertEqual(matrix["composer_2"]["trigger_basic"], 0.95)
+        self.assertEqual(matrix["composer_2"]["near_miss"], 0.70)
+        # Two skipped entries: "not-a-dict" + the pass_rate="nope" row.
+        self.assertEqual(derivation["n_cells_skipped"], 2)
+        self.assertEqual(derivation["n_cells_used"], 2)
+
+    def test_hoist_g1_all_values_in_unit_interval(self) -> None:
+        """Every matrix cell must lie in ``[0.0, 1.0]`` for the range-sanity check."""
+
+        matrix, derivation = ae.hoist_g1_cross_model_pass_matrix(ROUND_2_SWEEP)
+        for model, pack_map in matrix.items():
+            for pack, value in pack_map.items():
+                with self.subTest(model=model, pack=pack):
+                    self.assertGreaterEqual(value, 0.0)
+                    self.assertLessEqual(value, 1.0)
+        self.assertIn("PASS", derivation["range_sanity_check"])
+
+    def test_hoist_g1_pack_filter_limits_shape(self) -> None:
+        """Explicit ``packs=`` arg narrows the observed pack set."""
+
+        matrix, derivation = ae.hoist_g1_cross_model_pass_matrix(
+            ROUND_2_SWEEP, packs=("trigger_basic",)
+        )
+        self.assertIsNotNone(matrix)
+        for model, pack_map in matrix.items():
+            with self.subTest(model=model):
+                self.assertEqual(list(pack_map.keys()), ["trigger_basic"])
+        self.assertEqual(derivation["packs_requested"], ["trigger_basic"])
+
+
+class BuildReportG1Integration(unittest.TestCase):
+    """End-to-end smoke: build_report surfaces D4 G1 in metrics_report."""
+
+    def _make_skill_md(self, description: str) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        path = tmp / "SKILL.md"
+        path.write_text(
+            f"---\nname: si-chip\ndescription: {description}\n---\nbody\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_build_report_populates_g1_when_router_floor_report_present(self) -> None:
+        """build_report wires G1 through when a router_floor_report is supplied."""
+
+        skill_md = self._make_skill_md("demo description")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes() for _ in range(3)],
+            without_rows=[_row(pass_rate=0.5, trigger_F1=0.0) for _ in range(3)],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(),
+        )
+        g1 = report["metrics"]["generalizability"]["G1_cross_model_pass_matrix"]
+        self.assertIsNotNone(g1)
+        # Exactly {composer_2, sonnet_shallow} × {trigger_basic, near_miss}.
+        self.assertEqual(set(g1.keys()), {"composer_2", "sonnet_shallow"})
+        for model_map in g1.values():
+            self.assertEqual(
+                set(model_map.keys()), {"trigger_basic", "near_miss"}
+            )
+            for value in model_map.values():
+                self.assertGreaterEqual(value, 0.0)
+                self.assertLessEqual(value, 1.0)
+        # g1_derivation exists in provenance.
+        self.assertIn("g1_derivation", report["provenance"])
+        self.assertEqual(
+            report["provenance"]["g1_derivation"]["collapse_rule"], "max across depths"
+        )
+
+    def test_build_report_leaves_g1_null_when_no_router_floor_report(self) -> None:
+        """Round 9-compat code path (no router_floor_report) leaves G1 null."""
+
+        skill_md = self._make_skill_md("demo description")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row(pass_rate=0.5, trigger_F1=0.0)],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=None,
+            skill_md_path=skill_md,
+        )
+        g1 = report["metrics"]["generalizability"]["G1_cross_model_pass_matrix"]
+        self.assertIsNone(g1)
+        # G2/G3/G4 stay null by scope for v0.1.x.
+        self.assertIsNone(
+            report["metrics"]["generalizability"]["G2_cross_domain_transfer_pass"]
+        )
+        self.assertIsNone(
+            report["metrics"]["generalizability"]["G3_OOD_robustness"]
+        )
+        self.assertIsNone(
+            report["metrics"]["generalizability"]["G4_model_version_stability"]
+        )
+
+    def test_build_report_g1_coexists_with_g2_g3_g4_null(self) -> None:
+        """G1 populated, G2/G3/G4 explicit null — D4 first-ever partial fill."""
+
+        skill_md = self._make_skill_md("demo description")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+        )
+        gen = report["metrics"]["generalizability"]
+        self.assertIsNotNone(gen["G1_cross_model_pass_matrix"])
+        self.assertIsNone(gen["G2_cross_domain_transfer_pass"])
+        self.assertIsNone(gen["G3_OOD_robustness"])
+        self.assertIsNone(gen["G4_model_version_stability"])
+
+    def test_build_report_preserves_28_key_invariant_after_g1_fill(self) -> None:
+        """Round 10 must not drop the spec §3.2 frozen key contract (37 table keys)."""
+
+        skill_md = self._make_skill_md("demo description")
+        report = ae.build_report(
+            with_rows=[_row_with_outcomes()],
+            without_rows=[_row()],
+            runs_dir=Path("/tmp/with"),
+            baseline_dir=Path("/tmp/without"),
+            skill_md_meta_tokens=82,
+            router_floor_report=ROUND_2_SWEEP,
+            skill_md_path=skill_md,
+            install_telemetry=_install_telemetry_payload(),
+            governance_report=_governance_report_payload(),
+        )
+        metrics = report["metrics"]
+        self.assertEqual(set(metrics.keys()), set(ae.METRIC_KEYS.keys()))
+        for dim, keys in ae.METRIC_KEYS.items():
+            self.assertEqual(
+                set(metrics[dim].keys()),
+                set(keys),
+                msg=f"{dim} sub-metric keys diverged from schema after Round 10",
+            )
+        # G1 populated — exactly 1/4 D4 sub-metrics measured after Round 10.
+        measured_in_d4 = [k for k, v in metrics["generalizability"].items() if v is not None]
+        self.assertEqual(measured_in_d4, ["G1_cross_model_pass_matrix"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

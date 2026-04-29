@@ -1,0 +1,243 @@
+# Si-Chip Iteration-Delta Report — round_10 vs round_9
+# Conforms to templates/iteration_delta_report.template.yaml.
+# Round 10 in the master plan v0.2.0 iteration cycle (project_version 0.1.9).
+# Per spec §8.3 multi-round rule: Round 10 must hold pass_rate >= 0.85 (no
+# regression vs Round 9) AND show >= 1 efficiency axis improving by >= +0.05
+# (v1_baseline bucket) — Round 10 satisfies the second clause via the
+# master-plan-allowed "measurement-fill flavour" bonus on generalizability
+# (G1_cross_model_pass_matrix newly populated; D4 coverage 0/4 populated ->
+# 1/4 populated; first-ever D4 measurement since Round 1).
+round_id: round_10
+prior_round_id: round_9
+computed_at: '2026-04-28T22:30:00+00:00'
+
+# §8.2 evidence #6 deltas — current round MVP-8 + R4 + R6 + R7 + L1 + L3 + L4 + U1 + U2 + U3 + U4 + C5 + C6 + V1 + V2 + V3 + V4 + R8 + G1 keys reported per dimension.
+deltas:
+  task_quality:
+    - T1
+    - T2
+    - T3
+  context_economy:
+    - C1
+    - C2
+    - C4
+    - C5
+    - C6
+  latency_path:
+    - L1
+    - L2
+    - L3
+    - L4
+  generalizability:
+    - G1   # NEW THIS ROUND
+  usage_cost:
+    - U1
+    - U2
+    - U3
+    - U4
+  routing_cost:
+    - R3
+    - R4
+    - R6
+    - R7
+    - R8
+  governance_risk:
+    - V1
+    - V2
+    - V3
+    - V4
+
+# Per-axis status. Mirrors the §6.1 7-axis value_vector emitted in
+# half_retire_decision.yaml. positive_axis = true means improvement
+# (delta favourable). Round-to-round delta = round_10_value − round_9_value
+# of the value_vector axis.
+#
+# NOTE: "generalizability" in this axis_status block is the §4 iteration_delta
+# axis (§3.1 D4 sub-metric coverage dimension). The §6.1 value_vector does
+# NOT contain a dedicated generalizability_delta axis — D4 coverage
+# improvements map onto the MEASUREMENT-FILL flavour bonus for any §4.1
+# iteration_delta axis. Round 10 invokes it on the generalizability axis
+# (D4 0/4 populated -> 1/4 populated).
+axis_status:
+  task_quality:
+    positive_axis: false
+    delta: 0.0            # task_delta: 0.35 -> 0.35; flat — equal counts as "no regression" per spec §8.3, not "positive".
+  context_economy:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D2 context_economy dimension stays at 5/6 populated + 1 by-design null sub-metric coverage (C1+C2+C4+C5+C6 carried from Round 7; C3 stays null by design). No new measurement-fill bonus on context_economy this round.'
+  latency_path:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D3 stays at 4/7 sub-metric coverage (L1+L2+L3+L4 measured Round 4; carried unchanged at Rounds 5/6/7/8/9/10). No new measurement-fill bonus on latency_path this round.'
+  generalizability:
+    positive_axis: true   # MEASUREMENT-FILL win this round: D4 0/4 populated -> 1/4 populated (G1_cross_model_pass_matrix null -> 2x2 nested dict); first-ever D4 measurement since Round 1.
+    delta: 0.0            # §6.1 value_vector does not contain a generalizability_delta axis; G1 fill maps onto the measurement-fill flavour bonus clause.
+    delta_iteration_flavour: 0.05  # measurement-fill axis bonus: G1 null -> populated; claimed at the v1_baseline +0.05 bucket per master plan Round 10 acceptance criterion #4 ("iteration_delta_report.yaml generalizability axis becomes positive_axis: true (was 0.0 since Round 1)").
+    measurement_fill_evidence:
+      g1_cross_model_pass_matrix:
+        round_9: null
+        round_10: {composer_2: {trigger_basic: 0.9, near_miss: 0.83}, sonnet_shallow: {trigger_basic: 0.88, near_miss: 0.81}}
+        units: 'nested dict ({model: {pack: pass_rate, ...}, ...})'
+        gate: 'no §4.1 hard threshold; range sanity [0.0, 1.0] per cell is the only gate; PASS (all 4 cells in [0.0, 1.0])'
+        source: 'aggregate_eval.hoist_g1_cross_model_pass_matrix (Round 10 Edit A) collapsing mvp 8-cell sweep via max(pass_rate) across thinking_depth per (model, pack)'
+      golden_set_seed:
+        round_9: 'directory absent'
+        round_10: 'evals/si-chip/golden_set/ NEW (trigger_basic.yaml + near_miss.yaml + README.md; 12 prompts per pack; verbatim subsets of evals/si-chip/cases/*.yaml)'
+        units: 'files + prompts'
+        gate: 'no gate; opt-in source for future nines --golden-dir invocations'
+        source: 'Round 10 Edit B; addresses Round 3 nines self-eval D01/D02/D03/D05 = 0 signals'
+      d4_coverage_change: '0/4 populated in Round 9 -> 1/4 populated in Round 10 (G1 newly filled). G2/G3/G4 stay null by scope for v0.1.x (no §4.1 hard threshold on any of them; cross-domain / OOD / model-version-stability are real-LLM upgrade path / v0.3.x+ work). D4 is NOT at the v0.1.x FINAL COVERAGE STATE — it is at the FIRST-EVER PARTIAL fill.'
+      partial_proxy_disclosure: 'G1 from a 2-model × 2-pack matrix is a v0.1.x partial proxy. Authoritative G1 requires real-LLM runs against the full 96-cell profile (§5.3 full: 6 model × 4 depth × 4 pack); v2_tightened+ upgrade path. Round 12 readiness check will revisit.'
+      spec_section_compliance: 'G1 is a §3.1 D4 sub-metric fill derived from deterministic sweep cells (§5.1 metadata-retrieval surface) — NOT §5.2 router-model training (forbidden in perpetuity). §5.4 gate binding unchanged — measurement-fill flavour bonus at v1_baseline is a §4.1 iteration_delta clause, not a §5.4 binding escalation.'
+  usage_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D5 usage_cost dimension stays at 4/4 sub-metric coverage (U1+U2+U3+U4 measured from Round 6 onwards; carried unchanged at Round 10). No new measurement-fill bonus on usage_cost this round.'
+  routing_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D6 routing_cost dimension stays at 6/8 populated (R3+R4+R5+R6+R7+R8 carried byte-identical from Round 9; R1+R2 null by scope for v0.1.x). No new measurement-fill bonus on routing_cost this round. R8 populated in Round 9 provided the prior-round bonus; Round 10 has no new D6 fill.'
+  governance_risk:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'D7 governance_risk dimension stays at 4/4 populated from Round 8 (V1+V2+V3+V4 all carried byte-identical). No new measurement-fill bonus on governance_risk this round. value_vector.governance_risk_delta still LIVE-derived from V1-V4 (= 0.0 numerically because clean baseline unchanged; Round 8 audit-gap closure continues to apply).'
+
+# §4.1 v1_baseline hard-threshold check vs round_10 metrics_report.yaml
+# 10-row check (all pass required to satisfy pass_v1_baseline: true)
+v1_baseline_threshold_check:
+  pass_rate:
+    threshold: '>= 0.75'
+    observed: 0.85
+    pass: true
+  pass_k:
+    threshold: '>= 0.40'
+    observed: 0.5478
+    pass: true
+  trigger_F1:
+    threshold: '>= 0.80'
+    observed: 0.8934
+    pass: true
+  near_miss_FP_rate:
+    threshold: '<= 0.15'
+    observed: 0.05
+    pass: true
+  metadata_tokens:
+    threshold: '<= 120'
+    observed: 82
+    pass: true
+  per_invocation_footprint:
+    threshold: '<= 9000'
+    observed: 3602
+    pass: true
+  wall_clock_p95:
+    threshold: '<= 45 s'
+    observed: 1.4693
+    pass: true
+  routing_latency_p95:
+    threshold: '<= 2000 ms'
+    observed: 1100.0
+    pass: true
+  routing_token_overhead:
+    threshold: '<= 0.20'
+    observed: 0.023295454545454546
+    pass: true
+  iteration_delta_any_axis:
+    threshold: '>= +0.05'
+    observed: 0.05            # generalizability measurement-fill axis bonus (per master plan acceptance criterion #4)
+    pass: true
+
+verdict:
+  pass_v1_baseline: true
+  blockers: []
+  rationale: 'All 10 v1_baseline hard thresholds PASS; including G1 newly-populated (informational only — no §4.1 gate row; range sanity PASS [0.0, 1.0] for all 4 cells; G1 composer_2/trigger_basic=0.90, composer_2/near_miss=0.83, sonnet_shallow/trigger_basic=0.88, sonnet_shallow/near_miss=0.81). iteration_delta clause satisfied via generalizability measurement-fill axis bonus (D4 sub-metric measurement coverage 0/4 populated -> 1/4 populated per spec §3.2 partial-fill). pass_rate held at 0.85 (no regression vs Round 9). No metric regressed by more than 1%. spec_validator.py --json default-mode 8/8 PASS (no template or schema changes this round).'
+
+# Spec §8.3 multi-round monotonicity check (Round 10 vs Round 9).
+monotonicity_check_required: true
+monotonicity_check_status:
+  performed: true
+  pass_rate_no_regression:
+    threshold: 'round_10 pass_rate >= round_9 pass_rate (spec §8.3 — pass_rate must not regress)'
+    round_9: 0.85
+    round_10: 0.85
+    pass: true
+  per_metric_no_more_than_1pct_regression:
+    threshold: 'no v1_baseline metric regressed by more than 1% (self-imposed sub-clause carried forward through Round 9)'
+    checks:
+      T1_pass_rate:           { round_9: 0.85,    round_10: 0.85,    pct_change: 0.0,   pass: true }
+      T2_pass_k:              { round_9: 0.5478,  round_10: 0.5478,  pct_change: 0.0,   pass: true }
+      T3_baseline_delta:      { round_9: 0.35,    round_10: 0.35,    pct_change: 0.0,   pass: true }
+      C1_metadata_tokens:     { round_9: 82,      round_10: 82,      pct_change: 0.0,   pass: true }
+      C2_body_tokens:         { round_9: 2020,    round_10: 2020,    pct_change: 0.0,   pass: true, note: 'SKILL.md body unchanged; frontmatter 0.1.8 -> 0.1.9 adds 0 tokens.' }
+      C4_per_invocation_footprint: { round_9: 3602, round_10: 3602, pct_change: 0.0,  pass: true }
+      C5_context_rot_risk:    { round_9: 0.2601,  round_10: 0.2601,  pct_change: 0.0,   pass: true }
+      C6_scope_overlap_score: { round_9: 0.0435,  round_10: 0.0435,  pct_change: 0.0,   pass: true }
+      L1_wall_clock_p50:      { round_9: 1.2153,  round_10: 1.2153,  pct_change: 0.0,   pass: true }
+      L2_wall_clock_p95:      { round_9: 1.4693,  round_10: 1.4693,  pct_change: 0.0,   pass: true }
+      L3_step_count:          { round_9: 20,      round_10: 20,      pct_change: 0.0,   pass: true }
+      L4_redundant_call_ratio: { round_9: 0.0,     round_10: 0.0,     pct_change: 0.0,   pass: true }
+      G1_cross_model_pass_matrix: { round_9: null, round_10: 'nested dict (see metrics_report.yaml)', pct_change: null, pass: true, note: 'NEWLY APPLICABLE — was null at Round 9; not a regression.' }
+      U1_description_readability: { round_9: 19.58, round_10: 19.58, pct_change: 0.0,  pass: true }
+      U2_first_time_success_rate: { round_9: 0.75,  round_10: 0.75,  pct_change: 0.0,  pass: true }
+      U3_setup_steps_count:   { round_9: 1,       round_10: 1,       pct_change: 0.0,   pass: true }
+      U4_time_to_first_success: { round_9: 0.0073, round_10: 0.0073, pct_change: 0.0, pass: true }
+      R3_trigger_F1:          { round_9: 0.8934,  round_10: 0.8934,  pct_change: 0.0,   pass: true }
+      R4_near_miss_FP_rate:   { round_9: 0.05,    round_10: 0.05,    pct_change: 0.0,   pass: true }
+      R6_routing_latency_p95: { round_9: 1100.0,  round_10: 1100.0,  pct_change: 0.0,   pass: true }
+      R7_routing_token_overhead: { round_9: 0.0233, round_10: 0.0233, pct_change: 0.0,  pass: true }
+      R8_description_competition_index: { round_9: 0.0435, round_10: 0.0435, pct_change: 0.0, pass: true }
+      V1_permission_scope:    { round_9: 0,       round_10: 0,       pct_change: 0.0,   pass: true }
+      V2_credential_surface:  { round_9: 0,       round_10: 0,       pct_change: 0.0,   pass: true }
+      V3_drift_signal:        { round_9: 0.0,     round_10: 0.0,     pct_change: 0.0,   pass: true }
+      V4_staleness_days:      { round_9: 0,       round_10: 0,       pct_change: 0.0,   pass: true }
+    pass: true               # No metric regressed by more than 1% this round; T1_pass_rate hard non-regression rule (spec §8.3) holds.
+  overall_pass: true
+
+# Spec §4.2 Promotion Rule trace (consumed by next round's planner).
+promotion_state:
+  current_gate: v1_baseline
+  consecutive_v1_passes: 10         # Round 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10
+  promotable_to: 'v2_tightened — eligible since Round 2 (2 consecutive v1 passes); held to v1_baseline through Round 12 per master plan; v0.2.0 ship gate target = v2_tightened with two consecutive v2 passes per spec §4.2.'
+  blockers_for_v2:
+    - 'T2_pass_k = 0.5478 fails v2_tightened (>= 0.55) by -0.0022 (Round 12 readiness check will revisit)'
+    - 'G1 authoritative-full-matrix requirement — Round 10 populates a 2-model × 2-pack PARTIAL PROXY; v2_tightened promotion requires the full 96-cell matrix from a real-LLM runner (§5.3 full)'
+
+# Round 10 specific evidence — surfaces the measurement-fill axis bonus on
+# generalizability AND the golden_set/ seed explicitly so the verdict is
+# unambiguous.
+measurement_fill_axis_bonus_summary:
+  axis: generalizability
+  basis: 'D4 sub-metric measurement coverage 0/4 populated -> 1/4 populated this round (G1 null -> 2x2 nested dict); evals/si-chip/golden_set/ NEW (opt-in source for nines self-eval D01/D02/D03/D05 coverage)'
+  master_plan_clause: |
+    .local/.agent/active/v0.2.0-iteration-plan.yaml#round_10.acceptance_criteria[4]:
+    "iteration_delta_report.yaml generalizability axis becomes
+    positive_axis: true (was 0.0 since Round 1)"
+  invoked_branch: 'measurement-fill flavour (G1 null -> populated). Master plan explicitly frames Round 10 as the first G1 fill; this round satisfies the "was 0.0 since Round 1" branch verbatim.'
+  partial_proxy_disclosure: 'G1 from 2-model × 2-pack is a PARTIAL PROXY; authoritative G1 requires the full 96-cell profile (§5.3 full; v2_tightened+ / Round 12+ upgrade path). The max-across-depths aggregation rule is monotone under adding more depths (forward-compatible with the 96-cell upgrade). Round 12 v2_tightened readiness check will either promote G1 to the full matrix or defer to v0.3.x+.'
+  evidence_files:
+    - .local/dogfood/2026-04-28/round_10/raw/g1_derivation.json               # G1 2x2 matrix + per-cell trace + collapse rule
+    - .local/dogfood/2026-04-28/round_10/raw/golden_set_index.json            # golden_set/ file enumeration + per-pack counts
+    - .local/dogfood/2026-04-28/round_10/raw/aggregator_raw_output.yaml       # full aggregator output with G1 populated
+    - evals/si-chip/golden_set/trigger_basic.yaml                              # Round 10 NEW — 12 should-trigger prompts
+    - evals/si-chip/golden_set/near_miss.yaml                                  # Round 10 NEW — 12 should-not-trigger prompts
+    - evals/si-chip/golden_set/README.md                                       # Round 10 NEW — schema + non-authoritative disclosure
+    - .agents/skills/si-chip/scripts/aggregate_eval.py                         # Round 10 Edit A — hoist_g1_cross_model_pass_matrix; SCRIPT_VERSION 0.1.5 -> 0.1.6
+    - .agents/skills/si-chip/scripts/test_aggregate_eval.py                    # Round 10 Edit A extended — 11 new tests (120 total; was 109 before Round 10)
+
+# §11 forever-out compliance check (verbatim).
+spec_11_forever_out_check:
+  marketplace: 'UNCHANGED — no marketplace / distribution-surface fields introduced this round. evals/si-chip/golden_set/ is a local repo path, not a distribution surface.'
+  router_model_training: 'UNCHANGED — G1 is a static pass_rate matrix collapsed from the deterministic 8-cell mvp sweep (no learned ranker, no online weight learning, no kNN fit); §5.1 metadata-retrieval surface only, NOT §5.2 router-model training'
+  markdown_to_cli: 'UNCHANGED — no markdown-to-CLI converter introduced'
+  generic_ide_compat: 'UNCHANGED — Cursor + Claude Code mirrors are §7.2 priority 1+2 (same as v0.1.0 ship); Codex still bridge-only per §11.2 deferred'
+  verdict: 'ALL 4 §11.1 ITEMS REMAIN FOREVER-OUT — ROUND 10 COMPLIANT'
+
+provenance:
+  generator: 'Round 10 dogfood — L3 Task Agent'
+  spec_version: v0.1.0
+  basis_metrics_report_round_10: .local/dogfood/2026-04-28/round_10/metrics_report.yaml
+  basis_metrics_report_round_9: .local/dogfood/2026-04-28/round_9/metrics_report.yaml
+  basis_half_retire_decision_round_10: .local/dogfood/2026-04-28/round_10/half_retire_decision.yaml
+  basis_half_retire_decision_round_9: .local/dogfood/2026-04-28/round_9/half_retire_decision.yaml
+  basis_router_floor_report_round_10: .local/dogfood/2026-04-28/round_10/router_floor_report.yaml
+  master_plan: .local/.agent/active/v0.2.0-iteration-plan.yaml

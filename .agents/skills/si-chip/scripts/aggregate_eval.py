@@ -55,7 +55,7 @@ import yaml
 
 LOGGER = logging.getLogger("si_chip.aggregate_eval")
 
-SCRIPT_VERSION = "0.1.5"
+SCRIPT_VERSION = "0.1.6"
 
 REQUIRED_KEYS: Tuple[str, ...] = (
     "pass_rate",
@@ -1041,6 +1041,230 @@ def hoist_r8_description_competition_index(
     return float(value), derivation
 
 
+# ─────────── Round 10 D4 generalizability hoist (G1 cross_model_pass_matrix) ───────────
+#
+# Spec §3.1 D4 G1:
+#   G1_cross_model_pass_matrix = per (model, scenario_pack) pass_rate matrix
+#     across the router-test sweep. v0.1.x partial-fill collapses the
+#     depth dimension of the 8-cell MVP sweep (2 model × 2 depth × 2 pack)
+#     into a 2-model-by-2-pack nested dict:
+#
+#       {
+#         "composer_2":     {"trigger_basic": float, "near_miss": float},
+#         "sonnet_shallow": {"trigger_basic": float, "near_miss": float},
+#       }
+#
+# Collapse rule = ``max(pass_rate) across thinking_depth``. Using max
+# (rather than mean) preserves the best-case generalizability signal:
+# if ANY depth passes for that (model, pack) combination, the matrix
+# records the highest observed rate. The max aggregation is monotone
+# under adding more depths later, so the hoist is forward-compatible
+# with the 96-cell full profile (v2_tightened+ / Round 12+ upgrade).
+#
+# PARTIAL PROXY DISCLOSURE: This G1 is a 2-model × 2-pack view of the
+# full 6-model × 4-pack G1 surface defined by spec §5.3 full:96 profile.
+# The authoritative G1 requires a real-LLM runner against all 96 cells —
+# v0.1.x stays with the mvp 8-cell sweep by master plan design (§5.3
+# full profile stays gated to v2_tightened+). G2/G3/G4 (cross-domain
+# transfer, OOD robustness, model-version stability) stay null by scope
+# for v0.1.x.
+#
+# Spec §11.1 compliance: G1 is a static pass_rate matrix derived from
+# deterministic sweep cells — NOT router-model training (§5.2
+# forbidden). §5.1 metadata-retrieval surface only.
+
+
+def hoist_g1_cross_model_pass_matrix(
+    router_floor_report: Optional[Dict[str, Any]],
+    *,
+    packs: Optional[Iterable[str]] = None,
+) -> Tuple[Optional[Dict[str, Dict[str, float]]], Dict[str, Any]]:
+    """Hoist G1 cross-model × pack pass-rate matrix from a router_floor_report.
+
+    Spec §3.1 D4 G1 ``cross_model_pass_matrix`` (nested dict). Returns a
+    2-model-by-2-pack (or wider) nested dict
+    ``{model: {pack: pass_rate, ...}, ...}`` derived from the MVP 8-cell
+    sweep's cells, or ``None`` when the sweep is missing / malformed.
+
+    Accepted input shapes (both work because
+    ``_maybe_load_router_floor_report`` may return either):
+
+    * Flat: ``{"cells": [...], ...}`` (Rounds 1-8 legacy + unit-test fixtures).
+    * Nested: ``{"mvp_profile": {"cells": [...], ...}, ...}`` (Round 9 NEW
+      — when the report emits BOTH mvp and intermediate profiles, the
+      mvp cells live under the ``mvp_profile`` key). If the nested path
+      is present the hoist uses it; if only a flat ``cells`` list
+      exists the hoist falls back to that.
+
+    The collapse rule is ``max(pass_rate) across thinking_depth`` per
+    ``(model, scenario_pack)``. Using max preserves best-case
+    generalizability and stays monotone as more depths are added
+    (forward-compatible with the 96-cell full profile).
+
+    Args:
+        router_floor_report: Full router-floor-report dict (either flat
+            or nested). ``None`` is accepted → returns ``(None, {"error": ...})``.
+        packs: Optional iterable of pack names to include in the matrix
+            (defaults to every pack observed in the sweep). Narrow when
+            a round only wants e.g. ``("trigger_basic", "near_miss")``
+            from a wider intermediate 4-pack profile.
+
+    Returns:
+        ``(matrix, derivation)`` where ``matrix`` is the nested dict
+        above or ``None`` on degenerate paths. ``derivation`` always
+        carries the provenance trace (source profile, collapse rule,
+        per-cell values, range-sanity check, spec compliance note).
+
+    Degenerate paths (``None`` return + ``derivation["error"]`` set):
+
+    * ``router_floor_report`` is ``None`` or not a dict.
+    * Neither flat ``cells`` nor ``mvp_profile.cells`` is a non-empty list.
+    * No cell entries produced a usable ``(model, pack, pass_rate)``
+      triple after requested-pack filtering.
+
+    No silent zero substitution (workspace rule "No Silent Failures").
+
+    >>> rf = {"cells": [
+    ...   {"model": "composer_2", "thinking_depth": "fast",
+    ...    "scenario_pack": "trigger_basic", "pass_rate": 0.86},
+    ...   {"model": "composer_2", "thinking_depth": "default",
+    ...    "scenario_pack": "trigger_basic", "pass_rate": 0.90},
+    ...   {"model": "composer_2", "thinking_depth": "fast",
+    ...    "scenario_pack": "near_miss", "pass_rate": 0.78},
+    ...   {"model": "composer_2", "thinking_depth": "default",
+    ...    "scenario_pack": "near_miss", "pass_rate": 0.83},
+    ... ]}
+    >>> matrix, _ = hoist_g1_cross_model_pass_matrix(rf)
+    >>> matrix["composer_2"]["trigger_basic"]
+    0.9
+    >>> matrix["composer_2"]["near_miss"]
+    0.83
+    """
+
+    if router_floor_report is None or not isinstance(router_floor_report, dict):
+        return None, {"error": "router_floor_report is None or not a dict"}
+
+    # Prefer nested mvp_profile.cells (Round 9+ emitted shape); fall back
+    # to flat top-level cells (Round 1-8 legacy + test fixtures).
+    cells: Any = None
+    source_shape = "unknown"
+    mvp_profile = router_floor_report.get("mvp_profile")
+    if isinstance(mvp_profile, dict):
+        candidate = mvp_profile.get("cells")
+        if isinstance(candidate, list) and candidate:
+            cells = candidate
+            source_shape = "mvp_profile.cells"
+    if cells is None:
+        candidate = router_floor_report.get("cells")
+        if isinstance(candidate, list) and candidate:
+            cells = candidate
+            source_shape = "cells"
+    if not isinstance(cells, list) or not cells:
+        return None, {
+            "error": (
+                "router_floor_report has no cells "
+                "(checked mvp_profile.cells and top-level cells)"
+            ),
+        }
+
+    requested_packs: Optional[set] = None
+    if packs is not None:
+        requested_packs = {str(p) for p in packs if isinstance(p, str)}
+        if not requested_packs:
+            requested_packs = None
+
+    # Accumulate per (model, pack) → list of pass_rates across depths.
+    matrix_values: Dict[str, Dict[str, List[float]]] = {}
+    per_cell_trace: List[Dict[str, Any]] = []
+    skipped_cells = 0
+    for cell in cells:
+        if not isinstance(cell, dict):
+            skipped_cells += 1
+            continue
+        model = cell.get("model")
+        pack = cell.get("scenario_pack")
+        pr = cell.get("pass_rate")
+        if not isinstance(model, str) or not isinstance(pack, str):
+            skipped_cells += 1
+            continue
+        if requested_packs is not None and pack not in requested_packs:
+            continue
+        try:
+            pr_f = float(pr)
+        except (TypeError, ValueError):
+            skipped_cells += 1
+            continue
+        matrix_values.setdefault(model, {}).setdefault(pack, []).append(pr_f)
+        per_cell_trace.append(
+            {
+                "model": model,
+                "thinking_depth": cell.get("thinking_depth"),
+                "scenario_pack": pack,
+                "pass_rate": pr_f,
+            }
+        )
+
+    if not matrix_values:
+        return None, {
+            "error": "no (model, pack) cells produced a usable pass_rate",
+            "n_cells_total": len(cells),
+            "n_cells_skipped": skipped_cells,
+            "packs_requested": (
+                sorted(requested_packs) if requested_packs is not None else None
+            ),
+        }
+
+    # Collapse depth dimension: max per (model, pack).
+    collapsed: Dict[str, Dict[str, float]] = {}
+    for model, pack_map in matrix_values.items():
+        collapsed[model] = {
+            pack: float(max(values)) for pack, values in pack_map.items()
+        }
+
+    range_ok = all(
+        0.0 <= v <= 1.0 for per_pack in collapsed.values() for v in per_pack.values()
+    )
+
+    derivation: Dict[str, Any] = {
+        "method": (
+            "max(pass_rate) across thinking_depth per (model, scenario_pack); "
+            "collapses the MVP 8-cell sweep along the depth axis"
+        ),
+        "collapse_rule": "max across depths",
+        "source_profile": "mvp",
+        "source_shape": source_shape,
+        "n_cells_total": len(cells),
+        "n_cells_used": len(per_cell_trace),
+        "n_cells_skipped": skipped_cells,
+        "packs_requested": (
+            sorted(requested_packs) if requested_packs is not None else None
+        ),
+        "packs_observed": sorted({p for m in collapsed.values() for p in m.keys()}),
+        "models_observed": sorted(collapsed.keys()),
+        "per_cell_values": per_cell_trace,
+        "matrix": collapsed,
+        "range_sanity_check": (
+            "PASS (all cells in [0.0, 1.0])" if range_ok else "FAIL"
+        ),
+        "v1_baseline_gate": (
+            "n/a (G1 has no §4.1 hard threshold; informational — D4 "
+            "generalizability is coverage-only at v1_baseline)"
+        ),
+        "partial_proxy_disclosure": (
+            "2-model × 2-pack view collapsed from mvp 8-cell sweep. "
+            "Authoritative G1 requires real-LLM runs against the full "
+            "96-cell profile (§5.3 full: 6 model × 4 depth × 4 pack). "
+            "G2/G3/G4 remain null by scope for v0.1.x per master plan "
+            "(.local/.agent/active/v0.2.0-iteration-plan.yaml#round_10)."
+        ),
+        "spec_section_compliance": (
+            "§3.1 D4 G1 (partial fill); §5.1 metadata-retrieval surface "
+            "(deterministic sweep cells; NOT §5.2 router-model training)"
+        ),
+    }
+    return collapsed, derivation
+
+
 # ─────────── Round 8 D7 governance_risk hoists (V1 + V2 + V3 + V4) ───────────
 #
 # Spec §3.1 D7:
@@ -1392,6 +1616,15 @@ def build_report(
     * V4_staleness_days     = days since
       ``basic_ability_profile.lifecycle.last_reviewed_at``.
 
+    Round 10 (task spec §2) hoists D4 G1 cross_model_pass_matrix:
+
+    * G1_cross_model_pass_matrix = nested dict
+      ``{model: {pack: max_pass_rate_across_depths, ...}, ...}`` derived
+      from the MVP 8-cell router-test sweep (``router_floor_report``).
+      Partial-fill proxy — authoritative G1 requires the full 96-cell
+      profile (§5.3 full; v2_tightened+ upgrade path). G2/G3/G4 stay
+      null by scope for v0.1.x per master plan.
+
     All hoisted fields stay ``null`` when their data source is
     degenerate; the aggregator MUST NOT silently substitute a
     placeholder (workspace rule "No Silent Failures").
@@ -1476,6 +1709,13 @@ def build_report(
     )
     metrics["routing_cost"]["R8_description_competition_index"] = r8_value
 
+    # Round 10 (task spec §2): hoist D4 G1 cross_model_pass_matrix from the
+    # mvp 8-cell sweep. Collapses depth dimension per (model, pack) using
+    # max aggregation — first measurement of D4 generalizability.
+    # G2/G3/G4 stay null by scope for v0.1.x per master plan.
+    g1_value, g1_derivation = hoist_g1_cross_model_pass_matrix(router_floor_report)
+    metrics["generalizability"]["G1_cross_model_pass_matrix"] = g1_value
+
     # Round 8 (task spec §3): hoist D7 V1 / V2 / V3 / V4 from the
     # governance scan payload (produced by tools/governance_scan.py).
     v1_value = hoist_v1_permission_scope(governance_report)
@@ -1552,6 +1792,7 @@ def build_report(
             "c5_derivation": c5_derivation,
             "c6_derivation": c6_derivation,
             "r8_derivation": r8_derivation,
+            "g1_derivation": g1_derivation,
             "v1_derivation": v1_derivation,
             "v2_derivation": v2_derivation,
             "v3_derivation": v3_derivation,
@@ -1685,7 +1926,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         help=(
             "Optional router_floor_report.yaml path; when set, "
             "R6_routing_latency_p95 is hoisted from min(latency_p95_ms) "
-            "across cells with pass_rate >= 0.80 (Round 3 Edit B)."
+            "across cells with pass_rate >= 0.80 (Round 3 Edit B). "
+            "Round 10 additionally hoists G1_cross_model_pass_matrix "
+            "(D4 generalizability) by collapsing depths from the mvp "
+            "8-cell sweep (nested dict of model × pack → max pass_rate)."
         ),
     )
     parser.add_argument(
