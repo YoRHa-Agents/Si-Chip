@@ -7,7 +7,86 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty; post-v0.4.0 items land here)
+- (empty; post-v0.4.1 items land here)
+
+## [0.4.1] - 2026-04-30
+
+### Summary
+Si-Chip v0.4.1 — "Documentation patch (post-v0.4.0 sync sweep)". Doc-only
+patch with **no Normative spec change** (`spec_v0.4.0.md` remains the
+active frozen spec; AGENTS.md §13 stays at 13 hard rules; the 14 BLOCKER
+spec_validator invariants are unchanged). Closes the gap that the v0.4.0
+ship left in user-facing material: `INSTALL.md` / `CONTRIBUTING.md` /
+`install.sh` / the entire `docs/` Pages tree (install body, user guide
+body, architecture, demo, changelog, config, ZH index) were still quoting
+v0.1.0 / v0.1.1 / v0.2.0 numbers (78/2020 token budget, 9-file payload,
+"8 spec invariants", `spec_v0.1.0.md` references, 7-axis value vector
+prose) even after the v0.4.0 release tagged 14 BLOCKERs / 21-file tarball /
+8-axis value vector / `metadata=94, body=4646` / first `v2_tightened`
+ship.
+
+### Changed (Documentation)
+- `INSTALL.md`: rewritten against v0.4.0 reality — 21-file tarball
+  (1 SKILL.md + 1 DESIGN.md + 14 references + 5 scripts), `metadata=94 /
+  body=4646` token budget against the v0.4.0 v2_tightened gate, every
+  reference from §14 / §15 / §16 / §18 / §19 / §20 / §21 / §22 / §23
+  enumerated under "What gets installed", smoke-test section now lists the
+  14 BLOCKERs and the optional real-LLM cache replay, troubleshooting
+  section explains the `metadata_tokens=94 > 80` v3_strict deferral.
+- `CONTRIBUTING.md`: spec reference bumped to `spec_v0.4.0.md`, §4
+  "Required Local Checks" updated to "14 BLOCKER spec invariants" plus
+  optional `method_tag_validator.py` / `health_smoke.py`, §6 "Bumping the
+  Spec" reflects v0.2.0+ prose reconciliation + spec-version-aware
+  validator mapping (`EXPECTED_VALUE_VECTOR_AXES_BY_SPEC`,
+  `SUPPORTED_SPEC_VERSIONS`), §9 "Mirror Drift Contract" lists the
+  full 20-file public payload + 21-file tarball (with the `v0.4.0` mtime
+  `'2026-04-30 00:00:00 UTC'` and SHA-256 sidecar refresh).
+- `install.sh` + `docs/install.sh` (kept byte-identical): banner / help /
+  spec URL / payload comment all bumped to v0.4.0 (default `--version`
+  was already `v0.4.0` in `SI_CHIP_VERSION_DEFAULT` since the v0.4.0
+  release; only the help-text default and surrounding comments still
+  said v0.1.0).
+- `docs/_install_body.md` + `docs/_userguide_body.md`: full bilingual
+  (EN + ZH) rewrite to match the new `INSTALL.md` / `USERGUIDE.md`
+  bodies; ZH blocks no longer claim 7-axis value vector or 8-invariant
+  validator; both blocks now describe v0.3.0 + v0.4.0 add-on chapters
+  §14 / §15 / §18 — §23 in the "1.7 add-ons" section.
+- `docs/architecture.md`: mermaid diagram now points at
+  `spec_v0.4.0.md` and shows the 21-file source tree + 20-file mirrors +
+  21-file tarball; promotion-ladder section reflects `v2_tightened`
+  ship state; half-retire decision diagram now labels the **8-axis**
+  value_vector with explicit `v0.4.0+` provenance; new chapter §6
+  documents the three top-level invariants (`core_goal` / `token_tier` /
+  `promotion_state`) added in v0.3.0 + v0.4.0.
+- `docs/changelog.md`: full re-sync from the repo-root `CHANGELOG.md`
+  (was last synced at v0.2.0, missing v0.3.0 + v0.4.0 entries entirely).
+- `docs/_config.yml`: `description` bumped to "frozen spec v0.4.0",
+  `version` bumped to `0.4.1`, Spec nav URL points at
+  `spec_v0.4.0.md`.
+- `docs/index.md`: ZH (`<div lang="zh">`) block fully ported from the
+  v0.2.0 numbers to the v0.4.0 ship state (matches the EN block that
+  was already updated in the v0.4.0 release).
+- `README.md` badges bumped from `v0.4.0%20ship--eligible` to
+  `v0.4.1%20ship--eligible` (project version; spec / gate badges
+  unchanged because v0.4.1 is doc-only).
+
+### Unchanged (Normative)
+- `.local/research/spec_v0.4.0.md` is **byte-identical** (no Normative
+  edits; this patch is doc-only).
+- `.rules/si-chip-spec.mdc` and `AGENTS.md` are byte-identical (still
+  13 hard rules in §13; still 14 BLOCKERs in spec_validator).
+- `.agents/skills/si-chip/SKILL.md` and the 14 references / 5 scripts
+  are byte-identical → drift remains 0 across the three-tree mirror;
+  no rebuild of `docs/skills/si-chip-0.4.0.tar.gz` is required (SHA-256
+  `2cfcce00f989faf2467014e638b0ea1fa67870b5a1ee6b0531942be5a4be21ab`
+  remains the published artifact).
+
+### Files
+- 11 modified (`README.md`, `USERGUIDE.md`, `INSTALL.md`,
+  `CONTRIBUTING.md`, `install.sh`, `docs/install.sh`,
+  `docs/_install_body.md`, `docs/_userguide_body.md`,
+  `docs/architecture.md`, `docs/changelog.md`, `docs/_config.yml`,
+  `docs/index.md`, `CHANGELOG.md`); 0 new files; 0 deletions.
 
 ## [0.4.0] - 2026-04-30
 
@@ -532,7 +611,10 @@ package, an evaluation harness, and machine-checkable spec invariants.
 - No generic IDE compatibility layer.
 - Codex native SKILL.md runtime is bridge-only and deferred.
 
-[Unreleased]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/YoRHa-Agents/Si-Chip/releases/tag/v0.1.0

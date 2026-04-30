@@ -14,21 +14,32 @@ the three trees is a CI failure (see
 
 ## 2. Frozen Spec & Out-of-Scope
 
-The frozen spec is `.local/research/spec_v0.1.0.md`. Sections §3, §4, §5, §6,
-§7, §8, and §11 are NORMATIVE — any PR that contradicts them is rejected.
+The current frozen spec is `.local/research/spec_v0.4.0.md` (promoted from
+`spec_v0.4.0-rc1.md` body byte-identical except metadata; v0.1.0 / v0.2.0 /
+v0.3.0 retained as pinned historical snapshots). NORMATIVE sections are
+§3, §4, §5, §6, §7, §8, §11, plus the v0.3.0 add-ons §14 (Core Goal
+Invariant) + §15 (round_kind enum) + §17 (Hard Rules add-ons), and the
+v0.4.0 add-ons §18 (Token-Tier Invariant) + §19 (Real-Data Verification) +
+§20 (Stage Transitions & Promotion History) + §21 (Health Smoke Check) +
+§22 (Eval-Pack Curation) + §23 (Method-Tagged Metrics). Any PR that
+contradicts a Normative section is rejected.
 
-Permanently out of scope (spec §11.1 — will be rejected without discussion):
+Permanently out of scope (spec §11.1 — will be rejected without discussion;
+re-affirmed verbatim in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7 +
+§23.7 across the v0.3.0 + v0.4.0 add-on chapters):
 
 - Skill / Plugin marketplaces and any distribution surface
 - Router model training or online weight learning
 - Markdown-to-CLI converters
 - Generic IDE / agent-runtime compatibility layers
 
-Deferred (spec §11.2 — open for v0.2+ once gate v3_strict has been earned):
+Deferred (spec §11.2 — open for re-evaluation once gate `v3_strict` has
+been earned; v0.4.0 currently sits at `v2_tightened`):
 
 - Codex native SKILL.md runtime
 - Plugin distribution (commands / hooks / marketplace upgrade)
 - Broader IDE coverage (OpenCode, Copilot CLI, Gemini CLI, ...)
+- Multi-tenant hosted API surface
 
 ## 3. Branching & PR Workflow
 
@@ -42,20 +53,32 @@ Deferred (spec §11.2 — open for v0.2+ once gate v3_strict has been earned):
 ## 4. Required Local Checks Before Pushing
 
 ```bash
-# Packaging gate (metadata <= 100, body <= 5000)
+# Packaging gate (v2_tightened: metadata <= 100, body <= 5000)
 python .agents/skills/si-chip/scripts/count_tokens.py \
   --file .agents/skills/si-chip/SKILL.md --both \
   --budget-meta 100 --budget-body 5000 --json
+# Expected at v0.4.0: metadata_tokens=94, body_tokens=4646, pass=true
 
-# 8 spec invariants
+# 14 BLOCKER spec invariants (9 historical + 2 v0.3.0 + 3 v0.4.0)
 python tools/spec_validator.py --json
 
-# Cross-tree drift (after any sync)
+# Cross-tree drift (after any SKILL.md / references / scripts sync)
 diff -r .agents/skills/si-chip .cursor/skills/si-chip | grep -v DESIGN.md
 diff -r .agents/skills/si-chip .claude/skills/si-chip | grep -v DESIGN.md
 ```
 
 All three MUST pass.
+
+Optional but recommended whenever you touch a `metrics_report.yaml` or a
+`basic_ability_profile.yaml` under `.local/dogfood/`:
+
+```bash
+# §23 method-tag companion validator (token / quality / G1 method enums)
+python tools/method_tag_validator.py --json
+
+# §21 health-smoke 4-axis probe runner (REQUIRED when live_backend: true)
+python tools/health_smoke.py --profile <profile.yaml> --json
+```
 
 ## 5. Adding a New Eval Case
 
@@ -72,11 +95,26 @@ All three MUST pass.
 
 Spec changes require:
 
-1. A NEW spec file (do not edit `.local/research/spec_v0.1.0.md` in place).
+1. A NEW spec file under `.local/research/spec_v<X.Y.Z>.md` (DO NOT edit
+   any frozen historical spec — `spec_v0.1.0.md` / `spec_v0.2.0.md` /
+   `spec_v0.3.0.md` / `spec_v0.4.0.md` are pinned snapshots).
 2. Updated `effective_date` and `supersedes` frontmatter.
-3. Refreshed `.rules/si-chip-spec.mdc` and re-compiled `AGENTS.md`.
-4. Refreshed `.rules/.compile-hashes.json`.
-5. A passing run of `python tools/spec_validator.py --spec <new_path> --json`.
+3. Refreshed `.rules/si-chip-spec.mdc` and re-compiled `AGENTS.md`
+   (the Hard Rules block in §13 must mirror the Normative add-ons).
+4. Refreshed `.rules/.compile-hashes.json` so drift detection passes
+   (`devolaflow.local.drift` SHA-256).
+5. A passing run of `python tools/spec_validator.py --spec <new_path> --json`
+   under both default and `--strict-prose-count` mode (the latter enforces
+   §13.4 prose counts; v0.2.0+ specs reconciled to 37 sub-metrics + 30
+   threshold cells).
+6. If the spec change breaks byte-identicality of any prior Normative
+   section (e.g. v0.4.0 adding the 8th `value_vector` axis
+   `eager_token_delta`), update the validator's
+   `EXPECTED_VALUE_VECTOR_AXES_BY_SPEC` mapping to keep older rounds
+   passing under their own spec version.
+7. Bump the `SUPPORTED_SPEC_VERSIONS` set in
+   `tools/spec_validator.py` and add the new spec to its accepted-spec
+   help text.
 
 ## 7. Reporting Issues
 
@@ -99,50 +137,76 @@ tarball** (consumed by the `install.sh` one-line installer):
 
 | Tree | Role |
 |---|---|
-| `.agents/skills/si-chip/` | **Source of truth** (canonical; `DESIGN.md` is internal-only and lives here only) |
-| `.cursor/skills/si-chip/` | Cursor mirror (consumed by Cursor's local skill discovery) |
-| `.claude/skills/si-chip/` | Claude Code mirror (consumed by Claude Code's local skill discovery) |
+| `.agents/skills/si-chip/` | **Source of truth** (canonical; carries the internal-only `DESIGN.md` plus the full 20-file public payload) |
+| `.cursor/skills/si-chip/` | Cursor mirror (consumed by Cursor's local skill discovery; 20 files = 1 SKILL.md + 14 references + 5 scripts; no `DESIGN.md`) |
+| `.claude/skills/si-chip/` | Claude Code mirror (consumed by Claude Code's local skill discovery; same 20-file payload as the Cursor mirror) |
 | `docs/skills/si-chip-<version>.tar.gz` | Pages-served release tarball (consumed by `install.sh`; URL: `https://yorha-agents.github.io/Si-Chip/skills/si-chip-<version>.tar.gz`) |
 
-The 9-file payload (SKILL.md + 5 references + 3 scripts) MUST be byte-
-identical across the three platform trees. The tarball, when extracted,
-MUST yield the same 9 files byte-identical to the source-of-truth.
-`DESIGN.md` is intentionally NOT in any mirror or in the tarball.
+At v0.4.0 the **20-file public payload** (1 SKILL.md + 14 references + 5
+scripts) MUST be byte-identical across the three platform trees. The
+tarball additionally carries `DESIGN.md` (21 files total in the tarball);
+when extracted, the 20-file public subset MUST be byte-identical to the
+source-of-truth. The `.cursor/` and `.claude/` mirrors deliberately omit
+`DESIGN.md` because it is an internal architecture note and is not
+needed at runtime.
 
-To verify locally:
+To verify locally (post-v0.4.0 file list — all 14 references + 5 scripts):
 
 ```bash
 # Three-tree drift check
-for f in SKILL.md references/basic-ability-profile.md references/self-dogfood-protocol.md \
-         references/metrics-r6-summary.md references/router-test-r8-summary.md \
-         references/half-retirement-r9-summary.md scripts/profile_static.py \
-         scripts/count_tokens.py scripts/aggregate_eval.py; do
+for f in SKILL.md \
+         references/basic-ability-profile.md \
+         references/self-dogfood-protocol.md \
+         references/metrics-r6-summary.md \
+         references/router-test-r8-summary.md \
+         references/half-retirement-r9-summary.md \
+         references/core-goal-invariant-r11-summary.md \
+         references/round-kind-r11-summary.md \
+         references/multi-ability-layout-r11-summary.md \
+         references/token-tier-invariant-r12-summary.md \
+         references/real-data-verification-r12-summary.md \
+         references/lifecycle-state-machine-r12-summary.md \
+         references/health-smoke-check-r12-summary.md \
+         references/eval-pack-curation-r12-summary.md \
+         references/method-tagged-metrics-r12-summary.md \
+         scripts/profile_static.py \
+         scripts/count_tokens.py \
+         scripts/aggregate_eval.py \
+         scripts/eval_skill_quickstart.md \
+         scripts/real_llm_runner_quickstart.md; do
   src=".agents/skills/si-chip/$f"
   for dst in ".cursor/skills/si-chip/$f" ".claude/skills/si-chip/$f"; do
     diff -q "$src" "$dst" || echo "DRIFT: $src vs $dst"
   done
 done
 
-# Tarball-vs-source check
+# Tarball-vs-source check (v0.4.0 tarball INCLUDES DESIGN.md)
 TMP=$(mktemp -d)
-tar -xzf docs/skills/si-chip-0.1.0.tar.gz -C "$TMP"
-diff -r .agents/skills/si-chip "$TMP" | grep -v DESIGN.md
-# Expect ONLY: "Only in .agents/skills/si-chip: DESIGN.md"
+tar -xzf docs/skills/si-chip-0.4.0.tar.gz -C "$TMP"
+diff -r .agents/skills/si-chip "$TMP/si-chip"
+# Expect: no output (full 21-file byte-identical match)
 rm -rf "$TMP"
 ```
 
-Re-build the tarball whenever the source-of-truth changes:
+Re-build the tarball whenever the source-of-truth changes (v0.4.0 mtime
+baked into the SHA-256 `2cfcce00...be21ab` reproducibility contract):
 
 ```bash
 tar --owner=0 --group=0 --numeric-owner --sort=name \
-    --mtime='2026-04-28 00:00:00 UTC' --format=ustar \
-    -C .agents/skills/si-chip -cf - SKILL.md references scripts \
-  | gzip -n -9 > docs/skills/si-chip-0.1.0.tar.gz
+    --mtime='2026-04-30 00:00:00 UTC' --format=ustar \
+    -C .agents/skills -cf - si-chip \
+  | gzip -n -9 > docs/skills/si-chip-0.4.0.tar.gz
 ```
 
 The deterministic options (`--owner=0 --group=0 --numeric-owner --sort=name`,
 fixed `--mtime`, `--format=ustar`, `gzip -n`) make the tarball reproducible:
-the same source produces the same SHA256.
+the same source produces the same SHA-256. After rebuilding, refresh the
+sidecar:
+
+```bash
+sha256sum docs/skills/si-chip-0.4.0.tar.gz \
+  | awk '{print $1}' > docs/skills/si-chip-0.4.0.tar.gz.sha256
+```
 
 ### Why the tarball
 The `docs/skills/si-chip/` per-file mirror was tried in PR #5 but Jekyll

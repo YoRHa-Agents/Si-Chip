@@ -21,7 +21,262 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty for now; post-v0.2.0 items land here)
+- (empty; post-v0.4.1 items land here)
+
+## [0.4.1] - 2026-04-30
+
+### Summary
+Si-Chip v0.4.1 — "Documentation patch (post-v0.4.0 sync sweep)". Doc-only
+patch with **no Normative spec change** (`spec_v0.4.0.md` remains the
+active frozen spec; AGENTS.md §13 stays at 13 hard rules; the 14 BLOCKER
+spec_validator invariants are unchanged). Closes the gap that the v0.4.0
+ship left in user-facing material: `INSTALL.md` / `CONTRIBUTING.md` /
+`install.sh` / the entire `docs/` Pages tree (install body, user guide
+body, architecture, demo, changelog, config, ZH index) were still quoting
+v0.1.0 / v0.1.1 / v0.2.0 numbers (78/2020 token budget, 9-file payload,
+"8 spec invariants", `spec_v0.1.0.md` references, 7-axis value vector
+prose) even after the v0.4.0 release tagged 14 BLOCKERs / 21-file tarball /
+8-axis value vector / `metadata=94, body=4646` / first `v2_tightened`
+ship.
+
+### Changed (Documentation)
+- `INSTALL.md`: rewritten against v0.4.0 reality — 21-file tarball
+  (1 SKILL.md + 1 DESIGN.md + 14 references + 5 scripts), `metadata=94 /
+  body=4646` token budget against the v0.4.0 v2_tightened gate, every
+  reference from §14 / §15 / §16 / §18 / §19 / §20 / §21 / §22 / §23
+  enumerated under "What gets installed", smoke-test section now lists the
+  14 BLOCKERs and the optional real-LLM cache replay, troubleshooting
+  section explains the `metadata_tokens=94 > 80` v3_strict deferral.
+- `CONTRIBUTING.md`: spec reference bumped to `spec_v0.4.0.md`, §4
+  "Required Local Checks" updated to "14 BLOCKER spec invariants" plus
+  optional `method_tag_validator.py` / `health_smoke.py`, §6 "Bumping the
+  Spec" reflects v0.2.0+ prose reconciliation + spec-version-aware
+  validator mapping (`EXPECTED_VALUE_VECTOR_AXES_BY_SPEC`,
+  `SUPPORTED_SPEC_VERSIONS`), §9 "Mirror Drift Contract" lists the
+  full 20-file public payload + 21-file tarball (with the `v0.4.0` mtime
+  `'2026-04-30 00:00:00 UTC'` and SHA-256 sidecar refresh).
+- `install.sh` + `docs/install.sh` (kept byte-identical): banner / help /
+  spec URL / payload comment all bumped to v0.4.0 (default `--version`
+  was already `v0.4.0` in `SI_CHIP_VERSION_DEFAULT` since the v0.4.0
+  release; only the help-text default and surrounding comments still
+  said v0.1.0).
+- `docs/_install_body.md` + `docs/_userguide_body.md`: full bilingual
+  (EN + ZH) rewrite to match the new `INSTALL.md` / `USERGUIDE.md`
+  bodies; ZH blocks no longer claim 7-axis value vector or 8-invariant
+  validator; both blocks now describe v0.3.0 + v0.4.0 add-on chapters
+  §14 / §15 / §18 — §23 in the "1.7 add-ons" section.
+- `docs/architecture.md`: mermaid diagram now points at
+  `spec_v0.4.0.md` and shows the 21-file source tree + 20-file mirrors +
+  21-file tarball; promotion-ladder section reflects `v2_tightened`
+  ship state; half-retire decision diagram now labels the **8-axis**
+  value_vector with explicit `v0.4.0+` provenance; new chapter §6
+  documents the three top-level invariants (`core_goal` / `token_tier` /
+  `promotion_state`) added in v0.3.0 + v0.4.0.
+- `docs/changelog.md`: full re-sync from the repo-root `CHANGELOG.md`
+  (was last synced at v0.2.0, missing v0.3.0 + v0.4.0 entries entirely).
+- `docs/_config.yml`: `description` bumped to "frozen spec v0.4.0",
+  `version` bumped to `0.4.1`, Spec nav URL points at
+  `spec_v0.4.0.md`.
+- `docs/index.md`: ZH (`<div lang="zh">`) block fully ported from the
+  v0.2.0 numbers to the v0.4.0 ship state (matches the EN block that
+  was already updated in the v0.4.0 release).
+- `README.md` badges bumped from `v0.4.0%20ship--eligible` to
+  `v0.4.1%20ship--eligible` (project version; spec / gate badges
+  unchanged because v0.4.1 is doc-only).
+
+### Unchanged (Normative)
+- `.local/research/spec_v0.4.0.md` is **byte-identical** (no Normative
+  edits; this patch is doc-only).
+- `.rules/si-chip-spec.mdc` and `AGENTS.md` are byte-identical (still
+  13 hard rules in §13; still 14 BLOCKERs in spec_validator).
+- `.agents/skills/si-chip/SKILL.md` and the 14 references / 5 scripts
+  are byte-identical → drift remains 0 across the three-tree mirror;
+  no rebuild of `docs/skills/si-chip-0.4.0.tar.gz` is required (SHA-256
+  `2cfcce00f989faf2467014e638b0ea1fa67870b5a1ee6b0531942be5a4be21ab`
+  remains the published artifact).
+
+### Files
+- 11 modified (`README.md`, `USERGUIDE.md`, `INSTALL.md`,
+  `CONTRIBUTING.md`, `install.sh`, `docs/install.sh`,
+  `docs/_install_body.md`, `docs/_userguide_body.md`,
+  `docs/architecture.md`, `docs/changelog.md`, `docs/_config.yml`,
+  `docs/index.md`, `CHANGELOG.md`); 0 new files; 0 deletions.
+
+## [0.4.0] - 2026-04-30
+
+### Summary
+Si-Chip v0.4.0 — "Token Economy + Real-Data Verification + Lifecycle State Machine + Health Smoke + Eval-Pack Curation + Method-Tagged Metrics + Real-LLM Runner". 19 consecutive v1_baseline + 2 consecutive v2_tightened passes; **FIRST Si-Chip release at v2_tightened (= standard) gate** (vs v0.2.0 / v0.3.0 at relaxed = v1_baseline). Spec promoted rc1 → frozen with body byte-identical except metadata; AGENTS.md §13 Agent Behavior Contract grows 10 → 13 hard rules (rule 11: token_tier; rule 12: real-data-fixture-provenance; rule 13: health-smoke-when-live-backend).
+
+### Added (Normative)
+
+- **Spec §14 cross-section continuity** — preserved from v0.3.0; **§6.1 value_vector axes 7→8** (adds `eager_token_delta`; FIRST byte-identicality break since v0.1.0 → v0.2.0 prose-count alignment, per Q4 user decision).
+- **Spec §18 Token-Tier Invariant**: top-level `token_tier {C7_eager_per_session, C8_oncall_per_trigger, C9_lazy_avg_per_load}` block (beside `metrics` and `core_goal`; NOT inside R6 D2); EAGER-weighted iteration_delta formula `weighted_token_delta = 10×eager + 1×oncall + 0.1×lazy`; `lazy_manifest` packaging gate; prose_class taxonomy (Informative); R3 split into `R3_eager_only` / `R3_post_trigger`; `tier_transitions` block on `iteration_delta_report.yaml`.
+- **Spec §19 Real-Data Verification**: Normative sub-step of §8.1 step 2 `evaluate` (main 8-step list count unchanged); 3-layer pattern (msw fixture provenance + user-install + post-recovery live verification); `templates/feedback_real_data_samples.template.yaml`; new BLOCKER 13 `REAL_DATA_FIXTURE_PROVENANCE`.
+- **Spec §20 Stage Transitions & Promotion History**: `stage_transition_table` per §2.2 stage enum DAG (reverse transitions forbidden); `BasicAbility.lifecycle.promotion_history` append-only; `metrics_report.yaml.promotion_state` first-class top-level block; `ship_decision.yaml` becomes the 7th evidence file when `round_kind == 'ship_prep'`.
+- **Spec §21 Health Smoke Check**: `BasicAbility.packaging.health_smoke_check` 4-axis taxonomy `{read, write, auth, dependency}`; OPTIONAL at schema level, REQUIRED when `current_surface.dependencies.live_backend: true`; new BLOCKER 14 `HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`; OTel semconv extension `gen_ai.tool.name=si-chip.health_smoke`.
+- **Spec §22 Eval-Pack Curation Discipline**: 40-prompt minimum for v2_tightened promotion (curated near-miss bucket); G1 `_provenance ∈ {real_llm_sweep, deterministic_simulation, mixed}` first-class REQUIRED; deterministic seeding rule `hash(round_id + ability_id)`; real-LLM cache directory at `.local/dogfood/<DATE>/<round_id>/raw/real_llm_runner_cache/`.
+- **Spec §23 Method-Tagged Metrics**: `<metric>_method` companion fields (token: `{tiktoken, char_heuristic, llm_actual}`; quality/routing: `{real_llm, deterministic_simulator, mixed}`; G1: `{real_llm_sweep, deterministic_simulation, mixed}`); `_ci_low` / `_ci_high` 95% CI bands; `U1_language_breakdown`; `U4_state ∈ {warm, cold, semicold}`; `spec_validator::R6_KEYS` ignores companion suffixes.
+- **Spec §17 Agent Behavior Contract Add-ons**: 3 new hard rules compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc` (rule 11: token_tier; rule 12: real-data-fixture-provenance; rule 13: health-smoke-when-live-backend); AGENTS.md §13 grows 10 → 13 rules.
+
+### Added (Tooling)
+
+- `evals/si-chip/runners/real_llm_runner.py` (884 LoC) + 27 tests — **FIRST production real-LLM runner; unblocks T2_pass_k from deterministic SHA-256 PROXY 0.5478 lower bound (→ honest 1.0 best-cell @ Round 18)**. Includes `RouterFloorAdapter`, `AnthropicMessagesClient` (raw `requests.post` against Veil-egressed `/v1/messages`), `RealLlmRunner.evaluate_pack` / `evaluate_router_matrix`, cache directory per §22.6, `--seal-cache` flag for CI determinism.
+- `tools/health_smoke.py` (642 LoC) + 30 tests — implements §21 4-axis `{read, write, auth, dependency}` probe runner.
+- `tools/method_tag_validator.py` (465 LoC) + 19 tests — implements §23 `<metric>_method` companion validator.
+- `tools/eval_skill.py` extended with 4 new helpers (token-tier decomposition, MCP-pretty static check, template-default-data anti-pattern detector, health-smoke runner) + G2/G3/G4 helpers; 31 → 34 tests.
+- `tools/spec_validator.py` `SCRIPT_VERSION` 0.2.0 → 0.3.0; 11 → 14 BLOCKERs (adds `TOKEN_TIER_DECLARED_WHEN_REPORTED`, `REAL_DATA_FIXTURE_PROVENANCE`, `HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`); version-aware `EXPECTED_VALUE_VECTOR_AXES_BY_SPEC` (7 axes ≤ v0.3.0; 8 axes @ v0.4.0+); `R6_KEYS` ignores method-tag companion suffixes; `EVIDENCE_FILES` is round_kind-aware (7 files when `round_kind == 'ship_prep'`, else 6); `SUPPORTED_SPEC_VERSIONS` adds `v0.4.0-rc1` and `v0.4.0`.
+
+### Added (Schema/Templates)
+
+- `templates/basic_ability_profile.schema.yaml` `$schema_version` 0.2.0 → 0.3.0; additively adds `lifecycle.promotion_history` (per §20.2), `current_surface.dependencies.live_backend` (per §21.2), `packaging.health_smoke_check` array (per §21.1), `metrics.<dim>.<metric>_method/_ci_low/_ci_high` companion fields (per §23).
+- `templates/iteration_delta_report.template.yaml` `$schema_version` 0.2.0 → 0.3.0; additively adds `tier_transitions` block (per §18.6), 8-axis value_vector with `eager_token_delta` (per §6.1 v0.4.0 modification), OPTIONAL `verdict.weighted_token_delta_v0_4_0` field (per §18.2).
+- `templates/next_action_plan.template.yaml` `$schema_version` 0.2.0 → 0.3.0; additively adds sibling field `token_tier_target ∈ {relaxed, standard, strict}` (per §15 round_kind 工艺 extension, aligned with §4 v1/v2/v3 gate).
+- 5 NEW templates: `lazy_manifest.template.yaml` (per §18.5), `feedback_real_data_samples.template.yaml` (per §19.2), `ship_decision.template.yaml` (per §20.4), `recovery_harness.template.yaml` (per §22.4), `method_taxonomy.template.yaml` (per §23.1).
+- 1 NEW Informative reference: `templates/eval_pack_qa_checklist.md` (per §22.3).
+
+### Added (Documentation)
+
+- `.local/research/r12_v0_4_0_industry_practice.md` (712 lines; 47 R-items mapped; 34 cited sources; primary v0.4.0 evidence base).
+- `.local/research/r12.5_real_llm_runner_feasibility.md` (540 lines; Stage 1 spike PROCEED_MAJOR verdict).
+- `.local/research/spec_v0.4.0-rc1.md` (2304 lines; pinned historical record).
+- `.local/research/spec_v0.4.0.md` (frozen; promoted from rc1; body byte-identical except metadata).
+- 6 NEW reference docs under `.agents/skills/si-chip/references/` (mirrored across `.cursor/` + `.claude/` trees): `token-tier-invariant-r12-summary.md`, `real-data-verification-r12-summary.md`, `lifecycle-state-machine-r12-summary.md`, `health-smoke-check-r12-summary.md`, `eval-pack-curation-r12-summary.md`, `method-tagged-metrics-r12-summary.md`.
+- 1 NEW quickstart `.agents/skills/si-chip/scripts/real_llm_runner_quickstart.md`.
+
+### Verified (Dogfood)
+
+- **Round 16** (`code_change`): 4 efficiency axes ≥ +0.05; v1_baseline PASS; 16th consecutive v1 pass.
+- **Round 17** (`measurement_only`): C0 monotonicity 1.0 → 1.0 verified; FIRST non-vacuous within-v0.4.0-rc1 monotonicity witness; v1_baseline carry-forward (17th consecutive).
+- **Round 18** (`code_change`): **FIRST v2_tightened PASS** via `real_llm_runner.py` first dogfood-side invocation against claude-haiku-4-5 + claude-sonnet-4-6 via Veil litellm-local egress at `127.0.0.1:8086`; T2_pass_k = 1.0 best cell across mvp 8-cell matrix (vs deterministic SHA-256 PROXY floor 0.5478 since Round 1); 10/10 v2_tightened thresholds PASS; $0.20 spend; 640 calls; consecutive_v2_passes=1.
+- **Round 19** (`code_change`): SECOND consecutive v2_tightened pass via real-LLM cache replay byte-equivalence to Round 18 ($0 additional spend; 100% cache hit; 0 live calls); 19th consecutive v1_baseline pass; consecutive_v2_passes=2; per §4.2 promotion rule v0.4.0 ship gate at v2_tightened (standard) is **PROMOTION ELIGIBLE** EFFECTIVE Round 20.
+
+### Unchanged (Forever-Out — §11.1)
+
+- No marketplace; no router-model training; no generic IDE compat layer; no Markdown-to-CLI converter.
+- §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7 + §23.7 verbatim re-affirm §11.1's 4 forever-out items.
+
+### Files
+
+- 17+ new files (6 reference docs × 3 trees + 5 templates + 5 tooling files + 4 docs + 1 quickstart + 4 round dirs + 2 ship artifacts); 11+ modified (SKILL.md × 3 trees + .rules/si-chip-spec.mdc + AGENTS.md + .compile-hashes.json + 3 templates + spec_validator.py + tools/eval_skill.py + install.sh + docs/install.sh + docs/_install_body.md + CHANGELOG.md); deterministic tarball `docs/skills/si-chip-0.4.0.tar.gz` (SHA-256 `2cfcce00f989faf2467014e638b0ea1fa67870b5a1ee6b0531942be5a4be21ab`; 83060 bytes; reproducible across rebuilds).
+
+## [0.3.0] - 2026-04-29
+
+### Summary
+Si-Chip v0.3.0 — "Core-Goal Invariant + round_kind enum" — ships as the
+formal release following Round 14 (`code_change`) + Round 15
+(`measurement_only`) consecutive PASSes at v1_baseline against the
+v0.3.0-rc1 spec. Spec promoted rc1 → frozen with body byte-identical;
+AGENTS.md §13 Agent Behavior Contract grows from 8 → 10 hard rules
+(rule 9: `core_goal_test_pack` + `C0 = 1.0`; rule 10: `round_kind`
+4-value enum). Ship gate: `relaxed` (= `v1_baseline`; same gate as
+v0.2.0); v2_tightened deferred again pending real-LLM runner per
+v0.2.0 known limitations.
+
+### Added (Normative)
+
+- **Spec §14 Core-Goal Invariant**: BasicAbility now requires a
+  `core_goal` block with `statement`, `test_pack_path`, and
+  `minimum_pass_rate: 1.0` (locked); top-level invariant; not R6 D8
+  per §14.5.
+- **Spec §15 round_kind Enum**: 4 values (`code_change |
+  measurement_only | ship_prep | maintenance`) with per-kind
+  iteration_delta clause (strict / monotonicity_only / WAIVED /
+  WAIVED) per §15.2; universal C0 = 1.0 + monotonicity per §15.3;
+  consecutive-rounds promotion rule §15.4.
+- **Spec §17 Agent Behavior Contract Add-ons**: 2 new hard rules
+  (9: core_goal_test_pack + C0; 10: round_kind enum) compiled into
+  `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+
+### Added (Informative)
+
+- **Spec §16 Multi-Ability Dogfood Layout**:
+  `.local/dogfood/<DATE>/abilities/<id>/round_<N>/` (Informative
+  @ v0.3.0; promote to Normative at v0.3.x once 2+ abilities migrate).
+
+### Added (Tooling)
+
+- `tools/cjk_trigger_eval.py` (586 LoC) — generic CJK-aware trigger
+  F1 evaluator.
+- `tools/eval_skill.py` (786 LoC) — generic per-ability evaluation
+  harness (replaces 768-line ability-specific harnesses).
+- `tools/multi_handler_redundant_call.py` (404 LoC) — L4
+  redundant-call analyzer over ALL handlers.
+- `tools/round_kind.py` (220 LoC) — `round_kind` enum +
+  iteration_delta clause helpers.
+- 4 companion test files (1138 LoC, 70 unit tests).
+
+### Added (Schema/Templates)
+
+- `templates/basic_ability_profile.schema.yaml` `$schema_version`
+  0.1.0 → 0.2.0; new REQUIRED `core_goal` block.
+- `templates/iteration_delta_report.template.yaml` extended
+  additively with `core_goal_check` + `round_kind`.
+- `templates/next_action_plan.template.yaml` extended additively
+  with `round_kind`.
+
+### Added (spec_validator)
+
+- `tools/spec_validator.py` SCRIPT_VERSION 0.1.4 → 0.2.0;
+  `SUPPORTED_SPEC_VERSIONS` adds `v0.3.0-rc1` (and `v0.3.0`); 9 → 11
+  BLOCKERs with new `CORE_GOAL_FIELD_PRESENT` and
+  `ROUND_KIND_TEMPLATE_VALID`; backward-compat preserved for v0.1.0
+  / v0.2.0-rc1 / v0.2.0 spec modes.
+
+### Added (Documentation)
+
+- `.local/research/r11_core_goal_invariant.md` (967 lines) —
+  research brief.
+- `.local/research/spec_v0.3.0-rc1.md` (1216 lines) — pinned
+  historical record.
+- `.local/research/spec_v0.3.0.md` — promoted frozen spec
+  (body byte-identical to rc1; frontmatter / H1 / preamble /
+  Reconciliation Log only).
+- `.agents/skills/si-chip/references/{core-goal-invariant,round-kind,multi-ability-layout}-r11-summary.md`
+  — 3 new reference docs (mirrored to `.cursor/skills/...` and
+  `.claude/skills/...`).
+- `.agents/skills/si-chip/scripts/eval_skill_quickstart.md` —
+  CLI cheat-sheet (mirrored to both platform mirrors).
+
+### Verified (Dogfood)
+
+- Round 14 (`round_kind: code_change`): 6 evidence files +
+  4 abilities-tree files + 14 raw artifacts; C0 = 1.0 (5/5);
+  spec_validator dual-spec 11/11 + 11/11 PASS; 14th consecutive
+  v1_baseline pass; 2 axes ≥ +0.05 (governance_risk +
+  generalizability).
+- Round 15 (`round_kind: measurement_only`): 6 evidence files +
+  11 raw artifacts; C0 monotonicity 1.0 → 1.0 verified;
+  spec_validator dual-spec 11/11 + 11/11 replay PASS; 15th
+  consecutive v1_baseline pass; canonical demonstration of §15
+  round_kind enum in production.
+- Both rounds: 395 pytest passed / 1 skipped; mirrors byte-identical
+  (V3_drift_signal = 0.0).
+
+### Unchanged (Forever-Out — §11.1)
+
+- No marketplace; no router-model training; no generic IDE
+  compatibility layer; no Markdown-to-CLI converter. v0.3.0 §14.6
+  re-affirms verbatim.
+
+### Files
+
+- 11 new files; 8 modified files; +47 SKILL.md lines / +165 templates
+  lines / +3134 tools LoC / +578 reference doc lines.
+- Tarball: `docs/skills/si-chip-0.3.0.tar.gz`
+  (SHA-256 `0c3390d355f0ef794d2ba6bc94f3223e24305d523672ec95d5e7aed41b01acac`;
+  62 343 bytes; 1 SKILL.md + 1 DESIGN.md + 8 references + 4 scripts =
+  14 files; deterministic build via `--owner=0 --group=0
+  --numeric-owner --mtime=2026-04-29 --sort=name --exclude='*/__pycache__'
+  --exclude='si-chip/scripts/test_*.py'`).
+
+### Ship Verdict
+
+- `ship_eligible: true`
+- `ship_gate_achieved: relaxed` (= `v1_baseline`; same gate as v0.2.0
+  per §4.2 + §15.4 promotion rule)
+- `consecutive_v1_passes: 15` (Rounds 1-15)
+- `consecutive_v2_passes: 0` (T2_pass_k still pending real-LLM runner
+  per v0.2.0 known limitation)
 
 ## [0.2.0] — 2026-04-28
 
@@ -370,7 +625,10 @@ package, an evaluation harness, and machine-checkable spec invariants.
 - No generic IDE compatibility layer.
 - Codex native SKILL.md runtime is bridge-only and deferred.
 
-[Unreleased]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/YoRHa-Agents/Si-Chip/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/YoRHa-Agents/Si-Chip/releases/tag/v0.1.0
