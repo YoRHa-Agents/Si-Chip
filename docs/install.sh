@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # Si-Chip installer
-#   Installs the Si-Chip Skill payload (SKILL.md + 5 references + 3 scripts)
-#   into a Cursor and/or Claude Code skills directory (global or repo scope).
+#   Installs the Si-Chip Skill payload (SKILL.md + DESIGN.md + 14 references
+#   + 5 scripts = 21 files at v0.4.0) into a Cursor and/or Claude Code
+#   skills directory (global or repo scope).
 #
 #   Source of truth: https://github.com/YoRHa-Agents/Si-Chip
-#   Spec:            .local/research/spec_v0.1.0.md
+#   Spec:            .local/research/spec_v0.4.0.md (active; v0.1.0 / v0.2.0 /
+#                    v0.3.0 retained as pinned historical snapshots)
 #
 #   Per spec section 7.2, only Cursor and Claude Code are supported install
-#   targets in v0.1; Codex is bridge-only and intentionally NOT a target here.
+#   targets at v0.4.0; Codex remains bridge-only via AGENTS.md (compiled from
+#   .rules/si-chip-spec.mdc) and intentionally NOT a target here.
 #
 # SI_CHIP_INSTALLER_STEPS=1
 #   Self-reported user-facing step count for the canonical non-interactive
@@ -130,7 +133,7 @@ Flags:
   --target cursor|claude|both    Which platform to install for
   --scope global|repo            Where to install
   --repo-root <path>             Repo root (required for --scope repo)
-  --version <tag>                Si-Chip version to install (default: v0.1.0)
+  --version <tag>                Si-Chip version to install (default: v0.4.0)
   --source-url <url>             Override download base (default: pages URL)
   --yes, -y                      Non-interactive
   --dry-run                      Print actions without writing
@@ -158,7 +161,7 @@ Payload delivery:
   Over file://, it copies individual files from <source-url>/skills/si-chip/.
 
 Si-Chip is governed by the spec at:
-  https://github.com/YoRHa-Agents/Si-Chip/blob/main/.local/research/spec_v0.1.0.md
+  https://github.com/YoRHa-Agents/Si-Chip/blob/main/.local/research/spec_v0.4.0.md
 EOF
 }
 

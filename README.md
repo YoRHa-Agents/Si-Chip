@@ -2,13 +2,13 @@
 
 > Persistent BasicAbility optimization factory.
 
-![status](https://img.shields.io/badge/status-v0.1.1%20ship--eligible-brightgreen)
-![spec](https://img.shields.io/badge/spec-v0.1.0%20frozen-blue)
-![gate](https://img.shields.io/badge/gate-v1__baseline%20%C3%972-success)
+![status](https://img.shields.io/badge/status-v0.4.1%20ship--eligible-brightgreen)
+![spec](https://img.shields.io/badge/spec-v0.4.0%20frozen-blue)
+![gate](https://img.shields.io/badge/gate-v2__tightened%20%C3%972-success)
 ![license](https://img.shields.io/badge/license-Apache--2.0-lightgrey)
 
-- Spec: [`.local/research/spec_v0.1.0.md`](./.local/research/spec_v0.1.0.md)
-- Ship report: [`.local/dogfood/2026-04-28/v0.1.0_ship_report.md`](./.local/dogfood/2026-04-28/v0.1.0_ship_report.md)
+- Spec: [`.local/research/spec_v0.4.0.md`](./.local/research/spec_v0.4.0.md)
+- Ship report: [`.local/dogfood/2026-04-30/v0.4.0_ship_report.md`](./.local/dogfood/2026-04-30/v0.4.0_ship_report.md)
 - User guide: [`USERGUIDE.md`](./USERGUIDE.md) · Install: [`INSTALL.md`](./INSTALL.md) · Changelog: [`CHANGELOG.md`](./CHANGELOG.md)
 - Demo / docs site: https://yorha-agents.github.io/Si-Chip/
 
@@ -19,8 +19,13 @@ is the first-class object; Si-Chip optimizes it through metric-driven dogfood
 loops (`profile -> evaluate -> diagnose -> improve -> router-test ->
 half-retire-review -> iterate -> package-register`). Every round must drop
 machine-readable evidence so the next round can compute deltas. Si-Chip ships
-as its own first user: the v0.1.0 release proves the loop on Si-Chip itself
-before the loop is offered to any other ability (spec v0.1.0 §1.1, §8.3).
+as its own first user: every release proves the loop on Si-Chip itself
+before the loop is offered to any other ability (spec v0.4.0 §1.1, §8.3).
+v0.4.0 is the **first release shipped at the `v2_tightened` (= `standard`)
+gate** after 19 consecutive `v1_baseline` rounds and 2 consecutive
+`v2_tightened` rounds (Round 18 + Round 19), with the new
+`evals/si-chip/runners/real_llm_runner.py` unblocking honest k=4 sampling
+against `claude-haiku-4-5` + `claude-sonnet-4-6`.
 
 ## Quick Install
 
@@ -52,43 +57,50 @@ python .agents/skills/si-chip/scripts/count_tokens.py \
   --budget-meta 100 --budget-body 5000 --json
 ```
 
-The first command exits 0 with `verdict: PASS` (8/8 spec invariants). The second produces a metrics_report.yaml with the MVP-8 metrics populated (T1=0.85, T2=0.55, T3=+0.35, ...). The third confirms the SKILL.md fits the v3_strict packaging budget (metadata=78, body=2020, pass=true).
+The first command exits 0 with `verdict: PASS` (14/14 spec invariants). The second produces a metrics_report.yaml whose v0.4.0 Round 19 values are populated against the real-LLM cache (T1=1.0 best cell, T2=1.0 best cell, T3=+0.95, ...); the deterministic baseline runners under `evals/si-chip/runners/{no_ability_runner,with_ability_runner}.py` are still simulator-based, while the real-LLM cache lives at `.local/dogfood/2026-04-30/round_18/raw/real_llm_runner_cache/` (640 entries; cache replay at $0). The third confirms the SKILL.md fits the v2_tightened packaging budget (metadata=94, body=4646, pass=true; v3_strict metadata budget ≤ 80 is deferred to v0.4.x).
 
-## Headline Numbers (v0.1.0)
+## Headline Numbers (v0.4.0)
 
-| Metric | Round 1 | Round 2 | v1_baseline gate |
+| Metric | Round 18 | Round 19 | v2_tightened gate |
 |---|---|---|---|
-| pass_rate | 0.85 | 0.85 | >= 0.75 PASS |
-| trigger_F1 | 0.89 | 0.89 | >= 0.80 PASS |
-| metadata_tokens | 78 | 78 | <= 120 PASS |
-| per_invocation_footprint | 4071 | 3598 (-11.6%) | <= 9000 PASS |
-| wall_clock_p95 (s) | 1.47 | 1.47 | <= 45 PASS |
-| half_retire decision | keep | keep | numeric value vector |
-| router_floor | composer_2/default | composer_2/default | spec §5.3 |
+| pass_rate | 1.0 best cell, 0.9719 mean | same (cache replay) | >= 0.82 PASS |
+| T2_pass_k | 1.0 best cell | same (cache replay) | >= 0.55 PASS |
+| trigger_F1 | 1.0 | 1.0 | >= 0.85 PASS |
+| near_miss_FP_rate | 0.0 | 0.0 | <= 0.10 PASS |
+| metadata_tokens | 94 (Stage 8 frozen) | 94 | <= 100 PASS |
+| per_invocation_footprint | 4726 | 4726 | <= 7000 PASS |
+| wall_clock_p95 (s) | 17.0028 | 17.5726 | <= 30 PASS |
+| routing_latency_p95 (ms) | 0.16 | 0.16 | <= 1200 PASS |
+| routing_token_overhead | 0.0233 | 0.0233 | <= 0.12 PASS |
+| iteration_delta | +0.4522 task_quality | task_delta value 0.95 | >= +0.10 PASS |
 
-Source: `.local/dogfood/2026-04-28/v0.1.0_ship_report.md` (S8 final-validate).
+Source: `.local/dogfood/2026-04-30/v0.4.0_ship_report.md` (Stage 8 ship-prep).
+Round 18 was the first dogfood-side `real_llm_runner.py` invocation
+($0.20 spend; 640 calls; 16-min wall-clock); Round 19 replayed the cache
+at 100% hit ($0; ~20 ms wall-clock).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph spec [Frozen Spec v0.1.0]
-        sp[".local/research/spec_v0.1.0.md"]
+    subgraph spec [Frozen Spec v0.4.0]
+        sp[".local/research/spec_v0.4.0.md"]
     end
     subgraph source [Source of Truth]
-        skill[".agents/skills/si-chip/<br/>SKILL.md + references + scripts"]
-        tpl["templates/<br/>6 yaml templates"]
+        skill[".agents/skills/si-chip/<br/>SKILL.md + 14 references + 5 scripts"]
+        tpl["templates/<br/>12 templates (11 yaml + 1 md)"]
     end
     subgraph mirrors [Platform Mirrors - drift 0]
         cur[".cursor/skills/si-chip/"]
         cla[".claude/skills/si-chip/"]
     end
     subgraph evidence [Dogfood Evidence]
-        cases["evals/si-chip/cases/<br/>6 cases x 20 prompts"]
-        rounds[".local/dogfood/DATE/round_N/<br/>6 frozen evidence files"]
+        cases["evals/si-chip/cases/<br/>cases x 20 prompts (40 @ v2)"]
+        rounds[".local/dogfood/DATE/round_N/<br/>6 evidence files (7 when ship_prep)"]
+        runner["evals/si-chip/runners/<br/>real_llm_runner.py + cache"]
     end
     subgraph gates [Validators]
-        sv["tools/spec_validator.py<br/>8 invariants"]
+        sv["tools/spec_validator.py<br/>14 invariants"]
         ct["scripts/count_tokens.py<br/>packaging gate"]
     end
     sp --> skill
@@ -96,6 +108,7 @@ flowchart LR
     skill --> cur
     skill --> cla
     cases --> rounds
+    runner --> rounds
     skill --> sv
     tpl --> sv
     sp --> sv
@@ -105,40 +118,80 @@ flowchart LR
 ## Repository Layout
 
 ```
-.agents/skills/si-chip/    canonical Skill source-of-truth
-.cursor/skills/si-chip/    Cursor mirror (drift 0)
-.claude/skills/si-chip/    Claude Code mirror (drift 0)
+.agents/skills/si-chip/    canonical Skill source-of-truth (1 SKILL.md +
+                           1 DESIGN.md + 14 references + 5 scripts = 21
+                           files; tarball includes DESIGN.md = 21 files
+                           identical to the source-of-truth)
+.cursor/skills/si-chip/    Cursor mirror (20 files; no DESIGN.md; drift 0)
+.claude/skills/si-chip/    Claude Code mirror (20 files; no DESIGN.md;
+                           drift 0)
 .cursor/rules/             Cursor bridge rule
-.rules/                    rule layer compiled into AGENTS.md
-templates/                 6 frozen factory yaml templates
-evals/si-chip/             cases, runners, baselines, smoke report
-tools/                     spec_validator.py + DESIGN
-docs/                      GitHub Pages site
-.local/research/           frozen spec + R1-R10 evidence library
+.rules/                    rule layer compiled into AGENTS.md (13 rules)
+templates/                 12 frozen factory templates (11 yaml + 1 md
+                           checklist)
+evals/si-chip/             cases, baselines, smoke report;
+                           runners/no_ability_runner.py +
+                           runners/with_ability_runner.py (deterministic
+                           seeded simulators) plus
+                           runners/real_llm_runner.py (real-LLM evaluator
+                           that unblocks T2_pass_k via Anthropic Messages
+                           API)
+tools/                     spec_validator.py (14 BLOCKERs) +
+                           health_smoke.py + method_tag_validator.py +
+                           DESIGN
+docs/                      GitHub Pages site (release tarballs under
+                           docs/skills/)
+.local/research/           frozen spec (v0.4.0 active; v0.1.0 / v0.2.0 /
+                           v0.3.0 retained as pinned snapshots) +
+                           R1-R12.5 evidence library
 .local/dogfood/            per-round evidence (basic_ability_profile,
                            metrics_report, router_floor_report,
                            half_retire_decision, next_action_plan,
-                           iteration_delta_report)
+                           iteration_delta_report; ship_decision when
+                           round_kind == ship_prep) plus
+                           raw/real_llm_runner_cache/ when the real-LLM
+                           runner has been invoked
 AGENTS.md                  compiled rules consumed by Cursor / Codex /
-                           Claude / Copilot
+                           Claude / Copilot (13 hard rules at v0.4.0)
 ```
 
 ## Documentation Index
 
 - Skill body: [`.agents/skills/si-chip/SKILL.md`](./.agents/skills/si-chip/SKILL.md)
-- References (loaded on demand, excluded from §7.3 SKILL.md body budget):
+- References (loaded on demand, excluded from §7.3 SKILL.md body budget;
+  5 originals + 3 added @v0.3.0 + 6 added @v0.4.0 = 14):
   - [`basic-ability-profile.md`](./.agents/skills/si-chip/references/basic-ability-profile.md)
   - [`self-dogfood-protocol.md`](./.agents/skills/si-chip/references/self-dogfood-protocol.md)
   - [`metrics-r6-summary.md`](./.agents/skills/si-chip/references/metrics-r6-summary.md)
   - [`router-test-r8-summary.md`](./.agents/skills/si-chip/references/router-test-r8-summary.md)
   - [`half-retirement-r9-summary.md`](./.agents/skills/si-chip/references/half-retirement-r9-summary.md)
-- Templates (machine-readable, parsed by DevolaFlow `template_engine`):
-  - [`basic_ability_profile.schema.yaml`](./templates/basic_ability_profile.schema.yaml)
+  - [`core-goal-invariant-r11-summary.md`](./.agents/skills/si-chip/references/core-goal-invariant-r11-summary.md) (v0.3.0; spec §14)
+  - [`round-kind-r11-summary.md`](./.agents/skills/si-chip/references/round-kind-r11-summary.md) (v0.3.0; spec §15)
+  - [`multi-ability-layout-r11-summary.md`](./.agents/skills/si-chip/references/multi-ability-layout-r11-summary.md) (v0.3.0; spec §16)
+  - [`token-tier-invariant-r12-summary.md`](./.agents/skills/si-chip/references/token-tier-invariant-r12-summary.md) (v0.4.0; spec §18)
+  - [`real-data-verification-r12-summary.md`](./.agents/skills/si-chip/references/real-data-verification-r12-summary.md) (v0.4.0; spec §19)
+  - [`lifecycle-state-machine-r12-summary.md`](./.agents/skills/si-chip/references/lifecycle-state-machine-r12-summary.md) (v0.4.0; spec §20)
+  - [`health-smoke-check-r12-summary.md`](./.agents/skills/si-chip/references/health-smoke-check-r12-summary.md) (v0.4.0; spec §21)
+  - [`eval-pack-curation-r12-summary.md`](./.agents/skills/si-chip/references/eval-pack-curation-r12-summary.md) (v0.4.0; spec §22)
+  - [`method-tagged-metrics-r12-summary.md`](./.agents/skills/si-chip/references/method-tagged-metrics-r12-summary.md) (v0.4.0; spec §23)
+- Templates (machine-readable, parsed by DevolaFlow `template_engine`;
+  6 originals + 5 yaml added @v0.4.0 + 1 Informative md = 12):
+  - [`basic_ability_profile.schema.yaml`](./templates/basic_ability_profile.schema.yaml) (`$schema_version: 0.3.0`; adds `lifecycle.promotion_history`, `dependencies.live_backend`, `packaging.health_smoke_check`, `_method`/`_ci_low`/`_ci_high` companions)
   - [`self_eval_suite.template.yaml`](./templates/self_eval_suite.template.yaml)
   - [`router_test_matrix.template.yaml`](./templates/router_test_matrix.template.yaml)
   - [`half_retire_decision.template.yaml`](./templates/half_retire_decision.template.yaml)
-  - [`next_action_plan.template.yaml`](./templates/next_action_plan.template.yaml)
-  - [`iteration_delta_report.template.yaml`](./templates/iteration_delta_report.template.yaml)
+  - [`next_action_plan.template.yaml`](./templates/next_action_plan.template.yaml) (`$schema_version: 0.3.0`; adds `round_kind`, `token_tier_target`)
+  - [`iteration_delta_report.template.yaml`](./templates/iteration_delta_report.template.yaml) (`$schema_version: 0.3.0`; adds `tier_transitions`, 8-axis `value_vector`, OPTIONAL `weighted_token_delta_v0_4_0`)
+  - [`lazy_manifest.template.yaml`](./templates/lazy_manifest.template.yaml) (NEW v0.4.0, spec §18.5)
+  - [`feedback_real_data_samples.template.yaml`](./templates/feedback_real_data_samples.template.yaml) (NEW v0.4.0, spec §19.2)
+  - [`ship_decision.template.yaml`](./templates/ship_decision.template.yaml) (NEW v0.4.0, spec §20.4)
+  - [`recovery_harness.template.yaml`](./templates/recovery_harness.template.yaml) (NEW v0.4.0, spec §22.4)
+  - [`method_taxonomy.template.yaml`](./templates/method_taxonomy.template.yaml) (NEW v0.4.0, spec §23.1)
+  - [`eval_pack_qa_checklist.md`](./templates/eval_pack_qa_checklist.md) (NEW Informative v0.4.0, spec §22.3)
+- Bundled CLI cheat-sheets in `.agents/skills/si-chip/scripts/`:
+  [`eval_skill_quickstart.md`](./.agents/skills/si-chip/scripts/eval_skill_quickstart.md)
+  (v0.3.0) and [`real_llm_runner_quickstart.md`](./.agents/skills/si-chip/scripts/real_llm_runner_quickstart.md)
+  (v0.4.0; covers `evals/si-chip/runners/real_llm_runner.py`).
 - Demo / docs site: https://yorha-agents.github.io/Si-Chip/
 - Install paths: [`INSTALL.md`](./INSTALL.md)
 - User guide: [`USERGUIDE.md`](./USERGUIDE.md)

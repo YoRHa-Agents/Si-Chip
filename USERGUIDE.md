@@ -3,8 +3,11 @@
 This guide walks through the concepts, evidence files, and validators that make
 Si-Chip a persistent BasicAbility optimization factory. It is intentionally
 deeper than the [README](./README.md): every section cites the spec at
-[`.local/research/spec_v0.1.0.md`](./.local/research/spec_v0.1.0.md) so you
-can trace any claim back to the frozen normative text.
+[`.local/research/spec_v0.4.0.md`](./.local/research/spec_v0.4.0.md) so you
+can trace any claim back to the frozen normative text. (Older specs
+`spec_v0.1.0.md` / `spec_v0.2.0.md` / `spec_v0.3.0.md` are retained as
+pinned historical snapshots; their Normative sections were promoted into
+v0.4.0 either byte-identical or via an explicit additive bump.)
 
 If you just want to install and run, see [INSTALL.md](./INSTALL.md).
 
@@ -26,11 +29,12 @@ Stage enum (spec §2.2):
 `half_retired` as a side-loop and `retired` as terminus. `half_retired` can
 be pulled back to `evaluated` by the §6.4 reactivation triggers.
 
-### 1.2 R6 Metric Taxonomy (7 dimensions, 28 sub-metrics)
+### 1.2 R6 Metric Taxonomy (7 dimensions, 37 sub-metrics)
 
-Spec §3.1 enumerates the seven dimensions. The MVP-8 set is mandatory every
-round; the rest must be present with explicit `null` placeholders (spec §3.2
-constraint #2).
+Spec §3.1 enumerates the seven dimensions and 37 keys (the §13.4 prose count
+was reconciled from "28" to "37" at v0.2.0; v0.4.0 keeps the 37-key TABLE
+intact). The MVP-8 set is mandatory every round; the remaining 29 keys
+must be present with explicit `null` placeholders (spec §3.2 constraint #2).
 
 | Dimension | Sub-metrics | MVP-8 |
 |---|---|:---:|
@@ -63,8 +67,11 @@ strictly monotone left-to-right (validator `THRESHOLD_TABLE` enforces this).
 | iteration_delta (one efficiency axis) | >= +0.05 | >= +0.10 | >= +0.15 |
 
 A new ability binds to `v1_baseline`. Two consecutive passing rounds at the
-current gate are required before promotion (spec §4.2). v0.1.0 holds at
-`v1_baseline`; section 7 explains why.
+current gate are required before promotion (spec §4.2). v0.4.0 ships at
+`v2_tightened` (= `standard` gate) — the FIRST Si-Chip release at v2 — after
+19 consecutive `v1_baseline` rounds and 2 consecutive `v2_tightened` rounds
+(Round 18 + Round 19); `v3_strict` is deferred. Section 7 explains the
+promotion path and the v3 work that's deferred to v0.4.x.
 
 ### 1.4 Router Paradigm (no model training)
 
@@ -78,10 +85,14 @@ Router-test harness (spec §5.3): MVP is an 8-cell matrix
 (`2 model x 2 thinking_depth x 2 scenario_pack`); Full is 96 cells
 (`6 x 4 x 4`) and is required at `v2_tightened+`.
 
-### 1.5 Half-Retirement and the 7-Axis Value Vector
+### 1.5 Half-Retirement and the 8-Axis Value Vector
 
 Spec §6.1 freezes the value vector axes used to decide whether a Skill stays
-active, becomes `half_retire`, or `retire`s.
+active, becomes `half_retire`, or `retire`s. v0.1.0 — v0.3.0 had **7 axes**;
+v0.4.0 adds an 8th — `eager_token_delta` — per the Q4 user decision (the
+FIRST byte-identicality break of §6.1 since v0.1.0; spec_validator's
+`EXPECTED_VALUE_VECTOR_AXES_BY_SPEC` is version-aware: 7 axes for spec
+≤ v0.3.0, 8 axes for spec ≥ v0.4.0).
 
 | Axis | Formula |
 |---|---|
@@ -92,6 +103,7 @@ active, becomes `half_retire`, or `retire`s.
 | path_efficiency_delta | `(detour_without - detour_with) / detour_without` |
 | routing_delta | `trigger_F1_with - trigger_F1_without` |
 | governance_risk_delta | `risk_without - risk_with` |
+| eager_token_delta (v0.4.0+) | `(Σ EAGER tokens without − Σ EAGER tokens with) / Σ EAGER tokens without` |
 
 Decision rules are the §6.2 four-rule table; see section 6 for a worked
 example. Spec §6.4 lists six reactivation triggers that can pull a
@@ -100,8 +112,9 @@ example. Spec §6.4 lists six reactivation triggers that can pull a
 ### 1.6 Self-Dogfood Protocol
 
 Spec §8.1 freezes the 8 steps in order; spec §8.2 freezes the 6 evidence
-files per round; spec §8.3 requires at least 2 consecutive rounds before any
-v0.x ship.
+files per round (7 when `round_kind == 'ship_prep'` per spec §20.4 — see
+§1.7); spec §8.3 requires at least 2 consecutive rounds before any v0.x
+ship.
 
 ```mermaid
 flowchart LR
@@ -114,6 +127,85 @@ flowchart LR
     s7 --> s8[8 package-register]
     s8 -.next round.-> s1
 ```
+
+### 1.7 v0.3.0 + v0.4.0 Add-ons
+
+v0.3.0 added 2 Normative chapters (§14, §15) plus an Informative §16; v0.4.0
+added 6 more Normative chapters (§18–§23) and broke §6.1 byte-identicality
+(7 → 8 axes, see §1.5). At a glance:
+
+- **§14 Core Goal Invariant** (v0.3.0): every `BasicAbility` carries a
+  `core_goal {statement, test_pack_path, minimum_pass_rate: 1.0}` block
+  plus a `core_goal_test_pack.yaml` with ≥3 prompt + `expected_shape`
+  cases. The top-level invariant `C0_core_goal_pass_rate` MUST equal 1.0
+  every round (universal across all `round_kind` values); any C0 < 1.0 is
+  a round failure regardless of the other R6 axes and triggers a
+  REVERT-only response. C0 is NOT the 38th R6 sub-metric — R6 stays at
+  7 × 37 keys. See `references/core-goal-invariant-r11-summary.md`.
+- **§15 round_kind Enum** (v0.3.0): every `next_action_plan.yaml` declares
+  `round_kind ∈ {code_change | measurement_only | ship_prep |
+  maintenance}` with per-kind `iteration_delta` clause (strict /
+  monotonicity_only / WAIVED / WAIVED) per §15.2; universal C0 = 1.0 +
+  monotonicity per §15.3; consecutive-rounds promotion rule §15.4. See
+  `references/round-kind-r11-summary.md`.
+- **§16 Multi-Ability Dogfood Layout** (v0.3.0, Informative): when more
+  than one ability is dogfooded in the same date,
+  `.local/dogfood/<DATE>/abilities/<id>/round_<N>/` is the layout
+  convention. See `references/multi-ability-layout-r11-summary.md`.
+- **§18 Token-Tier Invariant** (v0.4.0): top-level `token_tier
+  {C7_eager_per_session, C8_oncall_per_trigger, C9_lazy_avg_per_load}`
+  block on `metrics_report.yaml` (beside `metrics` and `core_goal` —
+  NOT inside R6 D2). Adds OPTIONAL EAGER-weighted iteration_delta
+  formula `weighted_token_delta = 10×eager + 1×oncall + 0.1×lazy`,
+  `tier_transitions` block on `iteration_delta_report.yaml`, and a
+  `lazy_manifest` packaging gate. spec_validator BLOCKER 12
+  `TOKEN_TIER_DECLARED_WHEN_REPORTED`. See
+  `references/token-tier-invariant-r12-summary.md`.
+- **§19 Real-Data Verification** (v0.4.0): Normative sub-step of §8.1
+  step 2 `evaluate` (the main 8-step list count is unchanged). Three
+  layers: (a) **msw fixture provenance** — fixture filenames or in-file
+  comments cite `// real-data sample provenance: <captured_at> /
+  <observer>`; (b) **user-install verification** — run the ability
+  against real production payloads at install time; (c) **post-recovery
+  live verification** — re-run after rollback. spec_validator BLOCKER
+  13 `REAL_DATA_FIXTURE_PROVENANCE`. See
+  `references/real-data-verification-r12-summary.md`.
+- **§20 Stage Transitions & Promotion History** (v0.4.0): adds the
+  formal `stage_transition_table` (reverse transitions forbidden, e.g.
+  `productized → exploratory` is rejected),
+  `BasicAbility.lifecycle.promotion_history` as an append-only audit
+  trail, and `metrics_report.yaml.promotion_state` as a top-level block.
+  When `round_kind == 'ship_prep'`, the round emits a **7th evidence
+  file** `ship_decision.yaml` (vs the base 6); spec_validator's
+  `EVIDENCE_FILES` BLOCKER is round_kind-aware. See
+  `references/lifecycle-state-machine-r12-summary.md`.
+- **§21 Health Smoke Check** (v0.4.0):
+  `BasicAbility.packaging.health_smoke_check` declares pre-ship probes
+  against 4 axes `{read, write, auth, dependency}`. OPTIONAL at schema
+  level, REQUIRED when `current_surface.dependencies.live_backend:
+  true`. spec_validator BLOCKER 14
+  `HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`; OTel span
+  `gen_ai.tool.name=si-chip.health_smoke`. Si-Chip itself sets
+  `live_backend: false`. See
+  `references/health-smoke-check-r12-summary.md`.
+- **§22 Eval-Pack Curation Discipline** (v0.4.0): minimum pack size by
+  gate is v1 = 20 prompts (10+10), v2 = **40 prompts** with curated
+  near-miss bucket REQUIRED, v3 = 60+ recommended. G1 `_provenance ∈
+  {real_llm_sweep, deterministic_simulation, mixed}` is first-class
+  REQUIRED on `metrics_report.yaml`. Deterministic seed rule
+  `hash(round_id + ability_id)`. Real-LLM cache directory at
+  `.local/dogfood/<DATE>/<round_id>/raw/real_llm_runner_cache/`. See
+  `references/eval-pack-curation-r12-summary.md` and
+  `templates/eval_pack_qa_checklist.md`.
+- **§23 Method-Tagged Metrics** (v0.4.0): every R6 sub-metric emits a
+  `<metric>_method` companion field (token: `{tiktoken, char_heuristic,
+  llm_actual}`; quality/routing: `{real_llm, deterministic_simulator,
+  mixed}`; G1: `{real_llm_sweep, deterministic_simulation, mixed}`).
+  `_method == char_heuristic` requires `_ci_low` + `_ci_high` 95%
+  CI bands. Adds `U1_language_breakdown ∈ {en, zh, mixed_warning}` and
+  `U4_time_to_first_success_state ∈ {warm, cold, semicold}`.
+  spec_validator's `R6_KEYS` BLOCKER ignores companion suffixes. See
+  `references/method-tagged-metrics-r12-summary.md`.
 
 ## 2. Anatomy of a Dogfood Round
 
