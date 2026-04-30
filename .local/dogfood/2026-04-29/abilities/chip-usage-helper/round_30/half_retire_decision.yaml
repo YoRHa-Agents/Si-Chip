@@ -1,0 +1,82 @@
+ability_id: chip-usage-helper
+version: '2.0.0-pre'                          # major-bump pre-release marker shipped this round
+decided_at: '2026-04-30T01:35:00+08:00'
+decision: keep
+value_vector_round_30:                          # round 30 standalone (vs round 29)
+  task_delta: 0.00              # 133/133 tests pass; correctness floor preserved
+  token_delta: 0.00             # version bumps live in package.json / .cursor-plugin / scripts (out-of-tier; not loaded by agent)
+  latency_delta: 0.00
+  context_delta: 0.00
+  path_efficiency_delta: 0.00
+  routing_delta: 0.00
+  governance_risk_delta: '+0.05'   # CHANGELOG v2.0.0-pre entry restates breaking changes for major-version audience → ops audit-trail strengthened
+
+# Cumulative value vector across rounds 26 → 30 (Cycle 6 + extension)
+# This consolidates the v1.1.0 → v2.0.0-pre arc into a single 7-axis snapshot.
+value_vector_cycle_6_cumulative_v110_to_v200pre:
+  task_delta: 0.00              # 116/116 → 133/133 — correctness floor preserved across the migration; no test regression
+  token_delta: '+0.077'         # cumulative cycle-6 trim recovery (rounds 27 + 28 + 29 + 30 net = +1211 tokens recovered against round 26 baseline) = +0.077 axis (clears v1_baseline +0.05; SHY of v2_tightened +0.10)
+  latency_delta: null           # not measured (Cycle 7 production validation = next opportunity)
+  context_delta: '+0.077'       # = token_delta (most token movement was on canvas template + types + descriptions; LAZY/MCP-desc tier movements dominate the C4 footprint axis)
+  path_efficiency_delta: null   # not measured
+  routing_delta: 0.00           # R3/R4/R5/R6/R7/R8 all carry-forward from round 19 — no router-surface change across the cycle
+  governance_risk_delta: '+0.20_qualitative_cumulative'  # round 28 +0.01 V3 (3 contract assertions pin canvas hierarchy) + round 29 +0.05 (identity-flow doc trail) + round 30 +0.05 (CHANGELOG breaking-changes restatement) + round 26's migration_axis_tracking block (5 axes classified: BREAKING_INTERNAL_BACKWARD_COMPATIBLE_PUBLIC, ADDITIVE, ANNOTATED_SHIFT, ADDITIVE_FAIL_LOUD, ADDITIVE_NARROWING) — cumulative governance/audit-trail strengthening
+
+rule_evaluation:
+  bound_gate: v1_baseline
+  fired_rule: keep
+  fired_condition: |
+    Per spec §6 three-state trigger table at v2.0.0-pre RELEASE:
+      - task_delta = 0.00 (release commit; no functional change in the bump itself)
+      - token_delta = 0.00 standalone; +0.077 cumulative across cycle 6 (clears v1_baseline)
+      - context_delta = 0.00 standalone; +0.077 cumulative
+      - governance_risk_delta = +0.05 standalone (CHANGELOG restatement); +0.20 qualitative cumulative
+      - U1 description_readability = qualitative_+1.05 (round 28 hierarchy + round 29 identity-flow doc)
+
+    The §6 keep rule fires on cumulative cycle-6 evidence:
+      - At least one positive axis (token_delta cumulative +0.077, governance cumulative +0.20) clears
+        the v1_baseline +0.05 axis threshold bucket.
+      - U1 readability is on a positive trajectory across the cycle.
+      - V3 governance is mechanically pinned (round 28's 3 canvas-template-contract assertions)
+        AND audit-trail-documented (round 29 identity-flow doc + round 30 CHANGELOG restatement).
+      - No negative axis was traded in any round of the cycle.
+
+    The §6 retire rule does NOT fire (no axis ≤ 0; no governance risk negative).
+    The §6 half_retire rule does NOT fire (cumulative task_delta is 0 not "near-zero with
+    one efficiency axis at gate threshold" — instead the cycle has multiple positive axes
+    + sustained productized stage with active development).
+
+    Decision = `keep`. Lifecycle stage = `productized` (unchanged).
+
+v3_strict_gate_buckets_check:    # informational
+  v1_baseline_eq_+0.05: { axes_meeting: [token_delta_cumulative, context_delta_cumulative, governance_risk_delta_cumulative], count: 3, note: "cumulative cycle 6 clears v1_baseline +0.05 on three axes (token, context, governance); cycle has been at v1_baseline for 4 consecutive rounds (27-30)" }
+  v2_tightened_eq_+0.10: { axes_meeting: [], count: 0, note: "cumulative token / context axes are at +0.077 (SHY of +0.10 by 0.023); deferred to Cycle 7+ production validation + Cycle 8 identity-refactor for promotion attempt" }
+  v3_strict_eq_+0.15: { axes_meeting: [], count: 0 }
+retained_core:
+  - "16 MCP tools (unchanged surface; bumped to 2.0.0-pre)"
+  - "rules/usage-helper.mdc EAGER body (unchanged at 378 tokens; C1 frontmatter still 70)"
+  - "skills/chip-usage-helper/SKILL.md ON-CALL body (unchanged at 2144 tokens)"
+  - "templates/usage.canvas.template.tsx LAZY body (unchanged from round 28)"
+  - "templates/types.d.ts LAZY (unchanged)"
+  - "templates/empty-data.ts LAZY (unchanged)"
+  - "All trigger vocabulary preserved (R3/R4 carry forward to round 19)"
+  - "All 25 round-28 canvas-template-contract tests still PASS"
+  - "Multi-source resolveMe() function PRESERVED with explicit post-v1.2.0 X-User-Name JSDoc (round 29)"
+  - "v2.0.0-pre tarball: dist/chip-usage-helper-2.0.0-pre.tgz (377,207 bytes; sha256 c74d6b0e...)"
+review:
+  next_review_at: '2026-05-30'
+  triggers:
+    - new_model_no_ability_baseline_gap
+    - new_scenario_or_domain_match
+    - router_test_requires_ability_for_cheap_model
+    - efficiency_axis_becomes_significant      # Cycle 7 production validation may push C4 / L4 deltas above v2 (+0.10) threshold
+    - upstream_api_change_wrapper_stabilizes
+    - manual_invocation_rebound
+    - production_install_regression_surfaced   # NEW — Cycle 7 trigger; if a v2.0.0-pre install regression surfaces, half-retire-review re-baselines and a v2.0.1-pre fix ships
+provenance:
+  round_id: round_30
+  prior_round_id: round_29
+  spec_version: v0.3.0
+  ship_decision: round_30/ship_decision.yaml      # NEW round-30 ship_decision (mirrors round-26 ship_decision pattern)
+  prior_release_ship_decision: round_26/ship_decision.yaml
+rationale: "v2.0.0-pre major-bump pre-release shipped: 10 version anchors bumped, CHANGELOG v2.0.0-pre entry restates breaking changes for major audience, dist/chip-usage-helper-2.0.0-pre.tgz built (377,207 bytes; sha256 c74d6b0e...), npm run package:smoke PASS with 16 tools detected. 133/133 tests; typecheck clean. Cumulative cycle-6 value vector clears v1_baseline on 3 axes (token, context, governance). Decision: keep at productized stage; v2.0.0 stable promotion deferred to Cycle 7 production validation."

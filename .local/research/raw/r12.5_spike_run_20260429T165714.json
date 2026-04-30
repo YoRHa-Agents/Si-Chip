@@ -1,0 +1,875 @@
+{
+  "schema_version": "0.1.0",
+  "script_version": "0.1.0-spike",
+  "spike_round": "r12.5",
+  "model": "claude-haiku-4-5",
+  "endpoint": "http://127.0.0.1:8086",
+  "k": 4,
+  "max_calls": 80,
+  "max_prompts": 20,
+  "n_should_trigger": 10,
+  "n_should_not_trigger": 10,
+  "n_prompts_evaluated": 20,
+  "n_prompts_with_full_k": 20,
+  "calls_made_this_run": 72,
+  "cap_hit": false,
+  "wall_clock_s": 89.0649,
+  "tokens_input_total": 10512,
+  "tokens_output_total": 320,
+  "t1_pass_rate": 1.0,
+  "t2_pass_at_k": 1.0,
+  "delta_t2_minus_t1": 0.0,
+  "deterministic_baseline": {
+    "pass_rate_round4": 0.7222,
+    "pass_k_4_round4": 0.5478,
+    "v2_tightened_threshold": 0.55,
+    "rationale": "with_ability_runner.py uses pass_k_4 = pass_rate**4 because SHA-256 hashing is deterministic; v2_tightened T2 >= 0.55 is structurally unreachable with this proxy. A real LLM with non-zero per-sample variance produces pass_at_k > pass_rate in expectation."
+  },
+  "v2_tightened_reachable": true,
+  "generated_at": "2026-04-29T16:58:43Z",
+  "cache_file": ".local/research/raw/r12.5_spike_cache_claude-haiku-4-5.json",
+  "eval_pack": ".local/dogfood/2026-04-29/abilities/chip-usage-helper/eval_pack.yaml",
+  "per_prompt": [
+    {
+      "prompt": "show me my cursor usage dashboard",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "d4e9565e864ab281",
+          "elapsed_s": 1.163
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "73e67d3d19c6d61b",
+          "elapsed_s": 1.3706
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "4837eb36be9afe38",
+          "elapsed_s": 1.2726
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "885900b9c21c84dc",
+          "elapsed_s": 1.6955
+        }
+      ]
+    },
+    {
+      "prompt": "how much did I spend on cursor this month",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "1a5881db9a235879",
+          "elapsed_s": 1.2747
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "d21fce39184718b6",
+          "elapsed_s": 2.134
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "fb0348223d8e6485",
+          "elapsed_s": 1.4902
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "75b3b7a15bd92278",
+          "elapsed_s": 0.8932
+        }
+      ]
+    },
+    {
+      "prompt": "team ranking for cursor billing",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "abcac5b4281970a4",
+          "elapsed_s": 1.1653
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "c49a38f6f285e2e6",
+          "elapsed_s": 1.1769
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "1bb2df45290b92b5",
+          "elapsed_s": 0.988
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "14798f188ca5b547",
+          "elapsed_s": 0.9577
+        }
+      ]
+    },
+    {
+      "prompt": "which model cost me the most this week",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "30e9536337a8201f",
+          "elapsed_s": 1.0089
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "146819b61adbdc7f",
+          "elapsed_s": 1.0914
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "f3cacf2b9b003d22",
+          "elapsed_s": 1.13
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "4959d8e3dc8be814",
+          "elapsed_s": 0.8351
+        }
+      ]
+    },
+    {
+      "prompt": "what's my spend breakdown by model",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "db1a1646eabab28a",
+          "elapsed_s": 0.8739
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "1f181468aba6a024",
+          "elapsed_s": 1.1275
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "3f42811128b32361",
+          "elapsed_s": 1.2193
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "9c5c4ebccd567e62",
+          "elapsed_s": 1.0247
+        }
+      ]
+    },
+    {
+      "prompt": "/usage-report",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "48dea6f2ec3072b9",
+          "elapsed_s": 1.0117
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "aa14297ee4305c65",
+          "elapsed_s": 1.2474
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "6e2fa9f63ccb5f5e",
+          "elapsed_s": 1.0413
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "55d6600b2724c42f",
+          "elapsed_s": 1.2652
+        }
+      ]
+    },
+    {
+      "prompt": "/usage-report --window=30d",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "7d7d6d8da41acc1e",
+          "elapsed_s": 1.4792
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "2660258eb2eadf29",
+          "elapsed_s": 0.9362
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "42fb9f656ee20da4",
+          "elapsed_s": 1.5908
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "93127e3c37ffcdf9",
+          "elapsed_s": 0.6706
+        }
+      ]
+    },
+    {
+      "prompt": "我的 cursor 用量?",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "3dcb55a1a240e5a7",
+          "elapsed_s": 1.6667
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "e21a5febfcfde84c",
+          "elapsed_s": 0.8137
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "6d4a468b71860138",
+          "elapsed_s": 0.984
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "77c92281234db128",
+          "elapsed_s": 1.141
+        }
+      ]
+    },
+    {
+      "prompt": "本月花了多少?",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "208b4236edbcdfce",
+          "elapsed_s": 1.0943
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "0a741d183bbbaee2",
+          "elapsed_s": 0.78
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "d18295bee50213ed",
+          "elapsed_s": 1.1115
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "415efc246635ff5d",
+          "elapsed_s": 3.4575
+        }
+      ]
+    },
+    {
+      "prompt": "这个月和上个月比多花了多少?",
+      "expected_yes": true,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "734b9086af1b129c",
+          "elapsed_s": 0.8725
+        },
+        {
+          "sample_idx": 1,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "a70867e77056058e",
+          "elapsed_s": 0.8923
+        },
+        {
+          "sample_idx": 2,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "559cf93f148382f3",
+          "elapsed_s": 1.1403
+        },
+        {
+          "sample_idx": 3,
+          "text": "YES",
+          "parsed": true,
+          "correct": true,
+          "cache_key": "4bf9b8ea420a800a",
+          "elapsed_s": 1.2418
+        }
+      ]
+    },
+    {
+      "prompt": "how do I install a plugin?",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "12e9b15e8118a1c4",
+          "elapsed_s": 1.8022
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "b14071cf3e38d1ab",
+          "elapsed_s": 1.4164
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "c98df42aaa56db14",
+          "elapsed_s": 1.4682
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "ac3f625666bda1df",
+          "elapsed_s": 0.9576
+        }
+      ]
+    },
+    {
+      "prompt": "fix this typescript error in my file",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "91a1b03017bb4137",
+          "elapsed_s": 1.4715
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "6f25b81089c07be9",
+          "elapsed_s": 0.9098
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "f248bd188c1f9116",
+          "elapsed_s": 0.903
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "1fc0b75bba12b1f4",
+          "elapsed_s": 0.7159
+        }
+      ]
+    },
+    {
+      "prompt": "what's my current git branch?",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "c933632baee28792",
+          "elapsed_s": 1.0224
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "cfde5f314460ddbf",
+          "elapsed_s": 1.2794
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "6a0546946aa628b7",
+          "elapsed_s": 2.2679
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "186a303cb89229a7",
+          "elapsed_s": 1.8323
+        }
+      ]
+    },
+    {
+      "prompt": "show me docker logs from the api container",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "5a423263e412f1ae",
+          "elapsed_s": 1.392
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "42f9716e9ff55ca5",
+          "elapsed_s": 0.8007
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "f6108c4f46beda17",
+          "elapsed_s": 1.1034
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "be4065131f882cab",
+          "elapsed_s": 1.08
+        }
+      ]
+    },
+    {
+      "prompt": "help me write a regex for email validation",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "833e66082c6367d1",
+          "elapsed_s": 0.9624
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "998700c5ee9184f5",
+          "elapsed_s": 1.6601
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "f95e769e5aa396cb",
+          "elapsed_s": 0.9032
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "71724e8ed9bcd4e9",
+          "elapsed_s": 1.3675
+        }
+      ]
+    },
+    {
+      "prompt": "what is MCP?",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "15a886241cfb8c87",
+          "elapsed_s": 0.7468
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "55828aa85f23f354",
+          "elapsed_s": 1.2331
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "89d64ffad08339e1",
+          "elapsed_s": 1.4058
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "718d3704e22ff663",
+          "elapsed_s": 1.5668
+        }
+      ]
+    },
+    {
+      "prompt": "explain how Cursor Composer works",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "c4e44e394c5c2f4f",
+          "elapsed_s": 1.4926
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "5b6a0f74f6d28ca6",
+          "elapsed_s": 1.0828
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "5854141f8638d927",
+          "elapsed_s": 1.2463
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "4ba972ef737959dd",
+          "elapsed_s": 1.0552
+        }
+      ]
+    },
+    {
+      "prompt": "how to open Cursor settings",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "0d23fd8868320960",
+          "elapsed_s": 1.1812
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "1700b7e96f1695ce",
+          "elapsed_s": 1.2751
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "c9577532be6b1caf",
+          "elapsed_s": 1.2433
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "d40215007955647c",
+          "elapsed_s": 0.8948
+        }
+      ]
+    },
+    {
+      "prompt": "Cursor keybinding for rename",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "47a0b98e0662394e",
+          "elapsed_s": 2.3074
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "5be82b784e6d2a5c",
+          "elapsed_s": 1.6266
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "983e40e5fc5e03a5",
+          "elapsed_s": 2.076
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "8cc21a18ee3ece2f",
+          "elapsed_s": 1.1051
+        }
+      ]
+    },
+    {
+      "prompt": "update Cursor to latest version",
+      "expected_yes": false,
+      "samples_requested": 4,
+      "samples_completed": 4,
+      "samples_correct": 4,
+      "any_correct_at_k": true,
+      "samples": [
+        {
+          "sample_idx": 0,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "6210c7cd61b2dea3",
+          "elapsed_s": 1.2906
+        },
+        {
+          "sample_idx": 1,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "336d738de629dba1",
+          "elapsed_s": 1.513
+        },
+        {
+          "sample_idx": 2,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "86289189579436d2",
+          "elapsed_s": 1.5122
+        },
+        {
+          "sample_idx": 3,
+          "text": "NO",
+          "parsed": false,
+          "correct": true,
+          "cache_key": "0ec6f590997298d9",
+          "elapsed_s": 1.0287
+        }
+      ]
+    }
+  ],
+  "system_prompt_used": "You are a routing classifier. The skill `chip-usage-helper` answers questions about a user's Cursor IDE billing/usage (their personal or team spend, model cost breakdown, agent hours, billing dashboard, /usage-report slash command). It does NOT answer general Cursor questions (settings, plugins, keybindings, how Composer works) or unrelated programming/devops questions. Decide whether the user prompt below should ROUTE to chip-usage-helper. Reply with exactly one token: YES or NO. No punctuation, no explanation."
+}

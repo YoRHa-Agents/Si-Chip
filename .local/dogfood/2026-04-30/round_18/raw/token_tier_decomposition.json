@@ -1,0 +1,12 @@
+{
+  "C7_eager_per_session": 0,
+  "C7_eager_per_session_method": "char_heuristic",
+  "C8_oncall_per_trigger": 4380,
+  "C8_oncall_per_trigger_method": "char_heuristic",
+  "C9_lazy_avg_per_load": 0,
+  "C9_lazy_avg_per_load_method": "char_heuristic",
+  "measured_with_sessions": 0,
+  "measured_with_triggers": 1,
+  "measured_with_lazy_loads": 0,
+  "carry_forward_basis": ".local/dogfood/2026-04-30/round_17/raw/token_tier_decomposition.json (byte-identical; SKILL.md SHA 9b20bb4dc... unchanged across Rounds 16/17/18)"
+}

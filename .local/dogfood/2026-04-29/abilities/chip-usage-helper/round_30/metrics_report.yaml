@@ -1,0 +1,103 @@
+ability_id: chip-usage-helper
+round_id: round_30
+prior_round_id: round_29
+generated_at: '2026-04-30T01:35:00+08:00'
+spec_version: v0.3.0
+gate_bound: v1_baseline
+cycle: feature_v120_aibill_aggregate_migration
+round_kind: ship_prep                # per spec §15 / §17 hard rule 10 — round 30 is the v2.0.0-pre release commit (version bump + CHANGELOG + tarball + smoke); no source code change
+release_state: pre_release           # v2.0.0 stable will follow after Cycle 7 production validation
+
+mvp_8:
+  T1_pass_rate: 1.00          # 133/133 vitest PASS (re-verified post-bump)
+  T2_pass_k: null
+  T3_baseline_delta: 0.92     # carried from rounds 19/26-29
+  C1_metadata_tokens: 70      # rules + SKILL frontmatter unchanged
+  C4_per_invocation_footprint: 7500     # carries from round 27 baseline; Cycle 7 production validation = next firm-up opportunity
+  L2_wall_clock_p95: null
+  R3_trigger_F1: null         # rules/SKILL trigger surface unchanged
+  R5_router_floor: composer_2/fast      # unchanged
+
+# 28-key placeholder for non-MVP metrics
+non_mvp_28:
+  T4_error_recovery_rate: null
+  C2_body_tokens: 14582                              # combined SOURCE body unchanged from round 28/29 (canvas/SKILL/types untouched in round 30; only versions bumped)
+  C3_resolved_tokens: null
+  C5_context_rot_risk: null
+  C6_scope_overlap_score: null
+  L1_wall_clock_p50: null
+  L3_step_count: null
+  L4_redundant_call_ratio: null
+  L5_detour_index: null
+  L6_replanning_rate: null
+  L7_think_act_split: null
+  G1_cross_model_pass_matrix: null
+  G2_cross_domain_transfer_pass: null
+  G3_OOD_robustness: null
+  G4_model_version_stability: null
+  U1_description_readability: 'qualitative_+1.05'   # carried from round 29
+  U2_first_time_success_rate: null
+  U3_setup_steps_count: 3
+  U4_time_to_first_success: null
+  R1_trigger_precision: null
+  R2_trigger_recall: null
+  R4_near_miss_FP_rate: null
+  R6_routing_latency_p95: null
+  R7_routing_token_overhead: null
+  R8_description_competition_index: null
+  V1_permission_scope: "1 SQLite DB + 2 HTTPS hosts + 1 canvas write + X-User-Name header on me/* + my-tasks endpoints"
+  V2_credential_surface: "27 sensitive refs"
+  V3_drift_signal: 0.0
+  V4_staleness_days: 0
+
+release_artifacts:
+  tarball_path: dist/chip-usage-helper-2.0.0-pre.tgz
+  tarball_size_bytes: 377207
+  tarball_sha256: c74d6b0ea0c571c09532674516cdac5747fa58757a73a9278b7c036f88c16b8f
+  package_json: dist/chip-usage-helper-2.0.0-pre.package.json
+  smoke_pass: true
+  smoke_tools_detected: 16
+  built_via: 'npm run package'
+  smoke_command: 'npm run package:smoke'
+
+v1_baseline_threshold_check:
+  pass_rate: { threshold: '>= 0.75', observed: 1.00, pass: true, note: '133/133 vitest PASS post-bump (re-verified)' }
+  trigger_F1: { threshold: '>= 0.80', observed: null, pass: 'carried_forward_round_19=1.0' }
+  near_miss_FP_rate: { threshold: '<= 0.15', observed: null, pass: 'carried_forward_round_19=0.0' }
+  metadata_tokens: { threshold: '<= 120', observed: 70, pass: true }
+  per_invocation_footprint: { threshold: '<= 9000', observed: 7500, pass: true, note: 'estimated; same as rounds 27-29; Cycle 7 production validation = next firm-up' }
+  wall_clock_p95: { threshold: '<= 45 s', observed: null, pass: 'NOT_MEASURED_cycle_7_will_baseline' }
+  routing_latency_p95_ms: { threshold: '<= 2000 ms', observed: null, pass: 'carried_forward_round_19=0.18ms' }
+  routing_token_overhead: { threshold: '<= 0.20', observed: null, pass: 'carried_forward_round_19=0.034' }
+
+verdict:
+  pass_v1_baseline: true
+  pass_v2_tightened: provisional         # C1 PASS (70 ≤ 100), C4 BORDERLINE (7500 vs 7000 threshold), iteration_delta token axis carries from rounds 27+28+29 cumulative +0.077
+  pass_v3_strict: deferred
+  blockers: []
+  promotion_status: |
+    Round 30 is the v2.0.0-pre RELEASE commit; gate stays v1_baseline. The "-pre"
+    suffix is intentional: Cycle 7 production validation will measure the missing
+    axes (C4 firmer, L2 against real ai-bill) and decide whether to promote v2.0.0
+    stable + attempt v2_tightened. If a regression surfaces, v2.0.1-pre with a fix.
+
+rationale: |
+  Round 30 is `ship_prep` per spec §15: a version-bump-and-release round
+  with no source-code change beyond the version anchors themselves. The
+  release artefacts (tarball, sha256, package.json metadata) all carry
+  the new 2.0.0-pre version; npm did NOT reject the `2.0.0-pre` semver
+  identifier (Pre-release identifier without a numeric suffix is valid
+  per https://semver.org §9 — `[0-9A-Za-z-]+` allowed; npm@10 honored it).
+
+  Si-Chip dispatch instruction §30.2 said "fall back to 2.0.0-pre.0 if
+  npm rejects 2.0.0-pre" — we did NOT need that fallback. The chosen
+  semver identifier is `2.0.0-pre`.
+
+  133/133 vitest PASS post-bump (re-verified). tsc --noEmit clean post-bump
+  (re-verified). package-smoke-test.mjs PASS with 16 tools detected.
+
+provenance:
+  generator: "L3 dispatch — Round 30 v2.0.0-pre release commit"
+  measurement_methodology: "vitest 133/133 + tsc --noEmit clean (re-run after version bump); npm run package + npm run package:smoke (PASS)"
+  evaluator: "vitest (npm test) + tsc --noEmit + scripts/package-smoke-test.mjs"
+  feedback_source: "L0 dispatch — round 29 + 30 combined dispatch instructions"

@@ -1,0 +1,113 @@
+basic_ability:
+  id: chip-usage-helper
+  intent: "Render a per-user Cursor + LiteLLM usage dashboard as a live Cursor Canvas sourced from the team-internal ai-bill aggregate REST API."
+  current_surface:
+    type: mcp
+    path: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper
+    shape_hint: registry_first
+  packaging:
+    install_targets: { cursor: true, claude_code: false, codex: false }
+    source_of_truth: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper
+    generated_targets:
+      - dist/chip-usage-helper-2.0.0-pre.tgz
+      - dist/chip-usage-helper-2.0.0-pre.tgz.sha256
+      - dist/chip-usage-helper-2.0.0-pre.package.json
+  lifecycle:
+    stage: productized                # unchanged from rounds 26-29; v2.0.0-pre is a major-bump pre-release marker, NOT a routing-surface change
+    last_reviewed_at: '2026-04-30'
+    next_review_at: '2026-05-30'
+    note: "Round 30 is the v2.0.0-pre RELEASE round (`ship_prep` per spec §15). Bumps 10 anchors from 1.2.0 → 2.0.0-pre, prepends a CHANGELOG entry above v1.2.0, builds a new tarball, runs npm run package:smoke (PASS, 16 tools detected), and stacks on round 28 commit `abc3976`. NO source-code change beyond the version anchors. Round 29 doc additions land as a separate prior commit (Round-29-doc-only). Cycle 7 production validation is the next dispatch."
+  eval_state:
+    has_eval_set: true
+    has_no_ability_baseline: true
+    has_self_eval: true
+    has_router_test: true
+    has_iteration_delta: true
+  metrics:
+    # MVP 8 — echo round 29 (no metric change in v2.0.0-pre bump itself)
+    task_quality:
+      T1_pass_rate: 1.00          # 133/133 vitest PASS post-bump (re-verified)
+      T2_pass_k: null
+      T3_baseline_delta: 0.92     # carried from round 19/26-29 — version bump doesn't change what the dashboard answers
+      T4_error_recovery_rate: null
+    context_economy:
+      C1_metadata_tokens: 70                              # rules + SKILL frontmatter unchanged
+      C2_body_tokens: 14582                                # combined SOURCE body unchanged from round 28/29 (canvas / SKILL / types untouched)
+      C3_resolved_tokens: null
+      C4_per_invocation_footprint: 7500                    # ESTIMATED upper bound; still carrying from round 27 baseline (production validation in Cycle 7 is the next firm-up opportunity)
+      C5_context_rot_risk: null
+      C6_scope_overlap_score: null
+    latency_path:
+      L1_wall_clock_p50: null
+      L2_wall_clock_p95: null     # NOT re-measured — production validation will baseline against real ai-bill latency
+      L3_step_count: null
+      L4_redundant_call_ratio: null
+      L5_detour_index: null
+      L6_replanning_rate: null
+      L7_think_act_split: null
+    generalizability:
+      G1_cross_model_pass_matrix: null
+      G2_cross_domain_transfer_pass: null
+      G3_OOD_robustness: null
+      G4_model_version_stability: null
+    usage_cost:
+      U1_description_readability: 'qualitative_+1.05'  # carried from round 29
+      U2_first_time_success_rate: null
+      U3_setup_steps_count: 3
+      U4_time_to_first_success: null
+    routing_cost:
+      R1_trigger_precision: null
+      R2_trigger_recall: null
+      R3_trigger_F1: null         # rules/SKILL trigger surface unchanged (third round in a row: 27, 28, 29, 30 all router-stable)
+      R4_near_miss_FP_rate: null
+      R5_router_floor: composer_2/fast    # unchanged
+      R6_routing_latency_p95: null
+      R7_routing_token_overhead: null
+      R8_description_competition_index: null
+    governance_risk:
+      V1_permission_scope: "1 SQLite DB (identity + health snapshot only) + 2 HTTPS hosts + 1 canvas write (X-User-Name header on me/* + my-tasks endpoints)"
+      V2_credential_surface: "27 sensitive refs in repo (env vars, no in-tree credentials)"
+      V3_drift_signal: 0.0
+      V4_staleness_days: 0
+  value_vector:
+    task_delta: 0.00              # 133/133 PASS preserved (same test surface as round 28/29)
+    token_delta: 0.00             # version bump in package.json/.cursor-plugin/etc. is out-of-tier (the agent doesn't load these files)
+    latency_delta: 0.00
+    context_delta: 0.00
+    path_efficiency_delta: 0.00
+    routing_delta: 0.00
+    governance_risk_delta: '+0.05'   # v2.0.0-pre marker + CHANGELOG breaking-changes restated for major-version audience → ops can audit the migration arc without spelunking through 5 prior changelog entries
+  router_floor: composer_2/fast
+  decision:
+    action: keep
+    rationale: "v2.0.0-pre marks major bump after ai-bill REST migration arc; production-validation-pending"
+    release_state: pre_release
+    risk_flags:
+      - "C4 still ESTIMATED. Cycle 7 production validation should attempt a deterministic-harness firm-up; if the workflow proves stable we can promote v2_tightened in round 32+."
+      - "v2.0.0-pre is intentionally a PRE-RELEASE marker. Production callers should pin to 1.2.0 until v2.0.0 stable is published. The decision to ship 'pre' rather than directly to 2.0.0 is conservative — it lets 1-2 weeks of real install / use surface any regressions before locking the major bump."
+      - "Rounds 27-30 stacked on the v1.2.0 ship branch (feature/v1.2.0-api-migration). MR #10 will pick up the new commits automatically. The MR body still references v1.2.0; the 2.0.0-pre commit's CHANGELOG entry is the canonical announcement of the major bump."
+provenance:
+  generator: "L3 Task agent — Si-Chip dogfood Round 30 (chip-usage-helper v2.0.0-pre release)"
+  parent_dispatch: "L0 → Rounds 29 (identity flow consolidation review) + 30 (v2.0.0-pre release)"
+  spec_version: v0.3.0
+  generated_at: '2026-04-30T01:35:00+08:00'
+  target_commit_base: abc3976   # round 28 canvas-redesign commit; round 29 doc commit will stack first, then round 30 v2.0.0-pre bump commit
+  target_branch: feature/v1.2.0-api-migration
+  prior_round_id: round_29
+  changes_this_round:
+    - "Version bump 1.2.0 → 2.0.0-pre across 10 anchors:"
+    - "  1. mcp/package.json `version`"
+    - "  2. package.json `version` + scripts.package:inspect tarball name"
+    - "  3. .cursor-plugin/plugin.json `version`"
+    - "  4. scripts/package-plugin.mjs `const VERSION`"
+    - "  5. scripts/package-smoke-test.mjs `const VERSION`"
+    - "  6. mcp/src/index.ts server constructor `version`"
+    - "  7. mcp/package-lock.json self-version (top + lockfile workspace entry)"
+    - "  8. README.md install paths + `### Packaged v2.0.0-pre` heading"
+    - "  9. docs/user-guide.md install paths + `Version:` header"
+    - "  10. docs/admin-integration-guide.md install paths + `Version:` header"
+    - "CHANGELOG.md: prepended `## v2.0.0-pre (2026-04-29)` entry above `## v1.2.0` entry"
+    - "Built dist/chip-usage-helper-2.0.0-pre.tgz (377,207 bytes; sha256 c74d6b0ea0c571c09532674516cdac5747fa58757a73a9278b7c036f88c16b8f)"
+    - "Removed dist/chip-usage-helper-1.2.0.* old tarball + sha256 + package.json"
+    - "Si-Chip evidence (this round): basic_ability_profile.yaml + metrics_report.yaml + router_floor_report.yaml + half_retire_decision.yaml + next_action_plan.yaml + iteration_delta_report.yaml + ship_decision.yaml + round_30.md"
+    - "SUMMARY.md: closed Cycle 6 with v2.0.0-pre release marker subsection; opened Cycle 7 placeholder; added 2-3 final meta-feedback bullets capturing v1.x → v2.x arc lessons"

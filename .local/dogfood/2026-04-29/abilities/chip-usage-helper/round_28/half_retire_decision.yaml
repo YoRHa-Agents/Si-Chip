@@ -1,0 +1,72 @@
+ability_id: chip-usage-helper
+version: '1.2.0'                              # NO version bump in round 28 per dispatch §AC.7
+decided_at: '2026-04-30T00:55:00+08:00'
+decision: keep
+value_vector:
+  task_delta: 0.00              # 133/133 tests pass; correctness floor preserved (3 new contract tests pin the new invariants)
+  token_delta: -0.008           # +115 tokens on canvas template / 14467 base = -0.79% (within +200 dispatch budget)
+  latency_delta: 0.00           # not measured this round
+  context_delta: -0.008         # = token_delta — small lazy-tier growth for hierarchy clarity + truncation indicators
+  path_efficiency_delta: 0.00   # router/path unchanged
+  routing_delta: 0.00           # trigger surface unchanged
+  governance_risk_delta: '+0.01_qualitative'   # contract test now pins round-28 invariants → less drift risk; numerically tiny but mechanically meaningful
+rule_evaluation:
+  bound_gate: v1_baseline
+  fired_rule: keep
+  fired_condition: |
+    Per spec §6 three-state trigger table:
+      - task_delta = 0.00 (canvas-template change is non-functional from a correctness POV;
+        the dashboard still answers the same questions, the gate now passes more tests)
+      - token_delta = -0.008 (NEGATIVE — cost +115 tokens for hierarchy clarity)
+      - context_delta = -0.008 (= token_delta)
+      - governance_risk_delta = +0.01_qualitative (3 new contract tests pin the round-28
+        structural invariants → drift risk REDUCED)
+      - U1 description_readability = qualitative_+1 (single 'Cross-source & advanced' H2
+        group + truncation indicators; supplementary sections share single visual frame)
+
+    The §6 keep rule's intent is "keep abilities that meaningfully outperform the base
+    model OR provide a positive efficiency / governance / readability axis". This round
+    spent token budget on U1 (readability) and V3 (drift signal) — both positive on
+    qualitative axes. The token cost was pre-budgeted by the dispatch (+200 ceiling;
+    observed +115 = 57.5% of budget consumed).
+
+    The §6 half_retire rule's "task_delta near zero AND ≥1 efficiency axis at gate
+    threshold" trigger fires HERE only on the NEGATIVE side (the token axis is -0.008).
+    But half_retire is for sunsetting; this round ADDS contract assertions that pin the
+    new structural invariants — exactly the opposite direction. Decision = `keep`.
+
+    Cumulative across rounds 27 + 28 (the dispatch's 2-round token-econ + canvas pass):
+      - Round 27: token_delta = +0.084 (1326 tokens recovered)
+      - Round 28: token_delta = -0.008 (115 tokens spent on hierarchy)
+      - Cycle 6 net (rounds 27 + 28): +1211 tokens recovered = +0.077 axis = clears v1_baseline +0.05
+      - => Cumulative dispatch token efficiency: PASS at v1_baseline
+
+v3_strict_gate_buckets_check:    # informational
+  v1_baseline_eq_+0.05: { axes_meeting: [], count: 0, note: "round 28 standalone is negative on token; cumulative across 27+28 is +0.077 → clears v1_baseline" }
+  v2_tightened_eq_+0.10: { axes_meeting: [], count: 0 }
+  v3_strict_eq_+0.15: { axes_meeting: [], count: 0 }
+retained_core:
+  - "16 MCP tools (unchanged surface)"
+  - "rules/usage-helper.mdc EAGER body (unchanged at 378 tokens; C1 frontmatter still 70)"
+  - "skills/chip-usage-helper/SKILL.md ON-CALL body (unchanged at 2144 tokens)"
+  - "templates/usage.canvas.template.tsx LAZY body (845 lines, 7554 tokens; +3 lines / +115 tokens vs round 27 — info-density redesign)"
+  - "templates/types.d.ts LAZY (397 lines, 2961 tokens; unchanged)"
+  - "templates/empty-data.ts LAZY (154 lines, 1155 tokens; unchanged)"
+  - "All trigger vocabulary preserved (R3/R4 carry forward)"
+  - "All 22 prior canvas-template-contract tests still PASS — no regression in contract assertions"
+  - "3 NEW round-28 contract assertions pin the new structural invariants (hierarchy + helper + grouping)"
+review:
+  next_review_at: '2026-05-30'
+  triggers:
+    - new_model_no_ability_baseline_gap
+    - new_scenario_or_domain_match
+    - router_test_requires_ability_for_cheap_model
+    - efficiency_axis_becomes_significant      # round 29 identity-flow consolidation may push C4/L4 deltas above v2 (+0.10) threshold
+    - upstream_api_change_wrapper_stabilizes
+    - manual_invocation_rebound
+provenance:
+  round_id: round_28
+  prior_round_id: round_27
+  spec_version: v0.3.0
+  ship_decision: round_26/ship_decision.yaml      # round 28 stacks on the v1.2.0 ship; no new ship_decision this round
+rationale: "Round 28 canvas info-density redesign landed: +115 tokens on canvas template (within +200 dispatch budget) for clearer typography hierarchy ('Cross-source & advanced' H2 grouping + H3 demotion of supplementary sections) + truncation indicators (MoreRowsFooter helper, 3 usages). 133/133 tests; canvas-template-contract grew 22→25 (3 new round-28 invariants pinned). Decision: keep at productized stage."

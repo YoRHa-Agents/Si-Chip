@@ -1,0 +1,45 @@
+# Si-Chip Method Taxonomy Template — spec v0.4.0-rc1 §23.1.
+# Instance template (NOT a DevolaFlow WorkflowTemplate).
+# Consumed by tools/spec_validator.py to validate `_method` companion-field values
+# against a controlled vocabulary.
+
+$schema_version: "0.1.0"
+$spec_section: "§23.1"
+$source_of_truth: "templates/method_taxonomy.template.yaml (consumed by spec_validator)"
+
+description: |
+  Controlled vocabulary of allowed `<metric>_method` companion-field values per spec §23.1.
+  spec_validator checks each `*_method` field against this taxonomy.
+
+method_vocabulary:
+  # Token-related metrics (C1, C2, C4, C7, C8, C9)
+  token_metrics:
+    allowed: [tiktoken, char_heuristic, llm_actual]
+    default: tiktoken
+    description: "tiktoken = precise BPE count; char_heuristic = chars/3.8 estimate; llm_actual = API-reported usage"
+
+  # Core-goal pass rate
+  core_goal_pass_rate:
+    allowed: [real_llm, deterministic_simulator]
+    default: deterministic_simulator
+    description: "real_llm = live k-sample via evals/si-chip/runners/real_llm_runner.py; deterministic_simulator = SHA-256 proxy"
+
+  # Cross-model G1
+  g1_cross_model_pass_matrix:
+    allowed: [real_llm_sweep, deterministic_simulation, mixed]
+    default: deterministic_simulation
+    description: "real_llm_sweep = live N-model × M-depth × K-pack; deterministic_simulation = replay from cached SHA-256 runs; mixed = partial real + partial deterministic"
+
+  # Latency p50/p95
+  latency_metrics:
+    allowed: [wall_clock, otel_trace, subprocess_timeit]
+    default: wall_clock
+
+  # Trigger F1
+  trigger_f1:
+    allowed: [bag_of_words_regex, cjk_substring_plus_discriminators, llm_classifier]
+    default: cjk_substring_plus_discriminators
+
+confidence_band:
+  char_heuristic_ratio: { low: 3.6, high: 4.0, typical: 3.8 }
+  description: "char_heuristic = chars / N where N is in the confidence band; emit _ci_low and _ci_high fields for downstream consumers"

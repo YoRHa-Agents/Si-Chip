@@ -1,0 +1,110 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-30T00:55:00+08:00'
+targets_round: round_29_identity_flow_consolidation
+bound_gate: v1_baseline           # round 29 is the next promotion attempt to v2_tightened
+target_branch: feature/v1.2.0-api-migration   # SAME branch (v2.0.0-pre is dispatch-deferred per L0 instructions)
+round_kind: code_change            # per spec §15 + §17 hard rule 10 — round 29 is identity-flow refactor
+
+# Rounds 29-30 plan; rounds 27-28 are now COMPLETE per this dispatch.
+
+actions:
+  - action_id: round_29_identity_flow_consolidation
+    priority: P1
+    description: |
+      Inherited from round_26/next_action_plan.yaml#round_29 (now elevated to P1 priority
+      since rounds 27-28 are done):
+
+      Consolidate identity resolution to a single resolver function shared by all
+      me-/team-/my-tasks tools. Currently:
+        - get_me runs the env > IDE > CLI > alias > cache resolution chain
+        - get_me_summary calls get_me internally then injects X-User-Name header
+        - get_my_tasks calls get_me internally then injects X-User-Name header
+        - get_team_summary_by_user does NOT need the header (team-level data)
+        - diagnose_identity does its own resolution + ai-bill upstream probe
+
+      Problem: 3 tools redundantly resolve identity. If a dashboard render needs
+      cross-source totals + my-tasks drill-down, identity is resolved 3 times
+      (get_me + get_me_summary + get_my_tasks). L4 (redundant_call_ratio) is
+      currently UNMEASURED for v1.2.0 but this is a likely culprit.
+
+      Round 29 should:
+      1. Extract a `resolveIdentity()` function consumed by all tools that need
+         X-User-Name. Cache the resolution result for the duration of a single
+         MCP session.
+      2. Remove the per-tool resolution chain code (it's currently inlined in
+         each of get_me / get_me_summary / get_my_tasks).
+      3. Re-baseline T3 against an expanded scenario pack covering cross-source /
+         personal-task vocabulary (add 5-10 prompts that exercise the new tools).
+      4. Re-measure L2 wall_clock_p95 against a deterministic invocation harness
+         (5 prompts × 8 representative tools = 40 measurement points).
+      5. Re-baseline C4 per_invocation_footprint with the consolidated identity
+         resolver — expected to drop ~200-500 tokens per invocation that uses
+         multiple cross-source tools.
+    success_criteria:
+      - "Single `resolveIdentity()` function consumed by all me-/team-/my-tasks tools"
+      - "T3_baseline_delta re-measured ≥ +0.92 against expanded scenario pack (round-19 carry-forward floor)"
+      - "L2 wall_clock_p95 ≤ 1.5 s (round 19 was 1.78s; aggregate endpoints + identity caching should improve)"
+      - "C4 per_invocation_footprint ≤ 7000 (would clear v2_tightened threshold)"
+      - "diagnose_identity action surface re-evaluated; consider 4→3 if simplification holds"
+    estimated_round: 29
+    target_branch: feature/v1.2.0-api-migration
+
+  - action_id: round_30_v2_0_0_pre_or_v1_3_0_decision
+    priority: P2
+    description: |
+      Inherited from round_26/next_action_plan.yaml#round_30 (now refined with
+      rounds 27-28 evidence):
+
+      Round 27 evidence (token-econ trim): NO API shape change; comment-only edits.
+      Round 28 evidence (canvas redesign): Canvas-template-contract test count grew
+      22→25; the new tests pin the round-28 hierarchy. NO API shape change.
+
+      So far: rounds 27-28 are non-breaking. If round 29 stays non-breaking
+      (resolveIdentity is an internal extraction; tool contracts stay the same),
+      round 30 should be `v1.3.0` maintenance bump (mirror round 26 release pattern).
+
+      Decision criteria:
+        - v2.0.0-pre: round 29 surfaces a BREAKING-change axis (e.g. removing
+          `meHeader` from get_me response, or changing the dashboardData shape)
+        - v1.3.0: round 29 is internal refactor only; no public API change
+
+      Trends:
+        - rounds 27-28: NO breaking change introduced
+        - round 29 plan: internal extraction only → likely NO breaking change
+        - => round 30 leans `v1.3.0` maintenance path
+    success_criteria:
+      - "Decision recorded: v2.0.0 path vs v1.3.0 maintenance path (decided based on round 29 evidence)"
+      - "If v2.0.0: cut a feature/v2.0.0-pre branch with explicit BREAKING-CHANGES.md draft"
+      - "If v1.3.0: bump and ship as a regular maintenance round (mirror round 26 pattern)"
+    estimated_round: 30
+
+  - action_id: round_29_or_30_c4_harness
+    priority: P2
+    description: |
+      Add a deterministic invocation harness for C4 per_invocation_footprint.
+      Currently estimated as ~5500-7500 tokens (eager + on-call + tools/list +
+      get_dashboard_data response). The estimation is conservative because:
+      - tools/list is paid ONCE per MCP session, then cached → amortised
+      - rules + SKILL bodies are paid only when the SKILL is routed
+      - get_dashboard_data response varies with team size (10-100 users) and window
+
+      A deterministic harness should:
+        1. Spin up a mock MCP server with msw fixtures sized for typical team
+        2. Run the dashboard recipe end-to-end (rules trigger → SKILL routing →
+           get_dashboard_data → optional supplementary tools)
+        3. Sum tiktoken-cl100k_base counts at each agent-visible boundary
+        4. Output C4 per invocation type (basic / cross-source / my-tasks / full)
+    success_criteria:
+      - "Harness measures C4 with ≤ ±5% variance across 10 runs"
+      - "C4 firmed up vs round 27/28 estimates"
+    estimated_round: 29
+    optional: true
+
+provenance:
+  spec_version: v0.3.0
+  target_commit_base: 0f96b56            # round 27 trim commit; round 28 commit will follow shortly
+  prior_round_id: round_27
+  feedback_inputs:
+    - "round_28/measurement.yaml (this round's measured token / structural deltas)"
+    - "round_27/next_action_plan.yaml (rounds 28-30 plan refined with round-28 measurement evidence)"
+    - "round_26/next_action_plan.yaml (rounds 28-30 original plan inherited)"

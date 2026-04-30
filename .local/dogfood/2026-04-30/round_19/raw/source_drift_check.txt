@@ -1,0 +1,71 @@
+=== Si-Chip source drift check (Round 19 vs Round 18) ===
+Checking ability source files for any modifications since Round 18 (2026-04-30T07:56:20Z)
+
+--- 3-tree SHA-256 (this round) ---
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .agents/skills/si-chip/SKILL.md
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .cursor/skills/si-chip/SKILL.md
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .claude/skills/si-chip/SKILL.md
+
+--- 3-tree SHA-256 (round 18) ---
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .agents/skills/si-chip/SKILL.md
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .cursor/skills/si-chip/SKILL.md
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .claude/skills/si-chip/SKILL.md
+
+--- git status (working tree) ---
+ M .agents/skills/si-chip/SKILL.md
+ M .agents/skills/si-chip/scripts/test_count_tokens.py
+ M .claude/skills/si-chip/SKILL.md
+ M .cursor/skills/si-chip/SKILL.md
+ M templates/basic_ability_profile.schema.yaml
+ M templates/iteration_delta_report.template.yaml
+ M templates/next_action_plan.template.yaml
+ M tools/eval_skill.py
+ M tools/spec_validator.py
+ M tools/test_eval_skill.py
+ M tools/test_spec_validator.py
+?? .agents/skills/si-chip/references/eval-pack-curation-r12-summary.md
+?? .agents/skills/si-chip/references/health-smoke-check-r12-summary.md
+?? .agents/skills/si-chip/references/lifecycle-state-machine-r12-summary.md
+?? .agents/skills/si-chip/references/method-tagged-metrics-r12-summary.md
+?? .agents/skills/si-chip/references/real-data-verification-r12-summary.md
+?? .agents/skills/si-chip/references/token-tier-invariant-r12-summary.md
+?? .agents/skills/si-chip/scripts/real_llm_runner_quickstart.md
+?? .claude/skills/si-chip/references/eval-pack-curation-r12-summary.md
+?? .claude/skills/si-chip/references/health-smoke-check-r12-summary.md
+?? .claude/skills/si-chip/references/lifecycle-state-machine-r12-summary.md
+?? .claude/skills/si-chip/references/method-tagged-metrics-r12-summary.md
+?? .claude/skills/si-chip/references/real-data-verification-r12-summary.md
+?? .claude/skills/si-chip/references/token-tier-invariant-r12-summary.md
+?? .claude/skills/si-chip/scripts/real_llm_runner_quickstart.md
+?? .cursor/skills/si-chip/references/eval-pack-curation-r12-summary.md
+?? .cursor/skills/si-chip/references/health-smoke-check-r12-summary.md
+?? .cursor/skills/si-chip/references/lifecycle-state-machine-r12-summary.md
+?? .cursor/skills/si-chip/references/method-tagged-metrics-r12-summary.md
+?? .cursor/skills/si-chip/references/real-data-verification-r12-summary.md
+?? .cursor/skills/si-chip/references/token-tier-invariant-r12-summary.md
+?? .cursor/skills/si-chip/scripts/real_llm_runner_quickstart.md
+?? .local/research/r12.5_real_llm_runner_feasibility.md
+?? .local/research/r12_v0_4_0_industry_practice.md
+?? .local/research/raw/
+?? .local/research/spec_v0.4.0-rc1.md
+?? .local/research/v0_4_0_iteration_plan.md
+?? evals/si-chip/runners/real_llm_runner.py
+?? evals/si-chip/runners/real_llm_runner_spike.py
+?? evals/si-chip/runners/test_real_llm_runner.py
+?? templates/eval_pack_qa_checklist.md
+?? templates/feedback_real_data_samples.template.yaml
+?? templates/lazy_manifest.template.yaml
+?? templates/method_taxonomy.template.yaml
+?? templates/recovery_harness.template.yaml
+?? templates/ship_decision.template.yaml
+?? tools/health_smoke.py
+?? tools/method_tag_validator.py
+?? tools/test_health_smoke.py
+?? tools/test_method_tag_validator.py
+
+--- git log last 3 commits ---
+d90a670 release(v0.3.0): bump SKILL.md to 0.3.0, sync mirrors, AGENTS.md regen, tarball, Round 14+15 dogfood evidence
+e5d2fe8 feat(tools/v0.3.0): generic eval_skill / cjk_trigger / multi_handler / round_kind + spec_validator extension
+91d9e30 feat(spec/v0.3.0): add Core-Goal Invariant + round_kind enum + multi-ability layout (additive to v0.2.0)
+
+Verdict: source files BYTE-IDENTICAL to Round 18 (no source change this round; 19th consecutive ALL_TREES_DRIFT_ZERO)

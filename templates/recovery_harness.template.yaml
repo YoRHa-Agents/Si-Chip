@@ -1,0 +1,51 @@
+# Si-Chip Recovery Harness Template — spec v0.4.0-rc1 §22.4.
+# Instance template (NOT a DevolaFlow WorkflowTemplate).
+# Lives at .agents/skills/<id>/recovery_harness.yaml.
+# Standardized 4-scenario branch test pattern for T4 error_recovery_rate
+# (§3.1 D1 T4); replaces ad-hoc recovery-harness authoring.
+
+$schema_version: "0.1.0"
+$spec_section: "§22.4"
+$source_of_truth: ".agents/skills/<id>/recovery_harness.yaml"
+
+description: |
+  Standardized 4-scenario branch test pattern for T4 error_recovery_rate (§3.1 D1 T4).
+  Replaces ad-hoc recovery-harness authoring; deterministic seeding per §22.5 rule.
+
+ability_id: "<ability-name>"
+harness_version: "1.0.0"
+seed_formula: "hash(round_id + ability_id)"    # §22.5 deterministic seeding rule
+
+scenarios:
+  identity_resolution:
+    # 4 branches covering identity lookup outcomes
+    - branch: match
+      prompt: "<prompt expected to match cleanly>"
+      expected_recovery: "no_recovery_needed"
+    - branch: one_candidate
+      prompt: "<prompt with single ambiguous match>"
+      expected_recovery: "disambiguate_with_confirmation"
+    - branch: no_candidate
+      prompt: "<prompt with zero matches>"
+      expected_recovery: "fail_with_actionable_error"
+    - branch: multi_candidate
+      prompt: "<prompt with N>1 matches>"
+      expected_recovery: "present_choices"
+
+  tool_call_resilience:
+    - branch: success
+      prompt: "<prompt expected to succeed>"
+      expected_outcome: "return_result"
+    - branch: expected_failure
+      prompt: "<prompt expected to fail with known error>"
+      expected_outcome: "return_typed_error_no_retry"
+    - branch: recoverable_failure
+      prompt: "<prompt triggering retryable error>"
+      expected_outcome: "retry_with_backoff_then_succeed"
+    - branch: unrecoverable_failure
+      prompt: "<prompt triggering unrecoverable error>"
+      expected_outcome: "bubble_up_with_context"
+
+scoring:
+  t4_error_recovery_rate: "passed_scenarios / total_scenarios"
+  minimum_floor: 0.5     # §3.1 D1 T4 informative floor; v3_strict ≥ 0.85

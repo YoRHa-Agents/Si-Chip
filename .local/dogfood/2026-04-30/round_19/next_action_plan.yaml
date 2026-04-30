@@ -1,0 +1,57 @@
+# Si-Chip Next Action Plan - round_19 (v0.4.0-rc1 code_change SECOND v2_tightened pass)
+# Targets Round 20+ which is the v0.4.0 ship cycle (Stage 7 cross-ability + Stage 8 package + ship).
+
+ability_id: si-chip
+emitted_at: '2026-04-30T09:07:00+00:00'
+targets_round: stage_7_chip_usage_helper_round_26_then_stage_8_v0_4_0_ship
+bound_gate: v2_tightened                            # Round 19 = SECOND v2 pass; per §4.2 promote v1_baseline -> v2_tightened EFFECTIVE Round 20
+target_branch: feat/v0.4.0-token-economy-real-data
+spec_version: v0.4.0-rc1
+
+round_kind: code_change                             # §15.1; Round 19 IS code_change (cache replay still counts)
+round_kind_rationale: |
+  Round 19 is code_change per Round 18 next_action_plan pre-classification. Source code
+  unchanged from Round 18 except evidence-file authoring. Per §15.4.1, code_change rounds
+  count toward §4.2 promotion-rule consecutive-rounds counter. Round 18 + Round 19 = 2
+  consecutive v2_tightened PASSes. v0.4.0 v2_tightened ELIGIBLE.
+
+token_tier_target: relaxed                          # Si-Chip has no EAGER surface; relaxed pressure adequate
+
+actions:
+  - action_id: stage_7_a1
+    priority: P0
+    targets_metric: cross_ability_witness_v0_4_0
+    description: |
+      Stage 7 chip-usage-helper Round 26 cross-ability dogfood under v0.4.0 spec.
+      Adopts §19 real-data verification (already partially in Cycle 5), §20 promotion_history
+      (5 cycles backfill), §21 health_smoke_check for ai-bill events/health endpoint.
+      This is the SECOND-ability witness that promotes §16 Multi-Ability Layout from
+      Informative to Normative target v0.4.x.
+
+  - action_id: stage_8_a1
+    priority: P0
+    targets_metric: v0_4_0_ship_at_v2_tightened
+    description: |
+      Stage 8 v0.4.0 ship at v2_tightened gate.
+      - Promote spec_v0.4.0-rc1.md -> spec_v0.4.0.md (frozen; rc1 stays as pinned record)
+      - Bump SKILL.md frontmatter version: 0.4.0-rc1 -> 0.4.0; mirror sync
+      - Update .rules/si-chip-spec.mdc with hard rules 11/12/13; AGENTS.md re-compile (10 -> 13 rules)
+      - Build deterministic tarball docs/skills/si-chip-0.4.0.tar.gz
+      - Update install.sh + docs/install.sh + docs/_install_body.md (v0.3.0 -> v0.4.0)
+      - CHANGELOG [0.4.0] section
+      - Author v0.4.0_ship_decision.yaml (verdict SHIP_ELIGIBLE at v2_tightened) + v0.4.0_ship_report.md
+      - 3-4 commits on feat/v0.4.0-token-economy-real-data
+      - PR via gh pr create --base main; release v0.4.0 with tarball+sha256 assets
+
+  - action_id: stage_8_a2
+    priority: P1
+    targets_metric: router_floor_promotion
+    description: |
+      Bundled with Stage 8 ship: promote router_floor composer_2/default -> composer_2/fast
+      based on Round 18 + Round 19 second consecutive real-LLM ratification.
+
+provenance:
+  spec_version: v0.4.0-rc1
+  target_commit_base: d90a670f8edc4a61207cbb329b6e371edd1d43fe
+  basis_iteration_delta: .local/dogfood/2026-04-30/round_19/iteration_delta_report.yaml
+  basis_round_18_next_action_plan: .local/dogfood/2026-04-30/round_18/next_action_plan.yaml

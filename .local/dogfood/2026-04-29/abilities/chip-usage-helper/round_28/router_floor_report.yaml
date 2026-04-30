@@ -1,0 +1,41 @@
+ability_id: chip-usage-helper
+round_id: round_28
+generated_at: '2026-04-30T00:55:00+08:00'
+spec_version: v0.3.0
+spec:
+  profile: mvp           # 8-cell MVP per §5.4
+  cells: 8
+  gate_bound: v1_baseline
+aggregate:
+  cells_pass: 8
+  cells_total: 8
+  R6_routing_latency_p95_ms: 0.18         # carried forward from round 19/26/27
+  R7_routing_token_overhead: 0.0340       # carried forward from round 19/26/27
+router_floor: composer_2/fast             # unchanged from round 19/26/27 — round 28 is a canvas-template redesign, no router-surface change
+profile_to_gate: relaxed                  # bound to v1_baseline this round
+note: |
+  Round 28 is a canvas information-density redesign / `code_change` round per spec §15.
+  The trigger vocabulary in `rules/usage-helper.mdc` and the SKILL.md `When/Skip` lists
+  are NOT touched. The MCP tool descriptions are NOT touched (round 27 already trimmed).
+  The 4 conditional supplementary sections retain their gating on `data.supplementary?.<key>`
+  — agents call the same set of tools and inject the same shape of payload; only the
+  rendering layout changes.
+
+  Therefore:
+  - R3 trigger F1 carries forward verbatim from round 19 (=1.0).
+  - R4 near-miss FP rate carries forward verbatim from round 19 (=0.0).
+  - R6 routing latency p95 carries forward (0.18 ms; well within v3_strict ≤ 800 ms).
+  - R7 routing token overhead carries forward (0.034; well within v3_strict ≤ 0.08).
+  - R5 router floor carries forward (composer_2/fast).
+  - R8 description competition index unchanged — same 16 tool descriptions.
+
+  The tests file change (canvas-template-contract +3 round-28 assertions) is internal
+  to the test suite and not part of the routing surface.
+
+reactivation_triggers_for_re_promotion:
+  - "Round 29 identity-flow consolidation may change SKILL.md recipe; if so, R3/R4 must be re-measured."
+  - "Round 29 may add a deterministic invocation harness to firm up C4 / L2 — could push v2_tightened promotion."
+
+provenance:
+  prior_round_router_floor_report: round_27/router_floor_report.yaml
+  measurement_method: "carry-forward (no router-surface change in round 28)"

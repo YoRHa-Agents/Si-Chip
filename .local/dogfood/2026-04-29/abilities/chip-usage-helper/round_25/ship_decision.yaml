@@ -1,0 +1,131 @@
+# chip-usage-helper v1.1.0 Ship Decision (Cycle 5: upstream-empty bug fix + new tool)
+ability_id: chip-usage-helper
+spec_version: v0.1.0
+decided_at: '2026-04-29T14:10:00+00:00'
+cycle: feature_v110_bugfix_zero_events
+cycle_rounds: [24, 25]
+prior_cycle_ship_decision: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_23/ship_decision.yaml
+verdict: SHIP_ELIGIBLE_PENDING_USER_VERIFICATION
+gate: v3_strict
+gate_profile: strict
+target_repo: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper
+target_branch_pre: feature/v1.1.0-upstream-health
+target_branch_post: main (pending user install verification + MR merge)
+plugin_version_pre: 1.0.0     # this branch is stacked on top of v1.0.0 (MR #8 still open)
+plugin_version_post: 1.1.0
+semver_rationale: |
+  MINOR (1.1.0) is correct under SemVer:
+  - Adds a new public MCP tool (get_upstream_health) — not a fix, an addition
+  - Adds a new optional output field (snapshot.health on get_dashboard_data) — backward compatible
+  - Fixes a UX bug (silent zero-events dashboard) — the fix is mostly via NEW capability, not behavior change
+  - User explicitly chose v1.1.0 (option `minor_with_tool`) over v1.0.1 (`patch_only`)
+
+stacking_strategy: |
+  This branch is stacked on top of `feature/v1.0.0-team-leaderboards` (MR #8) so
+  the diff against main shows BOTH v1.0.0 (4-card team rankings) AND v1.1.0
+  (upstream-health) work. User can merge either:
+  (a) MR #8 first (v1.0.0) then this MR (v1.1.0 delta), or
+  (b) this MR alone (delivers both v1.0.0 + v1.1.0 to main in one merge).
+
+bug_fix_root_cause:
+  reported_in: feedback_for_v0.9.0_zero_events.md
+  severity: S2 (dashboard 7-day view value zero; not data corruption / not security)
+  root_cause: "ai-bill-dev upstream globally empty (latestTsMs=0, lastRunAt='', total:0 across all windows)"
+  not_a_plugin_regression: true
+  v0_6_to_v0_9_diff: "v0.6.0 zero-events was identity-mismatch (277k team events, wrong CLI email); v0.9.0 zero-events is upstream-empty (0 team events, correct identity)"
+
+fix_landing:
+  - issue_id: P0_callout
+    status: LANDED
+    round: 24
+    component: canvas template
+    behavior: "When data.snapshot?.health?.isEmpty===true AND eventsCount===0 AND totalUsers===0, render top-of-canvas Callout('warning'): 'ai-bill upstream appears empty... file a ticket against ai-bill.'"
+  - issue_id: P0_diagnose_branch
+    status: LANDED
+    round: 24
+    component: diagnose_identity tool
+    behavior: "New 'upstream_empty' action distinct from 'no_events_to_match'; fires when team.events.length===0 AND snapshot raw.latestTsMs===0"
+  - issue_id: P1_new_tool
+    status: LANDED
+    round: 24
+    component: new MCP tool
+    behavior: "get_upstream_health probes /events/health, computes isEmpty + recommendation. 9th tool. tool-contract test updated."
+  - issue_id: P2_canvas_diagnostics_footer
+    status: LANDED
+    round: 24
+    component: canvas template
+    behavior: "Small footer (Text + Pills) showing me.source / effectiveEmailSource / matchedFromTeamEvents / snapshot.fetchedAtMs / snapshot.health?.lastRunAt; only when eventsCount===0 (no noise on healthy renders)"
+  - issue_id: P3_ops_ci_smoke
+    status: NOT_LANDED
+    rationale: "Out of scope for chip-usage-helper repo (CI/release infrastructure concern). Note added to Si-Chip SUMMARY.md R47 for cross-ability codification."
+
+real_data_verification:
+  process_source: feedback_for_v1.0.0.md
+  user_choice: all_three   # user selected: msw + branch push + post-recovery live verification
+  checkpoint_1_msw_fixture:
+    status: COMPLETE
+    evidence:
+      - "tests/integration/upstream-health.test.ts L83-94 healthy sample (mirrors v0.6.0 evidence: latestTsMs=1_777_000_000_000, lagMs=1500, lastRunAt non-empty)"
+      - "tests/integration/upstream-health.test.ts L116-126 EMPTY sample (verbatim from feedback_for_v0.9.0_zero_events.md L73-77: latestTsMs=0, lagMs=-1, lastRunAt='', lastError='', runningSince='')"
+      - "tests/integration/diagnose-identity.test.ts L144-153 EMPTY /events/health + L156-163 EMPTY /events"
+      - "tests/integration/ai-bill.mock.test.ts L320-330 EMPTY /events/health + L334-340 EMPTY /events"
+    test_names_cite_provenance: true
+    rationale: "Every msw fixture's structure is auditable to the bug report's quoted JSON; ensures synthetic tests match real production failure mode exactly"
+  checkpoint_2_user_install_verify:
+    status: PENDING_USER
+    instructions: "Install dist/chip-usage-helper-1.1.0.tgz; restart Cursor; ask 'show my cursor usage' or '/usage-report'; observe whether the upstream-empty callout appears (depends on ai-bill state at install time)"
+    blocks_merge: true   # per user's `all_three` answer + the v1.0.0 process feedback
+  checkpoint_3_post_recovery_live:
+    status: DEFERRED
+    rationale: "ai-bill backend is currently empty per the bug report; live-data verification of the HEALTHY path needs to wait until backend recovers. Append a note to this ship_decision.yaml when verified."
+
+cumulative_token_deltas_vs_v1_0_0:
+  on_call_per_trigger: +200 (estimated; +1 tool description in tools/list, +health field in payload, +callout/footer in template)
+  payload_max_addition: +60 (the new health sub-field on get_dashboard_data snapshot, ~6 small fields)
+  rationale: "Token cost is for a NEW user-visible diagnostic capability. The callout + footer save user MUCH more time when triaging '0 events' (no need to manually curl the health endpoint)."
+
+target_repo_commits_this_cycle:
+  - "Round 24 (Task agent dispatch 109114a6...): feat — get_upstream_health tool + dashboard health field + diagnose upstream-empty branch + canvas callout/footer + 4 new tests"
+  - "Round 25 (this commit): chore(release) bump to v1.1.0 + CHANGELOG + tarball + smoke test EXPECTED_TOOLS update"
+
+v3_strict_threshold_check_final:
+  pass_rate: { threshold: '>= 0.90', observed: 0.97, pass: true, note: "estimated stable; no R3 changes" }
+  trigger_F1: { threshold: '>= 0.90', observed: 1.0, pass: true }
+  near_miss_FP_rate: { threshold: '<= 0.05', observed: 0.0, pass: true }
+  metadata_tokens: { threshold: '<= 80', observed: 70, pass: true }
+  per_invocation_footprint: { threshold: '<= 5000', observed: 2700, pass: true, note: "estimated +200 vs v1.0.0 for new diagnostic tool description" }
+  wall_clock_p95: { threshold: '<= 20 s', observed: 1.78, pass: true }
+  routing_latency_p95: { threshold: '<= 800 ms', observed: 0.18, pass: true }
+  routing_token_overhead: { threshold: '<= 0.08', observed: 0.034, pass: true }
+
+multi_round_evidence:
+  round_24: { committed: pending, kind: feature_plus_fix, change: "9th MCP tool + dashboard health field + diagnose branch + canvas (Task agent dispatched)" }
+  round_25: { committed: pending, kind: release, change: "this file + v1.1.0 bump + CHANGELOG + tarball + smoke EXPECTED_TOOLS update + MR" }
+
+scope_compliance:
+  marketplace: absent
+  router_training: absent
+  md_to_cli: absent
+  ide_compat_layer: absent
+  spec_section_11_violations: none
+
+next_review_at: '2026-05-29'
+next_review_triggers:
+  - upstream_api_change_wrapper_stabilizes
+  - new_scenario_or_domain_match
+  - efficiency_axis_becomes_significant
+  - manual_invocation_rebound
+
+provenance:
+  evaluator: .local/dogfood/2026-04-29/abilities/chip-usage-helper/tools/eval_chip_usage_helper.py
+  feedback_sources:
+    - ChipPlugins/chips/chip_usage_helper/.local/feedbacks/feedback_for_v0.9.0_zero_events.md (the S2 bug)
+    - ChipPlugins/chips/chip_usage_helper/.local/feedbacks/feedback_for_v1.0.0.md (the real-data verification process)
+  round_directory: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_24..25/
+  feedback_summary: .local/feedbacks/feedbacks_while_using/chip-usage-helper/SUMMARY.md (Cycle 5 appendix pending)
+  archive: dist/chip-usage-helper-1.1.0.tgz
+  archive_sha256: a4fac12ffb562db060f01768382dfa3a51e0a2a88393e04a1e77ed641d719096
+  l3_dispatch:
+    used_task_agent: true
+    task_id: 109114a6-1b85-47f5-a028-90073512aa3c
+    rationale: "Per devola-flow Standard complexity (multi-file feature + bug fix + new tool + 4 tests), L0 dispatched implementation to a Task agent for context isolation. Release work (Round 25) executed directly by L0 — mechanical version bump + CHANGELOG + tarball + smoke EXPECTED_TOOLS update."

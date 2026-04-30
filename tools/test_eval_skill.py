@@ -25,9 +25,13 @@ from tools.eval_skill import (  # noqa: E402
     EvalSkillConfig,
     build_core_goal_check,
     build_r6_placeholder,
+    decompose_token_tiers,
+    detect_mcp_pretty_text_issue,
+    detect_template_default_data_antipattern,
     main,
     run_core_goal_test_pack,
     run_evaluation,
+    run_health_smoke_check,
 )
 from tools.round_kind import REQUIRED_C0_VALUE, ROUND_KINDS  # noqa: E402
 
@@ -359,3 +363,377 @@ def test_cli_help():
         "--round-kind",
     ):
         assert flag in result.stdout, f"expected {flag} in --help output"
+
+
+# --- Stage 4 Wave 1b: v0.4.0-rc1 helper tests -------------------------
+
+
+def test_decompose_token_tiers_returns_three_axes(tmp_path):
+    """§18.1 token-tier decomposition returns C7/C8/C9 with method tags."""
+
+    skill_md = tmp_path / "SKILL.md"
+    skill_md.write_text(
+        "---\nname: tiny-ability\ndescription: tiny\n---\n"
+        "# tiny ability body\nShort body content for estimation.\n",
+        encoding="utf-8",
+    )
+    rule = tmp_path / "ability-bridge.mdc"
+    rule.write_text(
+        "---\nalwaysApply: true\n---\n"
+        "This is an always-apply rule that is loaded on every session.\n",
+        encoding="utf-8",
+    )
+    result = decompose_token_tiers(skill_md, rule_path=rule)
+    assert "C7_eager_per_session" in result
+    assert "C8_oncall_per_trigger" in result
+    assert "C9_lazy_avg_per_load" in result
+    assert result["C7_eager_per_session_method"] == "char_heuristic"
+    assert result["C8_oncall_per_trigger_method"] == "char_heuristic"
+    assert result["C9_lazy_avg_per_load_method"] == "char_heuristic"
+    # With both rule + skill populated, C7 and C8 must be > 0.
+    assert result["C7_eager_per_session"] > 0
+    assert result["C8_oncall_per_trigger"] > 0
+    # measured_with_* fields are emitted
+    assert result["measured_with_sessions"] == 1
+    assert result["measured_with_triggers"] == 1
+
+
+def test_decompose_token_tiers_missing_skill_md_raises(tmp_path):
+    """Workspace rule 'No Silent Failures': missing SKILL.md raises."""
+
+    with pytest.raises(FileNotFoundError):
+        decompose_token_tiers(tmp_path / "nonexistent_SKILL.md")
+
+
+def test_decompose_token_tiers_with_lazy_manifest(tmp_path):
+    """A .lazy-manifest file populates C9 averaged over declared files."""
+
+    skill_md = tmp_path / "SKILL.md"
+    skill_md.write_text("# tiny body\n", encoding="utf-8")
+    # Create two lazy files with known content.
+    refs = tmp_path / "references"
+    refs.mkdir()
+    (refs / "history.md").write_text("x" * 380, encoding="utf-8")  # ~100 tokens
+    (refs / "design.md").write_text("y" * 760, encoding="utf-8")  # ~200 tokens
+    lazy_manifest = tmp_path / ".lazy-manifest"
+    lazy_manifest.write_text(
+        yaml.safe_dump(
+            {
+                "ability_id": "tiny",
+                "lazy_paths": [
+                    {"path": "references/history.md"},
+                    {"path": "references/design.md"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = decompose_token_tiers(
+        skill_md, lazy_manifest_path=lazy_manifest
+    )
+    # Average of ~100 + ~200 = ~150 tokens (floor division)
+    assert result["C9_lazy_avg_per_load"] > 0
+    assert result["measured_with_lazy_loads"] == 2
+
+
+def test_detect_mcp_pretty_text_issue_flags_offender(tmp_path):
+    """MCP handler with both pretty JSON and structuredContent → flagged."""
+
+    src = tmp_path / "handler.ts"
+    src.write_text(
+        "export const handler = async () => {\n"
+        "  const data = { ok: true };\n"
+        "  return {\n"
+        "    content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],\n"
+        "    structuredContent: data,\n"
+        "  };\n"
+        "};\n",
+        encoding="utf-8",
+    )
+    result = detect_mcp_pretty_text_issue(tmp_path)
+    assert result["src_dir_exists"] is True
+    assert len(result["found"]) >= 1
+    entry = result["found"][0]
+    assert "handler.ts" in entry["file"]
+    assert entry["indent"] == 2
+    assert "JSON.stringify" in entry["code_excerpt"]
+
+
+def test_detect_mcp_pretty_text_issue_clean_file_passes(tmp_path):
+    """Pretty JSON without structuredContent → not flagged."""
+
+    src = tmp_path / "logger.ts"
+    src.write_text(
+        "console.log(JSON.stringify({a: 1}, null, 2));\n",
+        encoding="utf-8",
+    )
+    result = detect_mcp_pretty_text_issue(tmp_path)
+    assert result["found"] == []
+
+
+def test_detect_mcp_pretty_text_issue_missing_dir_returns_empty(tmp_path):
+    """Missing src_dir → empty found, src_dir_exists=False, no raise."""
+
+    result = detect_mcp_pretty_text_issue(tmp_path / "nonexistent")
+    assert result["found"] == []
+    assert result["src_dir_exists"] is False
+
+
+def test_detect_template_default_data_antipattern_flags_non_stub(tmp_path):
+    """Canvas template with non-stub DEFAULT_DATA → flagged."""
+
+    tpl = tmp_path / "Dashboard.tsx"
+    tpl.write_text(
+        "export const DEFAULT_DATA = {\n"
+        "  leaderboard: [\n"
+        "    { name: 'user1', spend: 100 },\n"
+        "    { name: 'user2', spend: 200 },\n"
+        "  ],\n"
+        "  latestTsMs: 1714464840000,\n"
+        "};\n"
+        "export const Component = () => <div>...</div>;\n",
+        encoding="utf-8",
+    )
+    result = detect_template_default_data_antipattern(tmp_path)
+    assert result["templates_dir_exists"] is True
+    assert len(result["found"]) >= 1
+    entry = result["found"][0]
+    assert "Dashboard.tsx" in entry["file"]
+    assert "DEFAULT_DATA" in entry["default_keys"]
+    assert entry["bytes"] > 0
+
+
+def test_detect_template_default_data_antipattern_stub_passes(tmp_path):
+    """Canvas template with stub DEFAULT_DATA ({}) → not flagged."""
+
+    tpl = tmp_path / "Clean.tsx"
+    tpl.write_text(
+        "export const DEFAULT_DATA = {};\n"
+        "export const Component = () => <div>...</div>;\n",
+        encoding="utf-8",
+    )
+    result = detect_template_default_data_antipattern(tmp_path)
+    # Only DEFAULT_DATA with non-stub RHS should match; stub should not.
+    assert result["found"] == []
+
+
+def test_detect_template_default_data_antipattern_missing_dir_returns_empty(
+    tmp_path,
+):
+    """Missing templates_dir → empty found, no raise."""
+
+    result = detect_template_default_data_antipattern(
+        tmp_path / "nonexistent"
+    )
+    assert result["found"] == []
+    assert result["templates_dir_exists"] is False
+
+
+def test_run_health_smoke_check_rejects_non_list():
+    """run_health_smoke_check raises ValueError on non-list config."""
+
+    with pytest.raises(ValueError):
+        run_health_smoke_check("not a list")  # type: ignore[arg-type]
+
+
+def test_run_health_smoke_check_empty_config_returns_zero_total():
+    """Empty config → total=0, passed=0, no per_check entries."""
+
+    result = run_health_smoke_check([])
+    assert result["total"] == 0
+    assert result["passed"] == 0
+    assert result["per_check"] == []
+
+
+def test_run_health_smoke_check_bad_entries_captured_as_errors():
+    """Entries missing endpoint/axis → captured in errors, not raised."""
+
+    result = run_health_smoke_check(
+        [
+            {"endpoint": "https://example.com", "axis": "read"},  # normal
+            "not a dict",  # bad entry
+            {"axis": "read"},  # missing endpoint
+            {"endpoint": "https://example.com"},  # missing axis
+        ]
+    )
+    # First may still try to run (will fail because no server); others caught.
+    assert len(result["errors"]) >= 2
+    assert any("not a dict" in e for e in result["errors"])
+
+
+# --- v0.4.0 Wave 1c additions: G2 / G3 / G4 helper tests --------------
+# Append-only section (Wave 1c) — imports are local to avoid touching
+# the shared top-of-file import block that Wave 1b is also editing.
+
+from tools.eval_skill import (  # noqa: E402
+    compute_g2_cross_domain_transfer_pass,
+    compute_g3_ood_robustness,
+    compute_g4_model_version_stability,
+)
+
+
+def _sample_runner_output(
+    cells, ability_id: str = "chip-usage-helper", matrix_mode: str = "mvp"
+):
+    """Build a minimal runner_output-shaped dict for G2/G3/G4 tests."""
+
+    return {
+        "ability_id": ability_id,
+        "matrix_mode": matrix_mode,
+        "cells": cells,
+        "summary": {"total_cells": len(cells)},
+    }
+
+
+def test_compute_g2_cross_domain_transfer_pass_selects_target_cells():
+    """G2 filters cells to the target_domain (scenario_pack match) and
+    returns a prompts_run-weighted mean pass_rate."""
+
+    output = _sample_runner_output(
+        [
+            # source_domain cells (should be ignored)
+            {
+                "model": "claude-haiku-4-5",
+                "thinking_depth": "fast",
+                "scenario_pack": "trigger_basic",
+                "prompts_run": 20,
+                "pass_rate": 1.0,
+                "pass_at_k": 1.0,
+                "per_prompt": [],
+            },
+            # target_domain cells (should be aggregated)
+            {
+                "model": "claude-haiku-4-5",
+                "thinking_depth": "fast",
+                "scenario_pack": "near_miss",
+                "prompts_run": 10,
+                "pass_rate": 0.8,
+                "pass_at_k": 0.9,
+                "per_prompt": [],
+            },
+            {
+                "model": "claude-sonnet-4-6",
+                "thinking_depth": "default",
+                "scenario_pack": "near_miss",
+                "prompts_run": 10,
+                "pass_rate": 0.6,
+                "pass_at_k": 0.7,
+                "per_prompt": [],
+            },
+        ]
+    )
+    result = compute_g2_cross_domain_transfer_pass(
+        output, source_domain="trigger_basic", target_domain="near_miss"
+    )
+    # (0.8*10 + 0.6*10) / 20 = 0.7
+    assert abs(result["pass_rate"] - 0.7) < 1e-4
+    assert result["sample_count"] == 20
+    assert result["cells_matched"] == 2
+    assert result["provenance"]["source_domain"] == "trigger_basic"
+    assert result["provenance"]["target_domain"] == "near_miss"
+    assert (
+        result["provenance"]["runner_source"]
+        == "evals/si-chip/runners/real_llm_runner.py"
+    )
+
+
+def test_compute_g3_ood_robustness_aggregates_matched_prompts(tmp_path):
+    """G3 intersects an OOD pack's prompts with runner per_prompt entries
+    and returns mean pass_at_k + fail_cases list."""
+
+    ood_pack = tmp_path / "ood_pack.yaml"
+    ood_pack.write_text(
+        yaml.safe_dump(
+            {
+                "should_trigger": ["ood prompt 1"],
+                "should_not_trigger": ["ood prompt 2"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = _sample_runner_output(
+        [
+            {
+                "model": "claude-haiku-4-5",
+                "thinking_depth": "fast",
+                "scenario_pack": "trigger_basic",
+                "prompts_run": 3,
+                "pass_rate": 0.6667,
+                "pass_at_k": 0.6667,
+                "per_prompt": [
+                    {"prompt": "ood prompt 1", "pass_at_k": 1.0},
+                    {"prompt": "ood prompt 2", "pass_at_k": 0.0},
+                    {"prompt": "not in ood pack", "pass_at_k": 1.0},
+                ],
+            }
+        ]
+    )
+    result = compute_g3_ood_robustness(output, ood_pack)
+    # Only the 2 matching prompts are considered: (1.0 + 0.0) / 2 = 0.5
+    assert abs(result["pass_rate"] - 0.5) < 1e-4
+    assert result["sample_count"] == 2
+    assert len(result["fail_cases"]) == 1
+    assert result["fail_cases"][0]["prompt"] == "ood prompt 2"
+    assert result["provenance"]["ood_prompt_count"] == 2
+    # Missing OOD pack must raise (no silent failures).
+    with pytest.raises(FileNotFoundError):
+        compute_g3_ood_robustness(output, tmp_path / "does_not_exist.yaml")
+
+
+def test_compute_g4_model_version_stability_flags_drift():
+    """G4 matches cells across two runs and flags cells whose
+    |pass_rate delta| >= drift_threshold as drift_cases."""
+
+    prior = _sample_runner_output(
+        [
+            {
+                "model": "claude-haiku-4-5",
+                "thinking_depth": "fast",
+                "scenario_pack": "trigger_basic",
+                "prompts_run": 20,
+                "pass_rate": 0.90,
+            },
+            {
+                "model": "claude-sonnet-4-6",
+                "thinking_depth": "default",
+                "scenario_pack": "near_miss",
+                "prompts_run": 10,
+                "pass_rate": 0.80,
+            },
+        ]
+    )
+    current = _sample_runner_output(
+        [
+            # stable: delta 0.02 < 0.05
+            {
+                "model": "claude-haiku-4-5",
+                "thinking_depth": "fast",
+                "scenario_pack": "trigger_basic",
+                "prompts_run": 20,
+                "pass_rate": 0.92,
+            },
+            # drift: delta 0.10 >= 0.05
+            {
+                "model": "claude-sonnet-4-6",
+                "thinking_depth": "default",
+                "scenario_pack": "near_miss",
+                "prompts_run": 10,
+                "pass_rate": 0.70,
+            },
+        ]
+    )
+    result = compute_g4_model_version_stability(current, prior)
+    assert result["matched_cells"] == 2
+    assert abs(result["stability_ratio"] - 0.5) < 1e-4
+    assert len(result["drift_cases"]) == 1
+    drift = result["drift_cases"][0]
+    assert drift["model"] == "claude-sonnet-4-6"
+    assert abs(drift["delta"] - (-0.10)) < 1e-4
+    assert "claude-haiku-4-5" in result["per_model_delta"]
+    assert "claude-sonnet-4-6" in result["per_model_delta"]
+    # Unmatched cells (no overlap) → matched_cells = 0, stability = 0.0
+    empty = compute_g4_model_version_stability(
+        _sample_runner_output([]), prior
+    )
+    assert empty["matched_cells"] == 0
+    assert empty["stability_ratio"] == 0.0

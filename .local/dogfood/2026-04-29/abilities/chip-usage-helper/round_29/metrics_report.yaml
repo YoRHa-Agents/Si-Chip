@@ -1,0 +1,141 @@
+ability_id: chip-usage-helper
+round_id: round_29
+prior_round_id: round_28
+generated_at: '2026-04-30T01:25:00+08:00'
+spec_version: v0.3.0
+gate_bound: v1_baseline
+cycle: feature_v120_aibill_aggregate_migration
+round_kind: code_change       # per spec §15 / §17 hard rule 10 — round 29 is in the most-conservative `code_change` category since it touches a `.ts` source file (the JSDoc enrichment), even though no executable code changed
+
+mvp_8:
+  T1_pass_rate: 1.00          # 133/133 vitest PASS — identical to round 28; doc-only changes don't touch test surface
+  T2_pass_k: null
+  T3_baseline_delta: 0.92     # carried from round 19/26/27/28 — doc-only round; the dashboard recipe is unchanged
+  C1_metadata_tokens: 70      # rules + SKILL frontmatter unchanged
+  C4_per_invocation_footprint: 7500     # ESTIMATED upper bound; carry from round 28 (doc-only round; renderer path unchanged)
+  L2_wall_clock_p95: null     # NOT re-measured this round
+  R3_trigger_F1: null         # rules/SKILL trigger surface unchanged
+  R5_router_floor: composer_2/fast      # unchanged
+
+# 28-key placeholder for non-MVP metrics
+non_mvp_28:
+  T4_error_recovery_rate: null
+  C2_body_tokens: 14582                              # combined SOURCE body unchanged from round 28; +49 admin-doc lines + +11 README lines + +10 me.ts JSDoc lines are NOT in EAGER/ON-CALL/LAZY tier
+  C3_resolved_tokens: null
+  C5_context_rot_risk: null
+  C6_scope_overlap_score: null
+  L1_wall_clock_p50: null
+  L3_step_count: null
+  L4_redundant_call_ratio: null
+  L5_detour_index: null
+  L6_replanning_rate: null
+  L7_think_act_split: null
+  G1_cross_model_pass_matrix: null
+  G2_cross_domain_transfer_pass: null
+  G3_OOD_robustness: null
+  G4_model_version_stability: null
+  U1_description_readability: 'qualitative_+1.05'    # round 28 was qualitative_+1; round 29 adds explicit "Identity flow" admin doc + ASCII chain diagram + me.ts JSDoc → +0.05 admin-doc-coverage on the X-User-Name flow
+  U2_first_time_success_rate: null
+  U3_setup_steps_count: 3
+  U4_time_to_first_success: null
+  R1_trigger_precision: null
+  R2_trigger_recall: null
+  R4_near_miss_FP_rate: null
+  R6_routing_latency_p95: null
+  R7_routing_token_overhead: null
+  R8_description_competition_index: null
+  V1_permission_scope: "1 SQLite DB + 2 HTTPS hosts + 1 canvas write + X-User-Name header on me/* + my-tasks endpoints"
+  V2_credential_surface: "27 sensitive refs"
+  V3_drift_signal: 0.0
+  V4_staleness_days: 0
+
+d5_drilldown:
+  description: "Round 29 focus dimension per dispatch §29.3: D5 Learning & Usage Cost (U1) — explicit doc coverage of the post-v1.2.0 identity flow."
+  d5_usage_cost:
+    u1_description_readability:
+      delta: '+0.05_qualitative'
+      rationale: |
+        Pre-round-29: the X-User-Name chain (resolveMe → me.email →
+        emailLocalpart → asUserHeader → endpoint header injection) was
+        documented only INDIRECTLY:
+          - admin-integration-guide.md `### X-User-Name semantics` covers
+            the wire-level semantics (REQUIRED vs OPTIONAL endpoints,
+            isSelf=true round-trip).
+          - admin-integration-guide.md `## Environment Contract` sentence
+            covers the lookup precedence prose-style.
+          - mcp/src/tools/get-me.ts has the lookup-precedence comment block
+            but only for the get_me handler.
+          - mcp/src/util/me.ts's existing JSDoc covered resolution mechanics
+            but NOT the post-v1.2.0 X-User-Name role.
+
+        Post-round-29: the chain is explicitly documented in THREE
+        complementary surfaces:
+          1. mcp/src/util/me.ts JSDoc (10-line addendum): the source-of-truth
+             for what the resolver does and WHY it stays multi-source in
+             v2.0.0-pre.
+          2. docs/admin-integration-guide.md `## Identity flow (v2.0.0-pre)`:
+             49-line ASCII-diagrammed chain visualization for ops + admins
+             integrating the plugin (the "why keep the multi-source resolver?"
+             paragraph captures the design rationale for future-maintainers).
+          3. README.md `### Identity & X-User-Name` sub-section: 11-line
+             user-facing summary with cross-link to the admin guide.
+
+        Net effect: a future maintainer or admin can answer "where does
+        X-User-Name come from and why is the resolver multi-source?"
+        without reading any TypeScript. This is admin-doc-coverage on
+        the principal v1.2.0 cross-cutting concern.
+    u2_first_time_success_rate: 'NOT_MEASURED'
+    u3_setup_steps_count: 3        # unchanged
+    u4_time_to_first_success: 'NOT_MEASURED'
+
+v1_baseline_threshold_check:
+  pass_rate: { threshold: '>= 0.75', observed: 1.00, pass: true }
+  trigger_F1: { threshold: '>= 0.80', observed: null, pass: 'carried_forward_round_19=1.0' }
+  near_miss_FP_rate: { threshold: '<= 0.15', observed: null, pass: 'carried_forward_round_19=0.0' }
+  metadata_tokens: { threshold: '<= 120', observed: 70, pass: true }
+  per_invocation_footprint: { threshold: '<= 9000', observed: 7500, pass: true, note: 'estimated; same as rounds 27/28' }
+  wall_clock_p95: { threshold: '<= 45 s', observed: null, pass: 'NOT_MEASURED_round_29_doc_only' }
+  routing_latency_p95_ms: { threshold: '<= 2000 ms', observed: null, pass: 'carried_forward_round_19=0.18ms' }
+  routing_token_overhead: { threshold: '<= 0.20', observed: null, pass: 'carried_forward_round_19=0.034' }
+
+verdict:
+  pass_v1_baseline: true
+  pass_v2_tightened: provisional         # C1 PASS (70 ≤ 100), C4 BORDERLINE (7500 vs 7000 threshold), iteration_delta token axis carries from rounds 27+28 cumulative +0.077
+  pass_v3_strict: deferred
+  blockers: []
+  promotion_status: |
+    Round 29 is doc-only. T1 stays at 1.00 (133/133 PASS). Token tier
+    surface is unchanged (combined 14582 — identical to round 28 post-canvas
+    redesign). The +0.05 U1 axis increment is reviewer judgment for the
+    explicit identity-flow admin doc, ASCII chain diagram, and me.ts
+    JSDoc enrichment.
+
+    For v2_tightened promotion, the constraints remain unchanged from round
+    28 (per_invocation_footprint ≤ 7000 and iteration_delta ≥ +0.10 on any
+    efficiency axis). Round 29 does NOT advance these constraints — it is
+    ship-prep documentation work for v2.0.0-pre (round 30).
+
+rationale: |
+  Round 29 is the most conservative `code_change` round in the cycle:
+  it touches one .ts file (mcp/src/util/me.ts) but only in a JSDoc block
+  (no executable code change). It also touches two docs (README.md +
+  docs/admin-integration-guide.md) which are NOT in any agent-loaded
+  token tier. Net axis effect:
+
+    Cost: 0 tokens in EAGER/ON-CALL/LAZY (docs are out-of-tier)
+    Gain: U1 description_readability +0.05 (qualitative); governance
+          documentation on the X-User-Name chain (auditable for ops)
+
+  133/133 tests still PASS post-doc-update (re-verified). typecheck
+  clean post-doc-update (re-verified).
+
+  This round consolidates the Cycle-6 identity-flow story (v1.2.0
+  introduced X-User-Name; v2.0.0-pre KEEPS the multi-source resolver
+  to avoid single-source coupling) into explicit prose so the v2.0.0-pre
+  release marker can ship with full identity-flow coverage.
+
+provenance:
+  generator: "L3 dispatch — Round 29 identity flow consolidation review (doc-only)"
+  measurement_methodology: "vitest 133/133 + tsc --noEmit clean (re-run after doc-only edits)"
+  evaluator: "vitest (npm test) 133/133 PASS + tsc --noEmit clean"
+  feedback_source: "self (identity-flow consolidation review per dispatch §29.1 + §29.2)"

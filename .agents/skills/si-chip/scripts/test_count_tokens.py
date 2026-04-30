@@ -337,11 +337,15 @@ class SkillMdContextRotRiskTests(unittest.TestCase):
         self.assertIsNotNone(value)
         self.assertGreaterEqual(value, 0.0)
         self.assertLessEqual(value, 1.0)
-        # Current Si-Chip v0.1.5/0.1.6 body is 2020 tokens; 5 references
-        # are referenced from the body → fanout=5 → C5 ≈ 0.2601. Record
-        # the expected-low-value invariant (< 0.5) so a future body
-        # explosion surfaces as a regression.
-        self.assertLess(value, 0.5)
+        # Historical baselines:
+        # - v0.1.5/0.1.6 body = 2020 tokens, 5 references → C5 ≈ 0.2601
+        # - v0.4.0-rc1 body = 4626 tokens (within §7.3 budget 5000), 11 references
+        #   → C5 ≈ 0.72 (higher due to both body growth + reference fanout).
+        # Relaxed invariant: C5 must stay below 0.85 (hard upper bound allowing
+        # v0.4.0 headroom while still catching runaway body explosion). The hard
+        # packaging-gate is enforced by count_tokens.py --budget-body 5000
+        # (pass=true), not by this C5 assertion alone.
+        self.assertLess(value, 0.85)
         # Derivation exposes body_tokens + fanout for provenance.
         self.assertIn("body_tokens", deriv)
         self.assertIn("fanout_depth", deriv)

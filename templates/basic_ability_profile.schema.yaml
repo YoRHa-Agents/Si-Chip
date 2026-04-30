@@ -1,19 +1,28 @@
 # Si-Chip BasicAbilityProfile Schema
-# Source of truth for §2 BasicAbility object, spec v0.3.0-rc1 (additive — preserves v0.2.0 §2.1 byte-identical)
+# Source of truth for §2 BasicAbility object, spec v0.4.0-rc1 (additive — preserves v0.3.0 §2.1 + §14 byte-identical).
 # This file enumerates every §2.1 field, every §2.2 stage enum value,
-# every §3.1 R6 7-dimension / 28 sub-metric key, and the §6.1 7-axis value_vector.
+# every §3.1 R6 7-dimension / 37 sub-metric key, and the §6.1 value_vector axes.
 # MVP-8 sub-metrics (T1, T2, T3, C1, C4, L2, R3, R5) are marked required: true.
-# All other 20 sub-metric keys are required: false with default: null
+# All other sub-metric keys are required: false with default: null
 # per spec §3.2 frozen constraint #2 (explicit null placeholder, key cannot be omitted).
 #
 # v0.3.0-rc1 §14 add-on: core_goal block (REQUIRED) — never-regress functional contract per spec §14.1.
 # Backward-compat: legacy profiles authored before spec v0.3.0-rc1 (provenance.spec_version < v0.3.0-rc1)
 # may omit `core_goal` and remain valid for historical-record purposes; spec_validator.py (Stage 4 Wave 2)
 # will treat absence of core_goal as a WARNING (not BLOCKER) for any such legacy artifact.
+#
+# v0.4.0 §20/§21/§23 add-ons: lifecycle.promotion_history, lifecycle.usage_signals,
+#   current_surface.dependencies.live_backend, packaging.health_smoke_check.
+# All v0.4.0 additions are OPTIONAL at schema level (no new entries in
+# `basic_ability.required`); conditional REQUIRED-when-live-backend semantics
+# for packaging.health_smoke_check are enforced out-of-band by spec_validator
+# BLOCKER 14 HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND (not expressible in
+# JSON-Schema draft-07 directly). See spec §21.2.
 
-$schema_version: "0.2.0"
+$schema_version: "0.3.0"
 $spec_section: "§2"
 $spec_section_v0_3_0: "§2 + §14"
+$spec_section_v0_4_0: "§2 + §14 + §20 + §21 + §23"
 $source_of_truth: ".agents/skills/si-chip/"
 
 $schema: "http://json-schema.org/draft-07/schema#"
@@ -85,7 +94,7 @@ properties:
             type: ["string", "null"]
             description: "Optional latest round_id where C0 = 1.0 was last verified. Used by reactivation triggers (§14.7)."
 
-      # ── §2.1 current_surface ───────────────────────────────────
+      # ── §2.1 current_surface (+ §21.2 v0.4.0 dependencies.live_backend) ──
       current_surface:
         type: "object"
         required: [type, path, shape_hint]
@@ -100,8 +109,23 @@ properties:
           shape_hint:
             type: "string"
             enum: [markdown_first, code_first, cli_first, registry_first, memory_first, mixed]
+          # v0.4.0 §21.2 add-on: OPTIONAL dependencies block declaring whether
+          # this ability depends on a live external backend. When
+          # dependencies.live_backend == true, spec_validator BLOCKER 14
+          # HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND requires packaging.health_smoke_check
+          # to be a non-empty array (see §21.2 for details).
+          dependencies:
+            type: "object"
+            description: "Optional. Declares external-backend dependency posture; default absent = no live backend."
+            required: []
+            additionalProperties: false
+            properties:
+              live_backend:
+                type: "boolean"
+                default: false
+                description: "True iff ability functional output depends on a live external backend (HTTP API, message queue, DB). Spec §21.2."
 
-      # ── §2.1 packaging ─────────────────────────────────────────
+      # ── §2.1 packaging (+ §21.1 v0.4.0 health_smoke_check) ────────────────
       packaging:
         type: "object"
         required: [install_targets, source_of_truth, generated_targets]
@@ -122,8 +146,59 @@ properties:
             type: "array"
             items: { type: "string" }
             description: "Synchronized platform targets derived from source_of_truth."
+          # v0.4.0 §21.1 add-on: OPTIONAL at schema level; REQUIRED-when-live-backend
+          # per §21.2 is enforced by spec_validator BLOCKER 14 (not expressible in
+          # JSON-Schema directly). Default: [].
+          health_smoke_check:
+            type: "array"
+            default: []
+            description: |
+              §21.1 health smoke check array. OPTIONAL at schema level. When
+              current_surface.dependencies.live_backend == true, this array
+              MUST be non-empty per spec_validator BLOCKER 14
+              HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND (see §21.2).
+            items:
+              type: "object"
+              required:
+                - endpoint
+                - expected_status
+                - max_attempts
+                - retry_delay_ms
+                - sentinel_field
+                - sentinel_value_predicate
+                - axis
+                - description
+              additionalProperties: false
+              properties:
+                endpoint:
+                  type: "string"
+                  description: "URL probed by the smoke check."
+                expected_status:
+                  type: "integer"
+                  description: "Expected HTTP status code (typically 200; some checks use 204)."
+                max_attempts:
+                  type: "integer"
+                  minimum: 1
+                  description: "Retry count upper bound; default typically 3."
+                retry_delay_ms:
+                  type: "integer"
+                  minimum: 0
+                  description: "Milliseconds between retries; default typically 1000."
+                sentinel_field:
+                  type: "string"
+                  description: "Dot-path into response JSON (e.g. data.latestTsMs)."
+                sentinel_value_predicate:
+                  type: "string"
+                  description: "Predicate string asserted on the sentinel value (>0, non_empty_array, != null, etc.)."
+                axis:
+                  type: "string"
+                  enum: [read, write, auth, dependency]
+                  description: "§21.3 4-axis taxonomy."
+                description:
+                  type: "string"
+                  description: "One-sentence human-readable description of what this check verifies."
 
-      # ── §2.1 lifecycle + §2.2 stage enum ──────────────────────
+      # ── §2.1 lifecycle + §2.2 stage enum (+ §20.2 / §20.5 v0.4.0 add-ons) ──
       lifecycle:
         type: "object"
         required: [stage, last_reviewed_at, next_review_at]
@@ -148,6 +223,79 @@ properties:
             type: "string"
             format: "date"
             pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          # v0.4.0 §20.2 add-on: append-only promotion history block.
+          # Records every stage transition with the triggering round + metric values.
+          # Backward-compat: legacy profiles may omit this key or set it to [].
+          promotion_history:
+            type: "array"
+            default: []
+            description: "Append-only audit trail of stage transitions. Spec §20.2."
+            items:
+              type: "object"
+              required: [from, to, triggered_by_round_id, triggered_by_metric_value, observer, archived_artifact_path, decision_rationale]
+              additionalProperties: false
+              properties:
+                from:
+                  type: "string"
+                  description: "Prior stage (§2.2 enum)."
+                  enum:
+                    - exploratory
+                    - evaluated
+                    - productized
+                    - routed
+                    - governed
+                    - half_retired
+                    - retired
+                to:
+                  type: "string"
+                  description: "New stage (§2.2 enum)."
+                  enum:
+                    - exploratory
+                    - evaluated
+                    - productized
+                    - routed
+                    - governed
+                    - half_retired
+                    - retired
+                triggered_by_round_id:
+                  type: "string"
+                  description: "round_id where the transition was decided."
+                triggered_by_metric_value:
+                  type: "object"
+                  description: "Map of metric_key -> value snapshot evidencing the transition."
+                observer:
+                  type: "string"
+                  description: "Human or agent id who witnessed / authored the transition."
+                archived_artifact_path:
+                  type: "string"
+                  description: "Relative path to the round artifact (typically iteration_delta_report.yaml) for 1-click replay."
+                decision_rationale:
+                  type: "string"
+                  description: "Short human-readable rationale for why the transition fires."
+          # v0.4.0 §20.5 placeholder pointer: usage signals for ACE Skillbook
+          # helpful/harmful/neutral counter. Informative @ v0.4.0; Normative target @ v0.5.0+.
+          usage_signals:
+            type: "object"
+            description: |
+              Informative @ v0.4.0; Normative target @ v0.5.0+ per spec §20.5
+              placeholder pointer. Tracks rolling 30-day helpful/harmful/neutral
+              usage counts for lifecycle reactivation decisions (mirrors ACE
+              Skillbook pattern). Not required; default absent.
+            required: []
+            additionalProperties: false
+            properties:
+              helpful_30d:
+                type: ["integer", "null"]
+                default: null
+                description: "Count of user-flagged-helpful invocations in trailing 30 days."
+              harmful_30d:
+                type: ["integer", "null"]
+                default: null
+                description: "Count of user-flagged-harmful invocations in trailing 30 days."
+              neutral_30d:
+                type: ["integer", "null"]
+                default: null
+                description: "Count of neutral invocations (used, no explicit feedback) in trailing 30 days."
 
       # ── §2.1 eval_state ───────────────────────────────────────
       eval_state:

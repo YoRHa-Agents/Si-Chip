@@ -1,22 +1,29 @@
 # Si-Chip Iteration-Delta Report Template
-# Schema v0.2.0 (additive — v0.1.0 fields unchanged; spec v0.3.0-rc1 §14/§15 add-on)
+# Schema v0.3.0 (additive — v0.2.0 fields unchanged; spec v0.4.0-rc1 §18 + §20 add-on).
 # Spec source: §8.2 evidence #6; §4 progressive-gate single-monotone rule.
 # v0.3.0-rc1 §14.3 add-on: core_goal_check block — strict "MUST = 1.0" + no-regression rule.
 # v0.3.0-rc1 §15.1/§15.2 add-on: round_kind enum + round_kind_iteration_delta_clause drive
 #                                how §4.1 row 10 iteration_delta is interpreted this round.
+# v0.4.0-rc1 §6.1 add-on: 8th efficiency axis `eager_token_delta` (breaks v0.1.0-v0.3.0
+#                         byte-identicality on value_vector row count 7->8).
+# v0.4.0-rc1 §18.6 add-on: optional `tier_transitions` block recording EAGER/ON-CALL/LAZY
+#                          token movements introduced in code_change rounds.
+# v0.4.0-rc1 §20.3 add-on: optional `promotion_state` top-level block tracking
+#                          consecutive_passes / current_gate / promotable_to. Spec §20.3.
 # Instance template (NOT a DevolaFlow WorkflowTemplate).
 # Compares current round to the prior round and records whether at least one efficiency
 # axis improved (§4.1 iteration_delta row: v1 >= +0.05, v2 >= +0.10, v3 >= +0.15).
 
-$schema_version: "0.2.0"
+$schema_version: "0.3.0"
 $spec_section: "§8.2 evidence #6"
 $spec_section_v0_3_0: "§8.2 + §14.3 + §15.2"
+$spec_section_v0_4_0: "§8.2 + §14.3 + §15.2 + §6.1 + §18.6 + §20.3"
 $source_of_truth: ".agents/skills/si-chip/"
 
 metadata:
   name: "si-chip-iteration-delta-report"
-  version: "0.2.0"
-  description: "Round-over-round delta for MVP-8 metrics plus positive-axis verdict; adds §14 C0 check and §15 round_kind (v0.3.0-rc1)."
+  version: "0.3.0"
+  description: "Round-over-round delta for MVP-8 metrics plus positive-axis verdict; adds §14 C0 check and §15 round_kind (v0.3.0-rc1); adds 8th axis eager_token_delta, tier_transitions, promotion_state (v0.4.0-rc1)."
 
 # Guard-rail the single-monotone rule from §4.1 (threshold rows must remain monotone
 # across v1_baseline -> v2_tightened -> v3_strict). Any instance must run this check
@@ -224,6 +231,8 @@ example_instance:
     usage_cost: { positive_axis: false, delta: 0.0 }
     routing_cost: { positive_axis: false, delta: 0.0 }
     governance_risk: { positive_axis: false, delta: 0.0 }
+    # v0.4.0 §6.1 8th axis — eager_token_delta
+    eager_token_delta: { positive_axis: false, delta: 0.0, rationale: "No EAGER tier movement this round; if code_change later shifts prose from alwaysApply rule to SKILL.md ON-CALL body, report (C7_without - C7_with) / C7_without here." }
   core_goal_check:
     c0_pass_rate_this_round: 1.0   # MUST be 1.0 per spec §14.3
     c0_pass_rate_prior_round: 1.0  # MUST be >= prior; any decrease = round failure
@@ -236,3 +245,23 @@ example_instance:
   verdict:
     pass_v1_baseline: true
     blockers: []
+
+# v0.4.0 §18.6 add-on — tier_transitions block.
+# Optional; populated when round_kind=code_change moves tokens between EAGER/ON-CALL/LAZY tiers.
+# Schema: array of { from, to, tokens, reason, net_benefit } objects.
+# net_benefit ∈ {positive, neutral, negative} per §18.6.1.
+tier_transitions:
+  # - from: EAGER
+  #   to: ON-CALL
+  #   tokens: 407
+  #   reason: "Contract clauses 4-8 moved from alwaysApply rule to SKILL.md"
+  #   net_benefit: "EAGER paid per session; ON-CALL paid per trigger. Beneficial if sessions/trigger > 1."
+
+# v0.4.0 §20.3 add-on — promotion_state block.
+# Top-level per §20.3; tracks consecutive_passes / current_gate / promotable_to.
+# §15.4 eligibility: code_change + measurement_only rounds count; ship_prep + maintenance do not.
+promotion_state:
+  current_gate: v1_baseline                  # v1_baseline | v2_tightened | v3_strict
+  consecutive_passes: 0                      # rounds in current gate that cleared all row-level thresholds
+  promotable_to: null                        # v2_tightened after 2 consecutive v1 passes; v3_strict after 2 consecutive v2
+  last_promotion_round_id: null              # round_id where most recent gate promotion happened

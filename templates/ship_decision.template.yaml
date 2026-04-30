@@ -1,0 +1,52 @@
+# Si-Chip Ship Decision Template — spec v0.4.0-rc1 §20.4.
+# Instance template (NOT a DevolaFlow WorkflowTemplate).
+# Lives at .local/dogfood/<DATE>/<round_id>/ship_decision.yaml.
+# 7th evidence file per §8.2 add-on — REQUIRED when
+# next_action_plan.round_kind == 'ship_prep'; otherwise omitted.
+
+$schema_version: "0.1.0"
+$spec_section: "§20.4"
+$source_of_truth: ".local/dogfood/<DATE>/<round_id>/ship_decision.yaml"
+
+description: |
+  7th evidence file per §8.2 add-on — REQUIRED when next_action_plan.round_kind == 'ship_prep'.
+  Records machine-readable ship verdict + acceptance-criteria audit trail.
+
+spec_version: "v0.4.0-rc1"
+decided_at: "<YYYY-MM-DDTHH:MM:SSZ>"
+ability_id: "<ability-name>"
+ability_version: "<semver>"
+verdict: "SHIP_ELIGIBLE"            # SHIP_ELIGIBLE | SHIP_BLOCKED | SHIP_DEFERRED
+ship_eligible: true
+ship_gate_achieved: "v2_tightened"  # relaxed | standard | strict | audit
+consecutive_v1_passes: 0
+consecutive_v2_passes: 0
+consecutive_v3_passes: 0
+
+core_goal_invariant:
+  c0_pass_rate: 1.0
+  no_regression: true
+
+real_data_verification:
+  msw_fixture_provenance_verified: false
+  user_install_verified: false
+  post_recovery_live_verified: false
+  notes: ""
+
+health_smoke_check_results:
+  # Populated per §21.4 packaging-gate
+  - endpoint: ""
+    axis: ""
+    pass: false
+    observed: null
+
+target_repo_commits: []
+
+next_steps:
+  - "L0 reviews and commits"
+  - "gh pr create (do NOT push to main directly)"
+
+provenance:
+  target_commit_base: "<git rev-parse HEAD>"
+  generator: "<round_id dogfood L3>"
+  spec_version: "v0.4.0-rc1"

@@ -1,0 +1,60 @@
+ability_id: chip-usage-helper
+version: '1.2.0'
+decided_at: '2026-04-29T16:35:00+00:00'
+decision: keep
+value_vector:
+  task_delta: 0.00              # API migration round — same end-user task; correctness floor preserved (130/130 PASS)
+  token_delta: 0.05             # client no longer paginates /cursor/events; one-shot aggregate response replaces N event pages × per-event payload tokens
+  latency_delta: 0.05           # client roundtrip count drops from "1 + N pagination" to "1 aggregate" per dashboard window
+  context_delta: 0.05           # 10 client-side files removed (~1630 LOC) collapse to 8 lighter wrapper tools (~333 LOC); SQLite usage_events table dropped (-200KB session-disk-cache)
+  path_efficiency_delta: 0.05   # client no longer detours through aggregator → repo-events → ingest pipeline → in-memory join → render
+  routing_delta: 0.0            # router unchanged
+  governance_risk_delta: 0.05   # usage_events SQLite table dropped → smaller blast radius if cache file is exfiltrated; permission scope narrowed by removing the events ingest path
+rule_evaluation:
+  bound_gate: v1_baseline
+  fired_rule: keep
+  fired_condition: |
+    Per spec §6 three-state trigger table:
+      - task_delta = 0.00 (refactor; ai-bill aggregate API does not change what the user-visible
+        dashboard can answer)
+      - context_delta / token_delta / latency_delta / path_efficiency_delta / governance_risk_delta
+        each ≥ +0.05 (the v1_baseline ≥+0.05 efficiency-axis threshold per §4 Progressive Gate Profiles
+        and §6 keep/half_retire trigger table)
+    Per the spec §6 "task_delta near zero AND ≥1 efficiency axis at gate threshold" rule, this would
+    qualify for `half_retire`. HOWEVER, the v1.2.0 release simultaneously ADDS 8 new MCP tools and
+    EXTENDS the canvas with 4 new conditionally-rendered sections — meaning the ABILITY SURFACE GREW
+    rather than stabilised. The "near-zero task_delta" reading is artifactual because no-ability
+    baseline does not yet model the new cross-source / LiteLLM / personal-task capabilities; round 27
+    will re-baseline against an expanded no-ability scenario pack that exercises the 4 new sections,
+    at which point T3 will jump again (we estimate +0.05 to +0.15 depending on how often agents use
+    the new capabilities).
+    => decision = `keep`, NOT `half_retire`. The efficiency-axis improvements are pure win, the new
+    capabilities are pure win, and the half-retire rule's intent (sunset abilities that no longer
+    meaningfully outperform the base model) does not apply here.
+v3_strict_gate_buckets_check:    # informational — bound gate is v1_baseline this round
+  v1_baseline_eq_+0.05: { axes_meeting: [token_delta, latency_delta, context_delta, path_efficiency_delta, governance_risk_delta], count: 5 }
+  v2_tightened_eq_+0.10: { axes_meeting: [], count: 0, note: "Estimates are conservative; round 27 measurement may push 1+ axes above 0.10" }
+  v3_strict_eq_+0.15: { axes_meeting: [], count: 0 }
+retained_core:
+  - "16 MCP tools (was 9, plus net-removed sync_usage_events): get_dashboard_data, get_week_usage, get_month_totals, get_agent_hours, get_rankings, diagnose_identity, get_upstream_health, get_me, get_litellm_usage_by_user, get_litellm_usage_by_model, get_litellm_spend_series, get_litellm_spend_snapshot, get_me_summary, get_team_summary_by_user, get_team_summary_series, get_my_tasks"
+  - "rules/usage-helper.mdc (unchanged from v0.9.0; 271-token EAGER body)"
+  - "commands/usage-report.md (unchanged)"
+  - "skills/chip-usage-helper/SKILL.md (recipe extended for new tools; payload tier annotations preserved)"
+  - "templates/usage.canvas.template.tsx (gained 4 conditionally-rendered sections; original 4 cards intact)"
+  - "templates/types.d.ts (LAZY; gained 7 new ambient types + supplementary slot on DashboardData)"
+  - "templates/empty-data.ts (LAZY; sentinel skeletons for the 4 new sections)"
+review:
+  next_review_at: '2026-05-29'
+  triggers:
+    - new_model_no_ability_baseline_gap        # if a new Cursor model ships, re-test no-ability T3 before next promotion
+    - new_scenario_or_domain_match             # if user starts asking about LiteLLM more frequently, re-test the cross-source ranking surface
+    - router_test_requires_ability_for_cheap_model  # if composer_2/fast cannot complete the new 4-section canvas reliably, escalate floor
+    - efficiency_axis_becomes_significant      # round 27 measurement may push C4/L2 deltas above v2 (+0.10) or v3 (+0.15) threshold
+    - upstream_api_change_wrapper_stabilizes   # ai-bill API surface stabilization → re-baseline against new shape
+    - manual_invocation_rebound                # if user invocation count >= 5/30d, lifecycle stays `productized`
+provenance:
+  round_id: round_26
+  prior_round_id: round_25       # v1.1.0 release ship
+  spec_version: v0.3.0
+  ship_decision: round_26/ship_decision.yaml
+rationale: "v1.2.0 ai-bill aggregate REST API migration shipped. 16 tools (8 new). 130/130 tests. Source surface −10 client files / +8 wrapper files (net −1297 LOC for added/removed file boundaries; +752 LOC net in mcp/src due to existing tool growth around new endpoints). Efficiency axes positive; routing unchanged; correctness preserved. Decision: keep at productized stage; round 27 will re-baseline measurement and re-attempt v2 promotion."

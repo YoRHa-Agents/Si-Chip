@@ -1,0 +1,225 @@
+# Si-Chip Router-Floor Report - round_18 (v0.4.0-rc1 code_change FIRST real-LLM swap-in)
+# Conforms to templates/router_test_matrix.template.yaml ($schema_version 0.1.1).
+# Spec sections: §5 router paradigm + §15.1 round_kind documentation block + §22.6 real-LLM cache.
+#
+# Round 18 is `code_change` per round 17 next_action_plan.yaml explicit pre-classification.
+# real_llm_runner.py first dogfood-side invocation produces an HONEST mvp 8-cell sweep
+# alongside the existing deterministic MVP_CELL_OUTCOMES. Both are reported below.
+# The router_floor itself REMAINS at composer_2/default (the deterministic intersection
+# floor) because the real-LLM cells are HIGHER pass_rate (0.9719 mean vs deterministic
+# 0.815 mean) - the deterministic cells were the conservative basis; real-LLM proves
+# the floor is robust at MORE cell intersections, not LESS.
+#
+# Per §5 the router_floor is intersected across ALL profiles; if real-LLM cells lift
+# all (model, depth) tuples to >= 0.80 then composer_2/fast becomes the new floor.
+# Round 18 confirms composer_2/fast (haiku remap) achieves 0.9500 pass_rate on
+# trigger_basic and 1.0000 on near_miss; both >= 0.80; this DOES support promoting
+# the router_floor from composer_2/default -> composer_2/fast based on real-LLM
+# evidence. However we KEEP composer_2/default as the conservative floor for v0.4.0
+# Round 18 since (a) deterministic cells still show composer_2/fast/near_miss = 0.78
+# (FAIL); (b) the router_floor change is a substantive promotion that should be ratified
+# by Round 19 (second consecutive pass) before becoming load-bearing. Round 19+ may
+# revisit; Round 18 merely DOCUMENTS the real-LLM cells alongside the deterministic ones.
+
+round_id: round_18
+prior_round_id: round_17
+last_verified_round_id: round_18
+matrix_profile_primary: mvp
+matrix_profile_additional: intermediate
+spec_section: '§5.3'
+schema_version: '0.1.1'
+spec_version: v0.4.0-rc1
+generated_at: '2026-04-30T07:56:20+00:00'
+
+# ── §15 round_kind documentation block (v0.4.0-rc1) ──────────────────────
+round_kind: code_change                          # §15.1; per round 17 next_action_plan.yaml
+round_kind_promotion_eligibility: |
+  Per §15.4.1, code_change rounds count toward §4.2 promotion-rule consecutive-rounds
+  counter when (a) C0 == 1.0, (b) C0 >= prior_round.C0, (c) no v1_baseline hard
+  gate regressed. Round 18 satisfies all three for v1_baseline (18th consecutive).
+  Round 18 ALSO clears v2_tightened (FIRST v2 pass; 10/10 rows). Round 19 will
+  contribute the second consecutive v2 pass per §4.2 to enable v1_baseline ->
+  v2_tightened gate promotion EFFECTIVE Round 20.
+round_kind_iteration_delta_clause: strict          # per §15.2 (code_change -> strict; >=1 axis at gate bucket required)
+
+# ─────────────────── MVP 8-cell profile (deterministic carry + REAL-LLM swap-in) ───────────────────
+# Round 18 reports BOTH the deterministic carry-forward (legacy MVP_CELL_OUTCOMES dict)
+# AND the new HONEST real-LLM cells from real_llm_runner.py. The deterministic cells
+# are the LOAD-BEARING floor for router_floor derivation in v0.4.0-rc1 (conservative);
+# the real-LLM cells are the HONEST observation that ratifies (or could ratify in
+# Round 19+) a more aggressive floor.
+
+mvp_profile:
+  profile: mvp
+  cells_total: 8
+  pass_threshold: 0.80
+  cells:                                          # DETERMINISTIC CARRY-FORWARD from Round 17 (load-bearing for floor derivation in Round 18)
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: trigger_basic, pass_rate: 0.86, latency_p50_ms: 720,  latency_p95_ms: 1100, near_miss_FP_rate: null, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: near_miss,     pass_rate: 0.78, latency_p50_ms: 740,  latency_p95_ms: 1180, near_miss_FP_rate: null, cell_pass: false, provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: trigger_basic, pass_rate: 0.90, latency_p50_ms: 940,  latency_p95_ms: 1480, near_miss_FP_rate: null, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: near_miss,     pass_rate: 0.83, latency_p50_ms: 980,  latency_p95_ms: 1560, near_miss_FP_rate: null, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: trigger_basic, pass_rate: 0.83, latency_p50_ms: 880,  latency_p95_ms: 1340, near_miss_FP_rate: null, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: near_miss,     pass_rate: 0.74, latency_p50_ms: 900,  latency_p95_ms: 1400, near_miss_FP_rate: null, cell_pass: false, provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: trigger_basic, pass_rate: 0.88, latency_p50_ms: 1180, latency_p95_ms: 1820, near_miss_FP_rate: null, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: near_miss,     pass_rate: 0.81, latency_p50_ms: 1230, latency_p95_ms: 1900, near_miss_FP_rate: null, cell_pass: true,  provenance: deterministic_simulation}
+  mvp_router_floor: composer_2/default
+  mvp_floor_reasoning: 'Cheapest model x depth tuple where BOTH packs reach pass_rate >= 0.80 in the DETERMINISTIC dict (composer_2/default: trigger_basic=0.90, near_miss=0.83). composer_2/fast fails near_miss at 0.78 deterministically. UNCHANGED from round_1 through round_17. Round 18 documents the real-LLM swap-in (where composer_2/fast PASSES near_miss at 1.0) below; the floor change to composer_2/fast pending Round 19 ratification.'
+  stability_check_vs_round_17:
+    performed: true
+    identical_cells: true
+    identical_floor: true
+    rationale: 'Per spec §5.3, deterministic router-test matrix cells are hard-coded in with_ability_runner.MVP_CELL_OUTCOMES; outputs byte-identical to Round 17. Round 18 introduces NO source code change to with_ability_runner.py; the new real-LLM cells are SUPPLEMENTARY documentation, not a replacement for the deterministic dict.'
+
+# ─────────────────── REAL-LLM mvp 8-cell profile (Round 18 NEW; per §22.6) ───────────────────
+# Per §5.3 and §22.6, real-LLM cells from real_llm_runner.py are reported alongside
+# the deterministic ones. Source: raw/real_llm_run.json (mvp matrix mode; k=4).
+# HONEST measurement; cache populated for byte-identical Round 19 replay.
+mvp_profile_real_llm:
+  profile: mvp
+  cells_total: 8
+  pass_threshold: 0.80
+  provenance: real_llm_sweep                      # per §22.2.1 enum
+  source: raw/real_llm_run.json
+  cache_dir: raw/real_llm_runner_cache
+  cells:
+    - {model: composer_2/fast,   thinking_depth: fast,    scenario_pack: trigger_basic, physical_model: claude-haiku-4-5, pass_rate: 0.9500, pass_at_k: 0.9500, prompts_run: 40, tokens_in: 21060, tokens_out: 640, duration_s: 296.66, cell_pass: true, provenance: real_llm}
+    - {model: composer_2/fast,   thinking_depth: fast,    scenario_pack: near_miss,     physical_model: claude-haiku-4-5, pass_rate: 1.0000, pass_at_k: 1.0000, prompts_run: 20, tokens_in: 0,     tokens_out: 0,   duration_s: 0.0023, cell_pass: true, provenance: real_llm}  # all 80 calls cache-hit from trigger_basic
+    - {model: composer_2/fast,   thinking_depth: default, scenario_pack: trigger_basic, physical_model: claude-haiku-4-5, pass_rate: 0.9500, pass_at_k: 0.9500, prompts_run: 40, tokens_in: 22020, tokens_out: 640, duration_s: 184.42, cell_pass: true, provenance: real_llm}
+    - {model: composer_2/fast,   thinking_depth: default, scenario_pack: near_miss,     physical_model: claude-haiku-4-5, pass_rate: 1.0000, pass_at_k: 1.0000, prompts_run: 20, tokens_in: 0,     tokens_out: 0,   duration_s: 0.0024, cell_pass: true, provenance: real_llm}
+    - {model: sonnet_shallow,    thinking_depth: fast,    scenario_pack: trigger_basic, physical_model: claude-sonnet-4-6, pass_rate: 0.9250, pass_at_k: 0.9250, prompts_run: 40, tokens_in: 21220, tokens_out: 640, duration_s: 234.39, cell_pass: true, provenance: real_llm}
+    - {model: sonnet_shallow,    thinking_depth: fast,    scenario_pack: near_miss,     physical_model: claude-sonnet-4-6, pass_rate: 1.0000, pass_at_k: 1.0000, prompts_run: 20, tokens_in: 0,     tokens_out: 0,   duration_s: 0.0023, cell_pass: true, provenance: real_llm}
+    - {model: sonnet_shallow,    thinking_depth: default, scenario_pack: trigger_basic, physical_model: claude-sonnet-4-6, pass_rate: 0.9500, pass_at_k: 0.9500, prompts_run: 40, tokens_in: 22180, tokens_out: 640, duration_s: 263.85, cell_pass: true, provenance: real_llm}
+    - {model: sonnet_shallow,    thinking_depth: default, scenario_pack: near_miss,     physical_model: claude-sonnet-4-6, pass_rate: 1.0000, pass_at_k: 1.0000, prompts_run: 20, tokens_in: 0,     tokens_out: 0,   duration_s: 0.0023, cell_pass: true, provenance: real_llm}
+  mvp_router_floor_candidate: composer_2/fast     # NOMINAL based on real-LLM cells (cheapest tuple where BOTH packs >= 0.80; haiku 0.95 trigger + 1.0 near_miss); ratification deferred to Round 19+ (need consecutive evidence per §4.2 promotion semantics applied to router_floor)
+  mvp_floor_reasoning_real_llm: 'Real-LLM mvp 8-cell sweep shows composer_2/fast (claude-haiku-4-5 remap) at fast depth achieves trigger_basic=0.95 and near_miss=1.0; both >= 0.80 threshold. This RATIFIES that real-LLM evidence supports a router_floor lift from composer_2/default -> composer_2/fast. We DO NOT promote the floor in Round 18 unilaterally because (a) the deterministic cells still show 0.78 fail on composer_2/fast/near_miss; (b) one real-LLM round is not yet 2 consecutive (router_floor changes should mirror gate-promotion semantics; conservative). Round 19 second consecutive pass + ratification check would enable promotion to composer_2/fast effective Round 20.'
+  total_calls: 640
+  total_spend_usd: 0.19888
+  total_tokens_input: 86480
+  total_tokens_output: 2560
+  cache_hits: 320                                 # near_miss cells 100% cache hits from trigger_basic
+  cache_misses: 640                               # unique (model, depth, prompt, sample_idx, seed) keys
+  wall_clock_s: 979.374
+  honest_failures_summary:
+    distinct_failing_prompts: 3
+    diagnosis: 'See metrics_report.runner_provenance.honest_failures for per-prompt breakdown. 2 CJK + 1 EN; LLM confidently NO across all 4 samples; not stochastic misses. Best-cell pass_at_k still 1.0 (mvp matrix has 8 cells; T2_pass_k = MAX); WORST cell 0.925; ALL pass v2_tightened by margin.'
+
+# ─────── INTERMEDIATE 16-cell profile (Round 9 NEW; carried byte-identical) ───────
+intermediate_profile:
+  profile: intermediate
+  cells_total: 16
+  cells_new_this_round: 0
+  pass_threshold: 0.80
+  gate_binding: relaxed
+  spec_section_compliance: '§5.1 metadata-retrieval / kNN-heuristic surface widening; NOT §5.2 router-model training'
+  cells:
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: trigger_basic,            pass_rate: 0.86, latency_p50_ms: 720,  latency_p95_ms: 1100, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: near_miss,                pass_rate: 0.78, latency_p50_ms: 740,  latency_p95_ms: 1180, cell_pass: false, provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: multi_skill_competition,  pass_rate: 0.72, latency_p50_ms: 760,  latency_p95_ms: 1220, cell_pass: false, provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: execution_handoff,        pass_rate: 0.80, latency_p50_ms: 780,  latency_p95_ms: 1260, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: trigger_basic,            pass_rate: 0.90, latency_p50_ms: 940,  latency_p95_ms: 1480, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: near_miss,                pass_rate: 0.83, latency_p50_ms: 980,  latency_p95_ms: 1560, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: multi_skill_competition,  pass_rate: 0.81, latency_p50_ms: 1000, latency_p95_ms: 1600, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: execution_handoff,        pass_rate: 0.85, latency_p50_ms: 1020, latency_p95_ms: 1640, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: trigger_basic,            pass_rate: 0.83, latency_p50_ms: 880,  latency_p95_ms: 1340, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: near_miss,                pass_rate: 0.74, latency_p50_ms: 900,  latency_p95_ms: 1400, cell_pass: false, provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: multi_skill_competition,  pass_rate: 0.70, latency_p50_ms: 920,  latency_p95_ms: 1440, cell_pass: false, provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: execution_handoff,        pass_rate: 0.78, latency_p50_ms: 940,  latency_p95_ms: 1480, cell_pass: false, provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: trigger_basic,            pass_rate: 0.88, latency_p50_ms: 1180, latency_p95_ms: 1820, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: near_miss,                pass_rate: 0.81, latency_p50_ms: 1230, latency_p95_ms: 1900, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: multi_skill_competition,  pass_rate: 0.82, latency_p50_ms: 1260, latency_p95_ms: 1960, cell_pass: true,  provenance: deterministic_simulation}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: execution_handoff,        pass_rate: 0.85, latency_p50_ms: 1280, latency_p95_ms: 2000, cell_pass: true,  provenance: deterministic_simulation}
+  intermediate_router_floor: composer_2/default
+  intermediate_floor_reasoning: 'Cheapest model x depth tuple where ALL 4 packs reach pass_rate >= 0.80 in deterministic dict. Round 18 does NOT include real-LLM intermediate sweep (mvp mode only; intermediate would require 4 packs x 4 (model,depth) = 16 cells x 40 prompts x k=4 = 2560 calls ~ $0.40-0.60; deferred to Round 19+ if budget permits).'
+  mvp_subset_stability_check:
+    performed: true
+    byte_identical_for_shared_cells: true
+    rationale: 'Cells shared with mvp profile are byte-identical (deterministic dict).'
+
+# ─────────── Intersection router_floor ───────────
+router_floor: composer_2/default                 # CARRY-FORWARD (conservative; deterministic basis); promotion to composer_2/fast pending Round 19 second consecutive real-LLM ratification
+router_floor_derivation:
+  method: 'intersection of cheapest passing (model, depth) tuple across mvp 8-cell DETERMINISTIC AND intermediate 16-cell DETERMINISTIC sweeps; real-LLM cells are SUPPLEMENTARY in Round 18'
+  cost_order:
+    - composer_2/fast
+    - composer_2/default
+    - sonnet_shallow/fast
+    - sonnet_shallow/default
+  per_tuple_min_pass_rate_deterministic:
+    mvp:
+      composer_2/fast: 0.78           # FAIL near_miss
+      composer_2/default: 0.83        # PASS
+      sonnet_shallow/fast: 0.74       # FAIL
+      sonnet_shallow/default: 0.81    # PASS
+    intermediate:
+      composer_2/fast: 0.72           # FAIL multi_skill_competition
+      composer_2/default: 0.81        # PASS
+      sonnet_shallow/fast: 0.70       # FAIL
+      sonnet_shallow/default: 0.81    # PASS
+  per_tuple_min_pass_rate_real_llm:
+    mvp:
+      composer_2/fast: 0.95           # haiku/fast trigger_basic 0.95; near_miss 1.0 -> min 0.95 PASS
+      sonnet_shallow/fast: 0.925      # sonnet/fast trigger_basic 0.925; near_miss 1.0 -> min 0.925 PASS
+      composer_2/default: 0.95        # haiku/default trigger_basic 0.95; near_miss 1.0 -> min 0.95 PASS
+      sonnet_shallow/default: 0.95    # sonnet/default trigger_basic 0.95; near_miss 1.0 -> min 0.95 PASS
+    intermediate: not_run_round_18    # deferred to Round 19+ (budget conservation)
+  intersection_floor_deterministic: composer_2/default
+  intersection_floor_real_llm_candidate: composer_2/fast
+  rationale: 'DETERMINISTIC intersection (load-bearing): composer_2/default. REAL-LLM intersection (candidate; not yet ratified): composer_2/fast (cheapest where ALL mvp tuples >= 0.80 with margin). Promotion of floor from composer_2/default to composer_2/fast deferred to Round 19+ second consecutive real-LLM ratification; conservative.'
+
+# ─────── R6 hoist subsection (mvp as stable reference) ───────
+r6_hoist:
+  spec_section: '§3.1 D6 R6'
+  formula: 'R6_routing_latency_p95 = min(latency_p95_ms across mvp cells where pass_rate >= 0.80)'
+  v1_baseline_ceiling_ms: 2000
+  pass_threshold: 0.80
+  chosen_cell: {model: composer_2, thinking_depth: fast, scenario_pack: trigger_basic, pass_rate: 0.86, latency_p95_ms: 1100, provenance: deterministic_simulation}
+  hoisted_value_ms: 1100
+  v1_baseline_check: 'PASS (1100 ms <= 2000 ms ceiling, margin 1.82x)'
+  v2_tightened_check: 'PASS (1100 ms <= 1200 ms ceiling, margin 1.09x)'
+  v3_strict_check:    'FAIL (1100 ms > 800 ms ceiling; informational - promotion to v3_strict not currently in scope)'
+  note: 'R6 hoisted from mvp router-sweep cell latency for backward compat with Rounds 3-17. metrics_report.yaml hoists per-prompt routing-decision latency 0.16 ms (cjk_trigger_eval basis) as the canonical R6_routing_latency_p95 from Round 16 onwards (carry-forward in Round 18); this router_floor_report retains the cell-level 1100 ms for router-test profile context.'
+
+constraints_acknowledged:
+  - 'no_model_training (spec §5.2)'
+  - 'no_online_weight_learning (spec §5.2)'
+  - 'no_marketplace_or_external_router_service (spec §5.2)'
+  - 'no_language_implying_si_chip_ships_a_routing_model (spec §5.2)'
+  - 'intermediate_profile_is_metadata_retrieval_widening (spec §5.1 surface 1+2 allowed)'
+  - 'intermediate_gate_binding_stays_at_relaxed (spec §5.4 unchanged; NOT binding escalation)'
+  - 'mvp_and_intermediate_DETERMINISTIC_profiles_unchanged (Round 18 carries Round 17 byte-identical for the deterministic dict; the new real-LLM cells are SUPPLEMENTARY documentation per §22.6 cache provenance, not a replacement for MVP_CELL_OUTCOMES)'
+  - 'real_llm_runner.py FIRST DOGFOOD-SIDE INVOCATION Round 18; cache populated for byte-identical Round 19 replay (per §22.6); LLM is called strictly as a black-box classifier for measurement (per §11.1 + r12.5 PROCEED_MAJOR boundary check); NO weight updates, NO fine-tuning, NO online learning'
+
+provenance:
+  generator: 'Round 18 dogfood - L3 Task Agent (v0.4.0-rc1 code_change Stage 6c FIRST v2_tightened pass via real-LLM unblock)'
+  deterministic_carry_forward: true
+  real_llm_swap_in_executed: true                # ★ Round 18 NEW
+  real_llm_run_artifact: .local/dogfood/2026-04-30/round_18/raw/real_llm_run.json
+  real_llm_runner_cache_dir: .local/dogfood/2026-04-30/round_18/raw/real_llm_runner_cache
+  real_llm_runner_path: evals/si-chip/runners/real_llm_runner.py
+  real_llm_runner_version: '0.2.0'
+  matrix_template: 'templates/router_test_matrix.template.yaml#profiles.mvp + profiles.intermediate (schema 0.1.1)'
+  per_pack_dataset: '20 prompts per pack (10 should_trigger + 10 should_not_trigger) deterministic; 40 prompts trigger_basic + 20 prompts near_miss real-LLM; mvp uses 2 packs, intermediate uses 4'
+  spec_version: v0.4.0-rc1
+  template_schema_version: '0.1.1'
+  source_round: round_18
+  prior_round_id: round_17
+  basis_round_17_router_floor_report: .local/dogfood/2026-04-30/round_17/router_floor_report.yaml
+  basis_round_16_router_floor_report: .local/dogfood/2026-04-30/round_16/router_floor_report.yaml
+  basis_round_15_router_floor_report: .local/dogfood/2026-04-29/round_15/router_floor_report.yaml
+  basis_round_9_router_floor_report: .local/dogfood/2026-04-28/round_9/router_floor_report.yaml
+  raw_intermediate_sweep_json: .local/dogfood/2026-04-28/round_9/raw/router_sweep_intermediate.json
+  round_18_note: |
+    Round 18 router_floor_report.yaml CARRIES the deterministic mvp 8-cell +
+    intermediate 16-cell sweeps from Round 17 byte-identical (with_ability_runner.MVP_CELL_OUTCOMES
+    unchanged) AND ADDS a NEW mvp_profile_real_llm block with HONEST real-LLM
+    cells from real_llm_runner.py first dogfood-side invocation. Both are
+    reported per §22.6 (real-LLM cache provenance MUST be in router_floor_report
+    when real_llm_runner.py is invoked).
+
+    The router_floor REMAINS at composer_2/default (deterministic intersection;
+    conservative load-bearing). The real-LLM cells RATIFY a candidate promotion
+    to composer_2/fast (cheapest tuple where ALL mvp packs >= 0.80 with margin
+    in real-LLM data); promotion deferred to Round 19+ second consecutive pass
+    per the §4.2 promotion semantics applied to router_floor changes.
+  target_branch: feat/v0.4.0-token-economy-real-data
+  target_commit_base: d90a670f8edc4a61207cbb329b6e371edd1d43fe
