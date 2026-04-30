@@ -62,6 +62,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import shlex
 import subprocess
 import sys
@@ -89,7 +90,12 @@ from tools.round_kind import (  # noqa: E402
 
 LOGGER = logging.getLogger("si_chip.eval_skill")
 
-SCRIPT_VERSION = "0.1.0"
+# 0.1.0 — initial generic per-ability harness (Stage 4 Wave 2a).
+# 0.2.0 — Stage 4 Wave 1b (v0.4.0-rc1): additive public helpers for
+#         §18.1 token-tier decomposition, §18.2 MCP pretty-text detection,
+#         §18.6 canvas-template default-data anti-pattern detection, and
+#         §21.4 health-smoke-check runner dispatch.
+SCRIPT_VERSION = "0.2.0"
 
 # --- R6 7×37 constant ---------------------------------------------------
 
@@ -494,6 +500,506 @@ def build_core_goal_check(
     }
 
 
+# --- v0.4.0 Wave 1b helpers (§18.1 / §18.2 / §18.6 / §21.4) -----------
+
+# §18.1 char-heuristic ratio (industrial default; tiktoken is preferred
+# when available but we keep a deterministic fallback for sandbox CI).
+_CHAR_HEURISTIC_RATIO = 3.8
+
+
+def _estimate_tokens_char_heuristic(text: str) -> int:
+    """Return floor(len(text) / 3.8) — the §23.2 char_heuristic estimator.
+
+    The canonical char_heuristic ratio is 3.8 chars/token (industrial
+    default per method_taxonomy.template.yaml `confidence_band`). For
+    bilingual / CJK-heavy bodies the ratio has ±20% band; callers that
+    care emit ``_ci_low`` / ``_ci_high`` separately.
+    """
+
+    if not text:
+        return 0
+    return int(len(text) // _CHAR_HEURISTIC_RATIO)
+
+
+def _extract_frontmatter_and_body(md_text: str) -> tuple:
+    """Split ``---\nfrontmatter\n---\nbody`` into two strings.
+
+    Returns ``(frontmatter, body)``. When no frontmatter block is
+    present, returns ``("", md_text)``. Follows the common Markdown
+    frontmatter convention (leading ``---`` line + closing ``---`` on
+    its own line).
+    """
+
+    if not md_text.startswith("---"):
+        return "", md_text
+    rest = md_text[3:]
+    # Find the next ``---`` line (with possible leading newline).
+    end_match = re.search(r"^---\s*$", rest, re.MULTILINE)
+    if end_match is None:
+        return "", md_text
+    frontmatter = rest[: end_match.start()]
+    body = rest[end_match.end():]
+    return frontmatter.strip("\n"), body.lstrip("\n")
+
+
+def decompose_token_tiers(
+    skill_md_path: Path,
+    rule_path: Optional[Path] = None,
+    lazy_manifest_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """§18.1 token-tier decomposition — return EAGER/ON-CALL/LAZY counts.
+
+    Returns a dict with three tier axes (matching the §18.1 schema):
+
+      * ``C7_eager_per_session`` — tokens always paid per session
+        (rule frontmatter + rule body; Cursor/Claude always-apply
+        rules are loaded every conversation).
+      * ``C8_oncall_per_trigger`` — tokens paid once per skill trigger
+        (SKILL.md body + any references cited in the body).
+      * ``C9_lazy_avg_per_load`` — avg tokens per LAZY load (files
+        listed in ``.lazy-manifest`` that aren't imported by the
+        SKILL.md body).
+
+    Token counts use the §23.2 char_heuristic estimator
+    (``chars / 3.8``). The method tag is ``char_heuristic`` — callers
+    that want tiktoken precision can swap ``_estimate_tokens_char_heuristic``
+    with a tiktoken-backed implementation without changing the public
+    API.
+
+    Parameters
+    ----------
+    skill_md_path:
+        Path to the ability's ``SKILL.md``. Used to compute C8.
+    rule_path:
+        Optional path to the ability's bridge rule (e.g.
+        ``.cursor/rules/<ability>-bridge.mdc``). When provided, used
+        to compute C7 (EAGER = rule frontmatter + rule body).
+    lazy_manifest_path:
+        Optional path to the ability's ``.lazy-manifest``. When
+        provided, sums the on-disk bytes of declared files and
+        averages to compute C9. When absent, C9 falls back to scanning
+        a sibling ``references/`` directory for ``.md`` files NOT
+        cited in the SKILL.md body.
+
+    Returns
+    -------
+    dict
+        ``{C7_eager_per_session, C7_eager_per_session_method,
+           C8_oncall_per_trigger, C8_oncall_per_trigger_method,
+           C9_lazy_avg_per_load, C9_lazy_avg_per_load_method,
+           measured_with_sessions, measured_with_triggers,
+           measured_with_lazy_loads}`` per spec §18.1.1.
+
+    Raises
+    ------
+    FileNotFoundError
+        When ``skill_md_path`` does not exist (workspace rule "No
+        Silent Failures").
+    """
+
+    skill_md_path = Path(skill_md_path)
+    if not skill_md_path.exists():
+        raise FileNotFoundError(f"SKILL.md not found: {skill_md_path}")
+
+    skill_text = skill_md_path.read_text(encoding="utf-8")
+
+    # C7 — EAGER: rule frontmatter + rule body (when rule_path given).
+    eager_tokens = 0
+    if rule_path is not None and Path(rule_path).exists():
+        rule_text = Path(rule_path).read_text(encoding="utf-8")
+        eager_tokens = _estimate_tokens_char_heuristic(rule_text)
+
+    # C8 — ON-CALL: SKILL.md body (the body minus any frontmatter).
+    _, skill_body = _extract_frontmatter_and_body(skill_text)
+    oncall_tokens = _estimate_tokens_char_heuristic(skill_body)
+
+    # C9 — LAZY: lazy_manifest files OR references/**/*.md NOT cited in body.
+    lazy_tokens = 0
+    lazy_loads_sampled = 0
+    if lazy_manifest_path is not None and Path(lazy_manifest_path).exists():
+        try:
+            manifest = yaml.safe_load(
+                Path(lazy_manifest_path).read_text(encoding="utf-8")
+            ) or {}
+        except yaml.YAMLError as exc:
+            raise RuntimeError(
+                f"failed to parse .lazy-manifest: {exc}"
+            ) from exc
+        lazy_files = manifest.get("lazy_paths") or manifest.get("lazy_files") or []
+        ability_root = Path(lazy_manifest_path).parent
+        sum_tokens = 0
+        for entry in lazy_files:
+            if not isinstance(entry, dict):
+                continue
+            path_str = entry.get("path")
+            if not isinstance(path_str, str):
+                continue
+            candidate = ability_root / path_str
+            if candidate.exists() and candidate.is_file():
+                sum_tokens += _estimate_tokens_char_heuristic(
+                    candidate.read_text(encoding="utf-8", errors="replace")
+                )
+                lazy_loads_sampled += 1
+            else:
+                avg = entry.get("avg_tokens")
+                if isinstance(avg, int):
+                    sum_tokens += avg
+                    lazy_loads_sampled += 1
+        if lazy_loads_sampled > 0:
+            lazy_tokens = sum_tokens // lazy_loads_sampled
+    else:
+        # Fallback: references/**/*.md that aren't cited in body.
+        ability_root = skill_md_path.parent
+        references_dir = ability_root / "references"
+        if references_dir.exists() and references_dir.is_dir():
+            sum_tokens = 0
+            for ref in references_dir.rglob("*.md"):
+                if not ref.is_file():
+                    continue
+                rel = str(ref.relative_to(ability_root))
+                # Simple heuristic: if the SKILL body mentions the
+                # relative path, assume it's loaded on trigger
+                # (ON-CALL), not LAZY.
+                if rel in skill_body:
+                    continue
+                sum_tokens += _estimate_tokens_char_heuristic(
+                    ref.read_text(encoding="utf-8", errors="replace")
+                )
+                lazy_loads_sampled += 1
+            if lazy_loads_sampled > 0:
+                lazy_tokens = sum_tokens // lazy_loads_sampled
+
+    return {
+        "C7_eager_per_session": eager_tokens,
+        "C7_eager_per_session_method": "char_heuristic",
+        "C8_oncall_per_trigger": oncall_tokens,
+        "C8_oncall_per_trigger_method": "char_heuristic",
+        "C9_lazy_avg_per_load": lazy_tokens,
+        "C9_lazy_avg_per_load_method": "char_heuristic",
+        "measured_with_sessions": 1 if eager_tokens > 0 else 0,
+        "measured_with_triggers": 1 if oncall_tokens > 0 else 0,
+        "measured_with_lazy_loads": lazy_loads_sampled,
+    }
+
+
+# §18.2 MCP pretty-text anti-pattern detector.
+# Matches ``JSON.stringify(..., null, N)`` where N is a positive integer.
+_PRETTY_JSON_RE = re.compile(
+    r"JSON\.stringify\s*\([^)]*,\s*null\s*,\s*(?P<indent>\d+)\s*\)",
+    re.MULTILINE,
+)
+# Matches ``structuredContent`` usage (MCP response field that should
+# carry machine-parseable data, NOT pretty-printed strings).
+_STRUCTURED_CONTENT_RE = re.compile(r"\bstructuredContent\b")
+
+
+def detect_mcp_pretty_text_issue(mcp_src_dir: Path) -> Dict[str, Any]:
+    """§18.2 static check — find MCP handlers mixing pretty JSON + structuredContent.
+
+    Walks ``.ts`` / ``.tsx`` / ``.js`` / ``.jsx`` / ``.py`` files under
+    ``mcp_src_dir`` and flags any file that contains BOTH:
+
+      * a ``JSON.stringify(..., null, N)`` call where ``N > 0``
+        (pretty-printed output, which costs extra EAGER/ON-CALL tokens
+        when returned through the MCP response text channel), AND
+      * a ``structuredContent`` reference (MCP's machine-parseable
+        response field; when present the text channel is redundant).
+
+    Returns ``{found: [{file, line, code_excerpt}]}``. Empty ``found``
+    means no issues. The check is intentionally conservative: files
+    without ``structuredContent`` are ignored because pretty JSON in
+    pure-text MCP handlers is sometimes intentional (for debugging).
+
+    Parameters
+    ----------
+    mcp_src_dir:
+        Path to an MCP handler source tree. Missing directory returns
+        ``{found: []}`` (not an error — some abilities have no MCP
+        handlers at all).
+    """
+
+    mcp_src_dir = Path(mcp_src_dir)
+    found: List[Dict[str, Any]] = []
+    if not mcp_src_dir.exists() or not mcp_src_dir.is_dir():
+        return {"found": [], "src_dir_exists": False}
+
+    for ext in (".ts", ".tsx", ".js", ".jsx", ".py"):
+        for src in mcp_src_dir.rglob(f"*{ext}"):
+            if not src.is_file():
+                continue
+            try:
+                text = src.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if not _STRUCTURED_CONTENT_RE.search(text):
+                continue
+            for m in _PRETTY_JSON_RE.finditer(text):
+                indent = int(m.group("indent"))
+                if indent <= 0:
+                    continue
+                line_no = text[: m.start()].count("\n") + 1
+                line_start = text.rfind("\n", 0, m.start()) + 1
+                line_end = text.find("\n", m.end())
+                if line_end == -1:
+                    line_end = len(text)
+                excerpt = text[line_start:line_end].strip()
+                found.append(
+                    {
+                        "file": str(src),
+                        "line": line_no,
+                        "code_excerpt": excerpt[:300],
+                        "indent": indent,
+                    }
+                )
+
+    return {"found": found, "src_dir_exists": True}
+
+
+# §18.6 canvas template default-data anti-pattern.
+# Matches TypeScript-style ``export const DEFAULT_DATA = {...}`` or
+# ``export default { ... }`` blocks that carry non-stub values when a
+# SKILL recipe is expected to substitute before rendering.
+_DEFAULT_DATA_RE = re.compile(
+    r"export\s+const\s+(?P<name>[A-Z_][A-Z0-9_]*)\s*[:=]",
+    re.MULTILINE,
+)
+# A "stub" is a minimal placeholder: empty object, null, or a literal
+# single-key marker (``{stub: true}``). Anything else = suspect.
+_STUB_VALUE_RE = re.compile(
+    r"=\s*(?:\{\s*\}|null|undefined|\{\s*stub\s*:\s*true\s*\})",
+    re.MULTILINE,
+)
+
+
+def detect_template_default_data_antipattern(
+    templates_dir: Path,
+) -> Dict[str, Any]:
+    """§18.6 static check — canvas templates with non-stub default data.
+
+    Walks ``.ts`` / ``.tsx`` files under ``templates_dir`` and flags
+    files declaring ``DEFAULT_DATA`` (or similar ALL_CAPS exported
+    constant) with a non-stub initializer. The anti-pattern is: SKILL
+    recipes expect to substitute data into the template before
+    rendering, so any non-empty default ends up as LAZY-tier payload
+    that inflates C9 without adding user-observable value.
+
+    Returns ``{found: [{file, bytes, default_keys}]}``. ``bytes`` is
+    the approximate size of the template file on disk (since §18.6
+    tier_transitions accounting uses byte movement between tiers).
+    ``default_keys`` lists the ALL_CAPS export names that look
+    problematic.
+
+    Parameters
+    ----------
+    templates_dir:
+        Directory to scan. Missing → ``{found: []}`` (not an error).
+    """
+
+    templates_dir = Path(templates_dir)
+    found: List[Dict[str, Any]] = []
+    if not templates_dir.exists() or not templates_dir.is_dir():
+        return {"found": [], "templates_dir_exists": False}
+
+    for ext in (".ts", ".tsx"):
+        for tpl in templates_dir.rglob(f"*{ext}"):
+            if not tpl.is_file():
+                continue
+            try:
+                text = tpl.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            suspect_keys: List[str] = []
+            for m in _DEFAULT_DATA_RE.finditer(text):
+                name = m.group("name")
+                # Check if the matching RHS is a stub.
+                rhs_start = m.end()
+                # Look at the next ~50 chars to see if stub matches.
+                rhs_window = text[rhs_start : rhs_start + 200]
+                if _STUB_VALUE_RE.search(
+                    # Re-anchor the pattern to start of window.
+                    "=" + rhs_window
+                ):
+                    continue
+                suspect_keys.append(name)
+            if suspect_keys:
+                try:
+                    size_bytes = tpl.stat().st_size
+                except OSError:
+                    size_bytes = 0
+                found.append(
+                    {
+                        "file": str(tpl),
+                        "bytes": size_bytes,
+                        "default_keys": suspect_keys,
+                    }
+                )
+
+    return {"found": found, "templates_dir_exists": True}
+
+
+def run_health_smoke_check(
+    health_smoke_config: List[Dict[str, Any]],
+    timeout_s: int = 30,
+    smoke_script: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """§21.4 packaging-gate helper — invoke ``tools/health_smoke.py``.
+
+    Dispatches the health-smoke CLI for EACH entry in
+    ``health_smoke_config``; returns an aggregated results dict. Each
+    per-check result carries:
+
+      * ``endpoint`` — the probed URL.
+      * ``axis`` — ``read`` / ``write`` / ``auth`` / ``dependency``
+        (per §21.3).
+      * ``pass`` — boolean; ``True`` iff the probe returned the
+        expected status + sentinel predicate passed.
+      * ``observed`` — ``{status, sentinel_value, error}`` dict.
+      * ``attempt_count`` — retries used (≤ ``max_attempts``).
+      * ``duration_s`` — wall clock elapsed for this endpoint.
+
+    Parameters
+    ----------
+    health_smoke_config:
+        List of dicts matching the §21.1 schema: each MUST carry
+        ``endpoint``, ``expected_status``, ``max_attempts``,
+        ``retry_delay_ms``, ``sentinel_field``,
+        ``sentinel_value_predicate``, ``axis``, ``description``.
+    timeout_s:
+        Per-request timeout in seconds (default 30). Applied per
+        probe attempt (NOT per endpoint across retries).
+    smoke_script:
+        Optional path override to the ``health_smoke.py`` CLI. When
+        ``None``, uses ``tools/health_smoke.py`` alongside this module.
+
+    Returns
+    -------
+    dict
+        ``{total, passed, per_check, errors}`` where ``per_check`` is
+        the list described above.
+
+    Raises
+    ------
+    ValueError
+        When ``health_smoke_config`` is not a list.
+
+    Notes
+    -----
+    The §21.4 packaging-gate enforcement contract: all entries MUST
+    return ``pass: True`` for the ability to be ship-eligible. Callers
+    typically emit ``{total, passed, per_check}`` into
+    ``.local/dogfood/<DATE>/<round_id>/raw/health_smoke_results.yaml``.
+    """
+
+    if not isinstance(health_smoke_config, list):
+        raise ValueError(
+            f"health_smoke_config must be a list, got "
+            f"{type(health_smoke_config).__name__}"
+        )
+
+    if smoke_script is None:
+        smoke_script = Path(__file__).resolve().parent / "health_smoke.py"
+
+    per_check: List[Dict[str, Any]] = []
+    errors: List[str] = []
+    passed_count = 0
+
+    for idx, check in enumerate(health_smoke_config):
+        if not isinstance(check, dict):
+            errors.append(
+                f"entry[{idx}]: not a dict ({type(check).__name__})"
+            )
+            continue
+        endpoint = check.get("endpoint")
+        axis = check.get("axis")
+        if not isinstance(endpoint, str) or not isinstance(axis, str):
+            errors.append(
+                f"entry[{idx}]: missing endpoint / axis "
+                f"(endpoint={endpoint!r}, axis={axis!r})"
+            )
+            continue
+        # Build CLI invocation: pass the single check JSON via --check.
+        try:
+            check_json = json.dumps(check)
+        except (TypeError, ValueError) as exc:
+            errors.append(f"entry[{idx}]: JSON serialize failed: {exc}")
+            continue
+        t0 = time.perf_counter()
+        cmd = [
+            sys.executable,
+            str(smoke_script),
+            "--check",
+            check_json,
+            "--json",
+            "--timeout",
+            str(timeout_s),
+        ]
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=max(timeout_s * 2, 60),
+                check=False,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+            duration_s = round(time.perf_counter() - t0, 4)
+            errors.append(
+                f"entry[{idx}] endpoint={endpoint}: subprocess failed: {exc}"
+            )
+            per_check.append(
+                {
+                    "endpoint": endpoint,
+                    "axis": axis,
+                    "pass": False,
+                    "observed": {"error": str(exc)},
+                    "attempt_count": 0,
+                    "duration_s": duration_s,
+                }
+            )
+            continue
+        duration_s = round(time.perf_counter() - t0, 4)
+        try:
+            payload = json.loads(result.stdout.strip().splitlines()[-1])
+        except (json.JSONDecodeError, IndexError) as exc:
+            errors.append(
+                f"entry[{idx}] endpoint={endpoint}: unparseable JSON: {exc}; "
+                f"stdout={result.stdout[-200:]!r}"
+            )
+            per_check.append(
+                {
+                    "endpoint": endpoint,
+                    "axis": axis,
+                    "pass": False,
+                    "observed": {"error": "unparseable_subprocess_output"},
+                    "attempt_count": 0,
+                    "duration_s": duration_s,
+                }
+            )
+            continue
+        pc = payload.get("per_check") or []
+        entry = pc[0] if pc else {}
+        probe_pass = bool(entry.get("pass"))
+        if probe_pass:
+            passed_count += 1
+        per_check.append(
+            {
+                "endpoint": endpoint,
+                "axis": axis,
+                "pass": probe_pass,
+                "observed": entry.get("observed") or {},
+                "attempt_count": entry.get("attempt_count", 0),
+                "duration_s": duration_s,
+            }
+        )
+
+    return {
+        "total": len(health_smoke_config),
+        "passed": passed_count,
+        "per_check": per_check,
+        "errors": errors,
+    }
+
+
 # --- Main evaluation flow ---------------------------------------------
 
 def run_evaluation(
@@ -776,6 +1282,243 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.out:
         print(f"  wrote: {args.out}")
     return 0
+
+
+# --- v0.4.0 Wave 1c additions: G2 / G3 / G4 helpers (append-only) -----
+#
+# These three helpers consume output produced by
+# ``evals/si-chip/runners/real_llm_runner.py`` and return the D4
+# Generalizability sub-metrics (G2 / G3 / G4) per spec §3.1. They are
+# pure functions over the runner output dict — they do NOT make LLM
+# calls themselves — so a Stage 6c dogfood run can measure G2/G3/G4
+# against a single cached matrix run without re-paying API cost.
+#
+# Runner output shape consumed (see real_llm_runner.RealLLMRunner.
+# evaluate_matrix) is::
+#
+#     {
+#       "ability_id": str,
+#       "matrix_mode": "mvp"|"intermediate"|"full",
+#       "cells": [
+#         {"model": str, "thinking_depth": str, "scenario_pack": str,
+#          "prompts_run": int, "passes": int, "pass_rate": float,
+#          "pass_at_k": float, "tokens_in": int, "tokens_out": int,
+#          "duration_s": float, "provenance": str,
+#          "per_prompt": [{"prompt": str, "pass_at_k": float, ...}]},
+#         ...
+#       ],
+#       "summary": {...},
+#     }
+
+
+def compute_g2_cross_domain_transfer_pass(
+    runner_output: Dict[str, Any],
+    source_domain: str,
+    target_domain: str,
+) -> Dict[str, Any]:
+    """§3.1 D4 G2 ``cross_domain_transfer_pass`` from a runner_output.
+
+    Selects cells whose ``scenario_pack`` (or an explicit ``domain``
+    tag) matches ``target_domain`` and computes the mean ``pass_rate``
+    weighted by ``prompts_run``. The ``source_domain`` argument is
+    recorded in ``provenance`` so downstream consumers can see which
+    domain the ability was tuned on.
+
+    Returns ``{pass_rate, sample_count, cells_matched, provenance}``.
+    """
+
+    if not isinstance(runner_output, dict):
+        raise TypeError(
+            f"runner_output must be a dict, got {type(runner_output).__name__}"
+        )
+    cells = runner_output.get("cells") or []
+    matched: List[Dict[str, Any]] = [
+        c
+        for c in cells
+        if (c.get("domain") == target_domain)
+        or (c.get("scenario_pack") == target_domain)
+    ]
+    total_prompts = 0
+    weighted_pass_sum = 0.0
+    for cell in matched:
+        n = int(cell.get("prompts_run") or 0)
+        if n <= 0:
+            continue
+        total_prompts += n
+        weighted_pass_sum += float(cell.get("pass_rate") or 0.0) * n
+    pass_rate = (
+        round(weighted_pass_sum / total_prompts, 4)
+        if total_prompts > 0
+        else 0.0
+    )
+    return {
+        "pass_rate": pass_rate,
+        "sample_count": total_prompts,
+        "cells_matched": len(matched),
+        "provenance": {
+            "source_domain": source_domain,
+            "target_domain": target_domain,
+            "ability_id": runner_output.get("ability_id"),
+            "matrix_mode": runner_output.get("matrix_mode"),
+            "runner_source": "evals/si-chip/runners/real_llm_runner.py",
+        },
+    }
+
+
+def compute_g3_ood_robustness(
+    runner_output: Dict[str, Any], ood_pack_path: Path
+) -> Dict[str, Any]:
+    """§3.1 D4 G3 ``OOD_robustness`` against a curated OOD prompt pack.
+
+    Loads the OOD pack (chip-usage-helper eval_pack format —
+    ``should_trigger`` + ``should_not_trigger`` buckets), then scans
+    every ``per_prompt`` entry in the runner_output cells for prompts
+    that appear in the OOD set. Returns the mean ``pass_at_k`` across
+    the matched entries and a list of fail cases (where ``pass_at_k``
+    is 0.0 — i.e. ALL k samples were wrong for that prompt in that
+    cell).
+
+    Returns ``{pass_rate, sample_count, fail_cases, provenance}``.
+    """
+
+    if not isinstance(runner_output, dict):
+        raise TypeError(
+            f"runner_output must be a dict, got {type(runner_output).__name__}"
+        )
+    ood_pack_path = Path(ood_pack_path)
+    if not ood_pack_path.exists():
+        raise FileNotFoundError(
+            f"OOD pack not found: {ood_pack_path}"
+        )
+    with ood_pack_path.open("r", encoding="utf-8") as fh:
+        ood_pack = yaml.safe_load(fh) or {}
+    ood_prompts: set[str] = set(
+        str(p) for p in (ood_pack.get("should_trigger") or [])
+    ) | set(
+        str(p) for p in (ood_pack.get("should_not_trigger") or [])
+    )
+    pass_at_k_values: List[float] = []
+    fail_cases: List[Dict[str, Any]] = []
+    for cell in runner_output.get("cells") or []:
+        for pp in cell.get("per_prompt") or []:
+            if pp.get("prompt") in ood_prompts:
+                pak = float(pp.get("pass_at_k") or 0.0)
+                pass_at_k_values.append(pak)
+                if pak == 0.0:
+                    fail_cases.append(
+                        {
+                            "prompt": pp.get("prompt"),
+                            "model": cell.get("model"),
+                            "thinking_depth": cell.get("thinking_depth"),
+                            "scenario_pack": cell.get("scenario_pack"),
+                        }
+                    )
+    pass_rate = (
+        round(sum(pass_at_k_values) / len(pass_at_k_values), 4)
+        if pass_at_k_values
+        else 0.0
+    )
+    return {
+        "pass_rate": pass_rate,
+        "sample_count": len(pass_at_k_values),
+        "fail_cases": fail_cases,
+        "provenance": {
+            "ood_pack_path": str(ood_pack_path),
+            "ood_prompt_count": len(ood_prompts),
+            "ability_id": runner_output.get("ability_id"),
+            "runner_source": "evals/si-chip/runners/real_llm_runner.py",
+        },
+    }
+
+
+def compute_g4_model_version_stability(
+    current_runner_output: Dict[str, Any],
+    prior_runner_output: Dict[str, Any],
+    drift_threshold: float = 0.05,
+) -> Dict[str, Any]:
+    """§3.1 D4 G4 ``model_version_stability`` across two runner runs.
+
+    Matches cells by ``(model, thinking_depth, scenario_pack)``;
+    computes per-cell ``pass_rate`` delta (current − prior) and
+    considers the cell stable iff ``|delta| < drift_threshold``.
+
+    Returns
+    -------
+    dict with ``stability_ratio`` (fraction of matched cells that are
+    stable), ``drift_cases`` (list of cells whose |delta| ≥ threshold),
+    ``per_model_delta`` (mean delta per model), ``matched_cells``,
+    ``drift_threshold``, and ``provenance``.
+    """
+
+    if not isinstance(current_runner_output, dict):
+        raise TypeError(
+            "current_runner_output must be a dict, got "
+            f"{type(current_runner_output).__name__}"
+        )
+    if not isinstance(prior_runner_output, dict):
+        raise TypeError(
+            "prior_runner_output must be a dict, got "
+            f"{type(prior_runner_output).__name__}"
+        )
+
+    def _index(output: Dict[str, Any]) -> Dict[tuple, Dict[str, Any]]:
+        return {
+            (
+                c.get("model"),
+                c.get("thinking_depth"),
+                c.get("scenario_pack"),
+            ): c
+            for c in (output.get("cells") or [])
+        }
+
+    cur_idx = _index(current_runner_output)
+    prior_idx = _index(prior_runner_output)
+    matched_keys = sorted(
+        set(cur_idx.keys()) & set(prior_idx.keys()),
+        key=lambda k: tuple(str(x) for x in k),
+    )
+    drift_cases: List[Dict[str, Any]] = []
+    per_model_deltas: Dict[str, List[float]] = {}
+    stable = 0
+    for key in matched_keys:
+        cur_pr = float(cur_idx[key].get("pass_rate") or 0.0)
+        prior_pr = float(prior_idx[key].get("pass_rate") or 0.0)
+        delta = round(cur_pr - prior_pr, 4)
+        model = key[0] or "<unknown>"
+        per_model_deltas.setdefault(model, []).append(delta)
+        if abs(delta) < drift_threshold:
+            stable += 1
+        else:
+            drift_cases.append(
+                {
+                    "model": key[0],
+                    "thinking_depth": key[1],
+                    "scenario_pack": key[2],
+                    "prior_pass_rate": prior_pr,
+                    "current_pass_rate": cur_pr,
+                    "delta": delta,
+                }
+            )
+    per_model_delta_mean = {
+        m: round(sum(ds) / len(ds), 4) for m, ds in per_model_deltas.items()
+    }
+    stability_ratio = (
+        round(stable / len(matched_keys), 4) if matched_keys else 0.0
+    )
+    return {
+        "stability_ratio": stability_ratio,
+        "drift_cases": drift_cases,
+        "per_model_delta": per_model_delta_mean,
+        "matched_cells": len(matched_keys),
+        "drift_threshold": drift_threshold,
+        "provenance": {
+            "current_ability_id": current_runner_output.get("ability_id"),
+            "prior_ability_id": prior_runner_output.get("ability_id"),
+            "current_matrix_mode": current_runner_output.get("matrix_mode"),
+            "prior_matrix_mode": prior_runner_output.get("matrix_mode"),
+            "runner_source": "evals/si-chip/runners/real_llm_runner.py",
+        },
+    }
 
 
 if __name__ == "__main__":

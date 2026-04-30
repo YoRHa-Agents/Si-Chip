@@ -1,20 +1,25 @@
 # Si-Chip Next-Action Plan Template
-# Schema v0.2.0 (additive — v0.1.0 fields unchanged; spec v0.3.0-rc1 §15 add-on)
+# Schema v0.3.0 (additive — v0.2.0 fields unchanged; spec v0.4.0-rc1 §18.2 + §19.3 add-on).
 # Spec source: §8.1 step 4 output (improve); §8.2 evidence #5;
 #              target_gate bound to §4 / §5.4 gate-profile triple.
 # v0.3.0-rc1 §15.1 add-on: round_kind + round_kind_rationale fields — Agent must classify each round.
 # v0.3.0-rc1 §14 add-on: C0 test-pack action template commented inline under `actions:`.
+# v0.4.0-rc1 §18.2 add-on: `token_tier_target ∈ {relaxed, standard, strict}` field — controls
+#                          EAGER-weighted pressure bound to §4 gate profiles.
+# v0.4.0-rc1 §19.3 add-on: optional `real_data_verification` sub-field on action items, used
+#                          when the action involves production-payload-derived fixtures.
 # Instance template (NOT a DevolaFlow WorkflowTemplate).
 
-$schema_version: "0.2.0"
+$schema_version: "0.3.0"
 $spec_section: "§8.1 step 4"
 $spec_section_v0_3_0: "§8.1 + §15.1"
+$spec_section_v0_4_0: "§8.1 + §15.1 + §18.2 + §19.3"
 $source_of_truth: ".agents/skills/si-chip/"
 
 metadata:
   name: "si-chip-next-action-plan"
-  version: "0.2.0"
-  description: "Skeleton for the next round's action plan. Each improve step writes one instance into .local/dogfood/<date>/<round_id>/next_action_plan.yaml. v0.3.0-rc1: adds §15 round_kind classification."
+  version: "0.3.0"
+  description: "Skeleton for the next round's action plan. Each improve step writes one instance into .local/dogfood/<date>/<round_id>/next_action_plan.yaml. v0.3.0-rc1: adds §15 round_kind classification. v0.4.0-rc1: adds §18.2 token_tier_target and §19.3 real_data_verification action sub-field."
 
 required_fields:
   - round_id
@@ -78,6 +83,21 @@ schema:
       - standard
       - strict
     description: "Router profile bound to §4 gate (§5.4: relaxed->v1_baseline, standard->v2_tightened, strict->v3_strict)."
+  # v0.4.0 §18.2 add-on — token_tier_target
+  token_tier_target:
+    type: string
+    required: false
+    enum:
+      - relaxed
+      - standard
+      - strict
+    description: |
+      Spec v0.4.0-rc1 §18.2 — token-tier pressure profile. Mirrors §4 gate profile enum
+      and controls EAGER-weighted iteration_delta interpretation:
+        - relaxed  -> v1_baseline EAGER-delta bucket (~+0.05)
+        - standard -> v2_tightened EAGER-delta bucket (~+0.10)
+        - strict   -> v3_strict EAGER-delta bucket (~+0.15)
+      Optional: when absent, falls back to target_gate profile.
   actions:
     type: array
     required: true
@@ -124,6 +144,25 @@ schema:
         exit_criterion:
           type: string
           description: "Measurable condition that closes this action (e.g. 'T1_pass_rate >= 0.82 at v2_tightened')."
+        # v0.4.0 §19.3 add-on — real_data_verification (optional per-action block).
+        real_data_verification:
+          type: object
+          required: false
+          description: |
+            Spec v0.4.0-rc1 §19.3 — optional sub-field on an action item whose implementation
+            introduces production-payload-derived fixtures. Documents the fixture count, the
+            provenance (where the sample originated), and a regex pattern the BLOCKER 13
+            REAL_DATA_FIXTURE_PROVENANCE audit trail greps for inside fixture files.
+          properties:
+            fixtures_count:
+              type: integer
+              description: "Number of msw / vitest / equivalent fixtures introduced or updated by this action."
+            provenance:
+              type: ["string", "null"]
+              description: "Sample source (user report, prod log, synthetic, etc.); null when no real-data fixture."
+            audit_trail_grep_pattern:
+              type: ["string", "null"]
+              description: "Regex for finding provenance citations in fixture files (typically `real-data sample provenance:`)."
   expected_iteration_delta_axes:
     type: array
     required: true
@@ -154,6 +193,7 @@ example_instance:
   basis_router_floor_report: ".local/dogfood/2026-04-28/r0/router_floor_report.yaml"
   prior_iteration_delta: null
   target_gate: relaxed
+  token_tier_target: relaxed    # v0.4.0 §18.2 — relaxed | standard | strict (maps to §4 gate profiles; controls EAGER-weighted pressure)
   actions:
     - id: "a1"
       title: "Tighten SKILL.md description to reduce metadata tokens."
@@ -161,6 +201,11 @@ example_instance:
       applies_to_metric: "C1_metadata_tokens"
       primitive: refine
       exit_criterion: "C1_metadata_tokens <= 100 against Anthropic tokenizer."
+      # v0.4.0 §19.3 add-on — optional real_data_verification sub-field.
+      real_data_verification:
+        fixtures_count: 0
+        provenance: null                       # sample source (user report, prod log, synthetic, etc.)
+        audit_trail_grep_pattern: null         # regex for finding provenance citations in fixture files
     # Example v0.3.0 action targeting core_goal (§14):
     # - action_id: c0_test_pack_grow
     #   priority: P1

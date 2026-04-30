@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Static structural validator for the Si-Chip spec.
 
-Implements the **eleven** machine-checkable invariants declared across
-spec §13.4 (v0.2.0 — 9 BLOCKERs) and §13.5.4 (v0.3.0-rc1 — 2 additive
-BLOCKERs). Round 12 (Si-Chip v0.1.11) added the 9th BLOCKER
-``REACTIVATION_DETECTOR_EXISTS``. Stage 4 Wave 2a (v0.3.0-rc1, 2026-04-29)
-adds the 10th and 11th:
+Implements the **fourteen** machine-checkable invariants declared across
+spec §13.4 (v0.2.0 — 9 BLOCKERs), §13.5.4 (v0.3.0-rc1 — 2 additive
+BLOCKERs) and §13.6.4 (v0.4.0-rc1 — 3 additive BLOCKERs). Round 12
+(Si-Chip v0.1.11) added the 9th BLOCKER ``REACTIVATION_DETECTOR_EXISTS``.
+Stage 4 Wave 2a (v0.3.0-rc1, 2026-04-29) added the 10th
+(``CORE_GOAL_FIELD_PRESENT``) and 11th (``ROUND_KIND_TEMPLATE_VALID``).
+Stage 4 Wave 1b (v0.4.0-rc1, 2026-04-30) adds the 12th, 13th and 14th:
 
 * ``CORE_GOAL_FIELD_PRESENT`` — asserts that the BasicAbilityProfile
   schema declares a REQUIRED ``core_goal`` block with the §14.1.1
@@ -20,6 +22,20 @@ adds the 10th and 11th:
   ``code_change`` / ``measurement_only`` / ``ship_prep`` / ``maintenance``
   4-value enum frozen at spec §15.1.1). Skipped as PASS for
   ``$schema_version < 0.2.0`` templates (legacy compat).
+* ``TOKEN_TIER_DECLARED_WHEN_REPORTED`` (v0.4.0 §18.1) — asserts that
+  any ``metrics_report.yaml`` reporting C7/C8/C9 token-tier axes also
+  declares the top-level ``token_tier`` block with all three fields
+  (null placeholders allowed). Skipped as PASS when no reporting is
+  found (abilities that haven't adopted §18 yet).
+* ``REAL_DATA_FIXTURE_PROVENANCE`` (v0.4.0 §19.3) — asserts that any
+  ability declaring entries in ``feedback_real_data_samples.yaml`` has
+  grep-able ``real-data sample provenance`` comments in its test
+  fixtures. Skipped when no real_data_samples.yaml exists.
+* ``HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`` (v0.4.0 §21.2) — asserts
+  that every BasicAbilityProfile with
+  ``current_surface.dependencies.live_backend: true`` also carries a
+  non-empty ``packaging.health_smoke_check`` array. Skipped when no
+  profile declares live_backend.
 
 Spec path defaults to ``.local/research/spec_v0.2.0.md`` (Si-Chip v0.2.0
 ship, 2026-04-28; promoted from v0.2.0-rc1 with no Normative semantic
@@ -28,9 +44,9 @@ change). §13.4 prose counts remain aligned with the §3.1 / §4.1 TABLES
 via ``--spec .local/research/spec_v0.2.0-rc1.md`` (pinned historical
 record). Spec v0.1.0 remains accepted via
 ``--spec .local/research/spec_v0.1.0.md`` for backward-compat
-verification of Rounds 1–10 artefacts. Spec v0.3.0-rc1 is accepted via
-``--spec .local/research/spec_v0.3.0-rc1.md``; the v0.3.0 default flip
-happens at L0 step 8 (final ship), not in this stage.
+verification of Rounds 1–10 artefacts. Spec v0.3.0-rc1 / v0.3.0 /
+v0.4.0-rc1 are each accepted via ``--spec .local/research/…``; the
+default spec flip remains at L0 step 8 (final ship), not in this stage.
 
 The validator does NOT execute the dogfood loop, the router test, or any
 metric collection. It only verifies that the spec markdown plus the six
@@ -108,7 +124,15 @@ LOGGER = logging.getLogger("si_chip.spec_validator")
 # 0.2.0 — Stage 4 Wave 2a (v0.3.0-rc1): accepts spec v0.3.0-rc1 alongside
 # v0.2.0 / v0.2.0-rc1 / v0.1.0; adds 2 new BLOCKERs CORE_GOAL_FIELD_PRESENT
 # and ROUND_KIND_TEMPLATE_VALID; version-aware EXPECTED_BAP_KEYS_BY_SCHEMA.
-SCRIPT_VERSION = "0.2.0"
+# 0.3.0 — Stage 4 Wave 1b (v0.4.0-rc1): accepts spec v0.4.0-rc1 alongside
+# earlier versions; adds 3 new BLOCKERs TOKEN_TIER_DECLARED_WHEN_REPORTED,
+# REAL_DATA_FIXTURE_PROVENANCE, HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND;
+# version-aware EXPECTED_VALUE_VECTOR_AXES_BY_SPEC (7 axes ≤ v0.3.0;
+# 8 axes @ v0.4.0-rc1 with eager_token_delta); R6_KEYS ignores §23
+# method-tag companion suffixes; EVIDENCE_FILES is round_kind-aware
+# (7 files when round_kind == 'ship_prep', else 6); 0.3.0 schema key
+# bucket mirrors 0.2.0 (additive sub-fields don't change top-level set).
+SCRIPT_VERSION = "0.3.0"
 
 # §5 router_test_matrix template accepts BOTH schema versions as of
 # Round 9 (Si-Chip v0.1.8). 0.1.0 = initial (mvp:8 + full:96); 0.1.1 =
@@ -131,7 +155,17 @@ DEFAULT_TEMPLATES_DIR = "templates"
 
 # Supported spec versions (validator accepts any; strict-prose-count
 # auto-adjusts expected numbers based on spec version).
-SUPPORTED_SPEC_VERSIONS = {"v0.1.0", "v0.2.0-rc1", "v0.2.0", "v0.3.0-rc1"}
+# v0.4.0-rc1 added Stage 4 Wave 1b (2026-04-30); v0.3.0 + v0.4.0 listed
+# so a later ship-time default flip (L0 step 8) is a no-op for callers.
+SUPPORTED_SPEC_VERSIONS = {
+    "v0.1.0",
+    "v0.2.0-rc1",
+    "v0.2.0",
+    "v0.3.0-rc1",
+    "v0.3.0",
+    "v0.4.0-rc1",
+    "v0.4.0",
+}
 
 # §2.1 frozen field set under basic_ability — version-keyed dict.
 # Lookup by the schema file's own ``$schema_version`` (top-level YAML
@@ -143,6 +177,14 @@ SUPPORTED_SPEC_VERSIONS = {"v0.1.0", "v0.2.0-rc1", "v0.2.0", "v0.3.0-rc1"}
 # 0.1.0 — pre-v0.3.0 schema (10 keys; no core_goal).
 # 0.2.0 — additive: spec v0.3.0-rc1 §14 made ``core_goal`` REQUIRED as
 #         the 11th key. Existing 10 keys preserved byte-identical.
+# 0.3.0 — additive: v0.4.0-rc1 adds OPTIONAL sub-fields on existing
+#         top-level keys (lifecycle.promotion_history,
+#         current_surface.dependencies.live_backend,
+#         packaging.health_smoke_check, metrics.<dim>._method companions).
+#         Top-level key set is IDENTICAL to 0.2.0 — no new entries in
+#         basic_ability.required. Round 14+ profiles validate against
+#         this key set; legacy Round 1-13 profiles continue to validate
+#         against the 0.1.0 key set.
 EXPECTED_BAP_KEYS_BY_SCHEMA: Dict[str, set] = {
     "0.1.0": {
         "id",
@@ -157,6 +199,19 @@ EXPECTED_BAP_KEYS_BY_SCHEMA: Dict[str, set] = {
         "decision",
     },
     "0.2.0": {
+        "id",
+        "intent",
+        "core_goal",
+        "current_surface",
+        "packaging",
+        "lifecycle",
+        "eval_state",
+        "metrics",
+        "value_vector",
+        "router_floor",
+        "decision",
+    },
+    "0.3.0": {
         "id",
         "intent",
         "core_goal",
@@ -191,6 +246,13 @@ EXPECTED_R6_TABLE_TOTAL = sum(EXPECTED_R6_TABLE_COUNTS.values())  # 37
 #   v0.2.0:      prose claimed 37 (inherits v0.2.0-rc1 reconciliation; ship)
 #   v0.3.0-rc1:  prose claimed 37 (additive — §13.4 byte-identical to v0.2.0;
 #                                  v0.3.0 add-on lives in §13.5.4 instead)
+#   v0.3.0:      prose claimed 37 (promoted from v0.3.0-rc1; ship)
+#   v0.4.0-rc1:  prose claimed 37 (§13.4 byte-identical to v0.3.0; v0.4.0
+#                                  add-on lives in §13.6.4 instead —
+#                                  §23 method-tag companions are NOT counted
+#                                  as sub-metrics per §23.6; §18 token-tier
+#                                  is top-level invariant NOT a sub-metric)
+#   v0.4.0:      prose claimed 37 (inherits v0.4.0-rc1 when promoted)
 # strict-prose-count mode picks the correct expected value from this map
 # using the spec's own version frontmatter.
 EXPECTED_R6_PROSE_BY_SPEC = {
@@ -198,6 +260,9 @@ EXPECTED_R6_PROSE_BY_SPEC = {
     "v0.2.0-rc1": 37,
     "v0.2.0": 37,
     "v0.3.0-rc1": 37,
+    "v0.3.0": 37,
+    "v0.4.0-rc1": 37,
+    "v0.4.0": 37,
 }
 # Default fallback (when spec version cannot be detected): v0.2.0 (ship default).
 EXPECTED_R6_PROSE_DEFAULT = EXPECTED_R6_PROSE_BY_SPEC["v0.2.0"]
@@ -224,16 +289,36 @@ EXPECTED_THRESHOLD_CELLS_TABLE = len(THRESHOLD_METRICS) * 3  # 30
 #   v0.2.0-rc1:  prose claimed 30 (reconciled with §4.1 TABLE; Round 11)
 #   v0.2.0:      prose claimed 30 (inherits v0.2.0-rc1 reconciliation; ship)
 #   v0.3.0-rc1:  prose claimed 30 (additive — §13.4 byte-identical to v0.2.0)
+#   v0.3.0:      prose claimed 30 (promoted from v0.3.0-rc1; ship)
+#   v0.4.0-rc1:  prose claimed 30 (§13.4 byte-identical to v0.3.0;
+#                                  only §6.1 value_vector axes count changes
+#                                  from 7 → 8 per §13.6.4, NOT threshold cells)
+#   v0.4.0:      prose claimed 30 (inherits v0.4.0-rc1 when promoted)
 EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC = {
     "v0.1.0": 21,
     "v0.2.0-rc1": 30,
     "v0.2.0": 30,
     "v0.3.0-rc1": 30,
+    "v0.3.0": 30,
+    "v0.4.0-rc1": 30,
+    "v0.4.0": 30,
 }
 EXPECTED_THRESHOLD_CELLS_PROSE_DEFAULT = EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC["v0.2.0"]
 
-# §6.1 frozen 7-axis value vector.
-EXPECTED_VALUE_VECTOR_AXES = {
+# §6.1 value vector axes — version-keyed dict.
+# v0.1.0 → v0.3.0 (inclusive): 7 axes.
+# v0.4.0-rc1+: 8 axes (adds ``eager_token_delta`` per §6.1 v0.4.0 modification).
+# The 7 → 8 break is the FIRST byte-identicality break since v0.1.0 →
+# v0.2.0 prose-count alignment (per Reconciliation Log entry (c)).
+#
+# Lookup pattern mirrors EXPECTED_BAP_KEYS_BY_SCHEMA (version-aware) but
+# keys on --spec version, NOT on template $schema_version. Rationale:
+# half_retire_decision.template.yaml stays at v0.1.0 schema (spec §9 add-on
+# marks it UNCHANGED); the 8th axis appears in
+# iteration_delta_report.template.yaml example_instance.axis_status
+# (§6.1 + §18.6 — tier_transitions). Check consults both templates when
+# --spec >= v0.4.0-rc1.
+EXPECTED_VALUE_VECTOR_AXES_BASE: Set[str] = {
     "task_delta",
     "token_delta",
     "latency_delta",
@@ -241,6 +326,36 @@ EXPECTED_VALUE_VECTOR_AXES = {
     "path_efficiency_delta",
     "routing_delta",
     "governance_risk_delta",
+}
+EXPECTED_VALUE_VECTOR_AXES_V0_4_0: Set[str] = (
+    EXPECTED_VALUE_VECTOR_AXES_BASE | {"eager_token_delta"}
+)
+
+EXPECTED_VALUE_VECTOR_AXES_BY_SPEC: Dict[str, Set[str]] = {
+    "v0.1.0": EXPECTED_VALUE_VECTOR_AXES_BASE,
+    "v0.2.0-rc1": EXPECTED_VALUE_VECTOR_AXES_BASE,
+    "v0.2.0": EXPECTED_VALUE_VECTOR_AXES_BASE,
+    "v0.3.0-rc1": EXPECTED_VALUE_VECTOR_AXES_BASE,
+    "v0.3.0": EXPECTED_VALUE_VECTOR_AXES_BASE,
+    "v0.4.0-rc1": EXPECTED_VALUE_VECTOR_AXES_V0_4_0,
+    "v0.4.0": EXPECTED_VALUE_VECTOR_AXES_V0_4_0,
+}
+
+# Default fallback: the legacy 7-axis set (v0.3.0 ship default). This
+# keeps ``check_value_vector_axes`` backward-compat when spec version
+# cannot be detected.
+EXPECTED_VALUE_VECTOR_AXES = EXPECTED_VALUE_VECTOR_AXES_BASE
+
+# §6.1 prose axis count per spec version (mirrors the TABLE semantics
+# above but exposes a scalar for strict-prose-count callers).
+EXPECTED_VALUE_VECTOR_PROSE_BY_SPEC: Dict[str, int] = {
+    "v0.1.0": 7,
+    "v0.2.0-rc1": 7,
+    "v0.2.0": 7,
+    "v0.3.0-rc1": 7,
+    "v0.3.0": 7,
+    "v0.4.0-rc1": 8,
+    "v0.4.0": 8,
 }
 
 # §8.1 8-step frozen order.
@@ -255,7 +370,8 @@ EXPECTED_DOGFOOD_STEPS = [
     "package-register",
 ]
 
-# §8.2 minimum evidence files (6).
+# §8.2 minimum evidence files (6; v0.4.0 add: +1 ship_decision when
+# next_action_plan.round_kind == 'ship_prep').
 EXPECTED_EVIDENCE_FILES = [
     "BasicAbilityProfile",
     "metrics_report",
@@ -264,6 +380,45 @@ EXPECTED_EVIDENCE_FILES = [
     "next_action_plan",
     "iteration_delta_report",
 ]
+# v0.4.0 §20.4 additive: 7th evidence file when round_kind == 'ship_prep'.
+EXPECTED_EVIDENCE_FILES_SHIP_PREP = EXPECTED_EVIDENCE_FILES + ["ship_decision"]
+
+# §23.6 companion-field suffixes ignored by R6_KEYS BLOCKER.
+# Primary metric keys (e.g. ``T1_pass_rate``, ``C1_metadata_tokens``)
+# count toward the 37 sub-metric total; companion keys ending in any
+# of these suffixes are metadata about the primary value and MUST be
+# filtered out before counting. This preserves R6 7×37 frozen count
+# under v0.4.0 method-tag schema.
+COMPANION_SUFFIXES: Tuple[str, ...] = (
+    "_method",
+    "_ci_low",
+    "_ci_high",
+    "_language_breakdown",
+    "_state",
+    "_provenance",
+    "_sampled_at",
+    "_sample_size_per_cell",
+)
+
+
+def _is_companion_key(key: str) -> bool:
+    """Return True when ``key`` is a §23 companion-field suffix.
+
+    Primary example: ``T1_pass_rate_method`` → True;
+    ``T1_pass_rate`` → False. Used by R6_KEYS to exclude method-tag
+    companions from the 7×37 sub-metric count (§23.6).
+
+    >>> _is_companion_key("T1_pass_rate_method")
+    True
+    >>> _is_companion_key("U1_language_breakdown")
+    True
+    >>> _is_companion_key("U4_state")
+    True
+    >>> _is_companion_key("T1_pass_rate")
+    False
+    """
+
+    return any(key.endswith(suffix) for suffix in COMPANION_SUFFIXES)
 
 # Round 12 §6.4 reactivation-detector invariant. The 9th BLOCKER asserts
 # that ``tools/reactivation_detector.py`` exists, references all 6 §6.4
@@ -422,15 +577,31 @@ def detect_spec_version(spec_text: str) -> Optional[str]:
 
 
 def _count_metric_keys(metrics: Dict[str, Any]) -> Dict[str, int]:
-    """Count sub-metric keys per dimension.
+    """Count sub-metric keys per dimension, ignoring §23 companion fields.
 
     Each dimension's ``properties`` mapping enumerates the sub-metric
     names; a missing ``properties`` mapping yields zero (this is a
-    template-shape error, surfaced by R6_KEYS).
+    template-shape error, surfaced by R6_KEYS). Companion suffixes
+    (``_method``, ``_ci_low``, ``_ci_high``, ``_language_breakdown``,
+    ``_state``, ``_provenance``, ``_sampled_at``,
+    ``_sample_size_per_cell``) are excluded from the count per
+    spec §23.6 (R6 7×37 frozen count unchanged under v0.4.0 method-tag
+    schema).
 
     >>> m = {"d1": {"properties": {"T1": {}, "T2": {}}}, "d2": {"properties": {}}}
     >>> _count_metric_keys(m)
     {'d1': 2, 'd2': 0}
+    >>> m_with_companions = {
+    ...     "d1": {"properties": {
+    ...         "T1_pass_rate": {},
+    ...         "T1_pass_rate_method": {},
+    ...         "T2_pass_k": {},
+    ...         "T2_pass_k_ci_low": {},
+    ...         "T2_pass_k_ci_high": {},
+    ...     }}
+    ... }
+    >>> _count_metric_keys(m_with_companions)
+    {'d1': 2}
     """
 
     out: Dict[str, int] = {}
@@ -440,7 +611,8 @@ def _count_metric_keys(metrics: Dict[str, Any]) -> Dict[str, int]:
             continue
         props = body.get("properties")
         if isinstance(props, dict):
-            out[dim] = len(props)
+            # §23.6: primary metric keys count; companion suffixes don't.
+            out[dim] = sum(1 for k in props if not _is_companion_key(k))
         else:
             out[dim] = 0
     return out
@@ -977,36 +1149,125 @@ def check_router_matrix_cells(templates_dir: Path) -> AssertionResult:
     )
 
 
-def check_value_vector_axes(templates_dir: Path) -> AssertionResult:
-    """Invariant 5 — VALUE_VECTOR_AXES: exactly 7 §6.1 axes."""
+def _collect_value_vector_axes_from_iteration_delta(
+    templates_dir: Path,
+) -> Set[str]:
+    """Return any ``*_delta`` axis names found in iteration_delta_report.
 
-    path = templates_dir / "half_retire_decision.template.yaml"
-    data = _load_yaml(path)
+    Per spec §6.1 v0.4.0 modification and §18.6 ``tier_transitions``
+    design, the 8th axis ``eager_token_delta`` is expected to surface
+    in ``iteration_delta_report.template.yaml`` as an additional entry
+    under ``example_instance.axis_status`` (7 R6 dimensions +
+    ``eager_token_delta``). Scan both the schema and example surfaces
+    and return only ``*_delta``-suffixed keys (filtering out R6
+    dimension-name keys like ``task_quality``).
+
+    Returns an empty set if the template or path is missing — caller
+    decides whether to fail. Workspace rule "No Silent Failures": we
+    do NOT raise here because the historical template surface may omit
+    the 8th axis for ≤ v0.3.0 spec verifications; the caller enforces.
+    """
+
+    idr_path = templates_dir / "iteration_delta_report.template.yaml"
+    if not idr_path.exists():
+        return set()
+    data = _load_yaml(idr_path)
+    axes: Set[str] = set()
+    if not isinstance(data, dict):
+        return axes
+    example = data.get("example_instance") or {}
+    if isinstance(example, dict):
+        axis_status = example.get("axis_status") or {}
+        if isinstance(axis_status, dict):
+            for k in axis_status.keys():
+                if isinstance(k, str) and k.endswith("_delta"):
+                    axes.add(k)
+    # Also accept top-level ``tier_transitions``-adjacent declaration
+    # of axes if the template later standardizes on that surface.
+    verdict = example.get("verdict") if isinstance(example, dict) else None
+    if isinstance(verdict, dict):
+        for k in verdict.keys():
+            if isinstance(k, str) and k.endswith("_delta"):
+                axes.add(k)
+    return axes
+
+
+def check_value_vector_axes(
+    templates_dir: Path,
+    *,
+    spec_version: Optional[str] = None,
+) -> AssertionResult:
+    """Invariant 5 — VALUE_VECTOR_AXES: §6.1 axes count (7 ≤ v0.3.0; 8 @ v0.4.0+).
+
+    Version-aware (same pattern as BAP_SCHEMA's version-awareness from
+    Stage 4 Wave 2a): the expected axis count comes from
+    ``EXPECTED_VALUE_VECTOR_AXES_BY_SPEC`` keyed on ``spec_version``.
+    For v0.4.0-rc1+ the 8th axis (``eager_token_delta``) is expected
+    in ``iteration_delta_report.template.yaml`` per spec §6.1 + §18.6
+    (the half_retire_decision template remains UNCHANGED at 0.1.0 with
+    the legacy 7 axes — that's intentional per §9 v0.4.0 add-on).
+
+    When ``spec_version`` is ``None``, falls back to the 7-axis base
+    set (legacy behavior) so callers that omit spec version continue
+    to work against v0.3.0 + earlier specs.
+    """
+
+    expected = EXPECTED_VALUE_VECTOR_AXES_BY_SPEC.get(
+        spec_version or "", EXPECTED_VALUE_VECTOR_AXES
+    )
+
+    hrd_path = templates_dir / "half_retire_decision.template.yaml"
+    hrd_data = _load_yaml(hrd_path)
     try:
-        axes_props = data["schema"]["value_vector"]["properties"]
+        hrd_axes_props = hrd_data["schema"]["value_vector"]["properties"]
     except (KeyError, TypeError) as exc:
         return AssertionResult(
             id="VALUE_VECTOR_AXES",
-            name="Value vector has 7 axes per spec §6.1",
+            name="Value vector axes per spec §6.1 (version-aware: 7 ≤ v0.3.0; 8 @ v0.4.0+)",
             passed=False,
             severity="BLOCKER",
-            message=f"template missing schema.value_vector.properties: {exc}",
-            evidence={"template_path": str(path)},
+            message=(
+                f"template missing schema.value_vector.properties: {exc}"
+            ),
+            evidence={"template_path": str(hrd_path)},
         )
-    actual = set(axes_props.keys())
-    missing = sorted(EXPECTED_VALUE_VECTOR_AXES - actual)
-    extra = sorted(actual - EXPECTED_VALUE_VECTOR_AXES)
-    passed = not missing and not extra and len(actual) == 7
+    hrd_axes = set(hrd_axes_props.keys())
+    all_axes = set(hrd_axes)
+
+    # For v0.4.0+ specs we also consult iteration_delta_report, where
+    # the new ``eager_token_delta`` is declared additively.
+    idr_axes: Set[str] = set()
+    if spec_version in {"v0.4.0-rc1", "v0.4.0"}:
+        idr_axes = _collect_value_vector_axes_from_iteration_delta(
+            templates_dir
+        )
+        all_axes |= idr_axes
+
+    missing = sorted(expected - all_axes)
+    extra = sorted(all_axes - expected)
+    passed = not missing and not extra and len(all_axes) == len(expected)
     return AssertionResult(
         id="VALUE_VECTOR_AXES",
-        name="Value vector has 7 axes per spec §6.1",
+        name=(
+            "Value vector axes per spec §6.1 "
+            "(version-aware: 7 ≤ v0.3.0; 8 @ v0.4.0+)"
+        ),
         passed=passed,
         severity="BLOCKER",
         message=(
-            f"expected={sorted(EXPECTED_VALUE_VECTOR_AXES)} actual={sorted(actual)} "
-            f"missing={missing} extra={extra}"
+            f"spec_version={spec_version!r} expected={sorted(expected)} "
+            f"actual={sorted(all_axes)} missing={missing} extra={extra} "
+            f"(hrd={sorted(hrd_axes)}, idr={sorted(idr_axes)})"
         ),
-        evidence={"missing": missing, "extra": extra, "actual": sorted(actual)},
+        evidence={
+            "spec_version": spec_version,
+            "expected": sorted(expected),
+            "actual": sorted(all_axes),
+            "missing": missing,
+            "extra": extra,
+            "hrd_axes": sorted(hrd_axes),
+            "idr_axes": sorted(idr_axes),
+        },
     )
 
 
@@ -1047,8 +1308,127 @@ _DOGFOOD_STEP_RE = re.compile(
 )
 
 
+def _expected_evidence_count_for_round(
+    round_dir: Path,
+) -> Tuple[int, Optional[str], List[str]]:
+    """Return (expected_count, round_kind, warnings) for a round directory.
+
+    Reads ``next_action_plan.yaml`` from ``round_dir``; when
+    ``round_kind == 'ship_prep'``, the expected count is 7 (§20.4 + §8.2
+    v0.4.0 add-on); otherwise 6. Missing / unparseable next_action_plan
+    defaults to 6 with a WARNING string in ``warnings``.
+    """
+
+    nap = round_dir / "next_action_plan.yaml"
+    warnings: List[str] = []
+    if not nap.exists():
+        warnings.append(
+            f"{round_dir}: next_action_plan.yaml missing; defaulting to "
+            "evidence count = 6"
+        )
+        return 6, None, warnings
+    try:
+        data = yaml.safe_load(nap.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        warnings.append(
+            f"{nap}: YAML parse error ({exc}); defaulting to evidence "
+            "count = 6"
+        )
+        return 6, None, warnings
+    if not isinstance(data, dict):
+        warnings.append(
+            f"{nap}: not a YAML mapping; defaulting to evidence count = 6"
+        )
+        return 6, None, warnings
+    rk = data.get("round_kind")
+    if rk == "ship_prep":
+        return 7, "ship_prep", warnings
+    return 6, rk if isinstance(rk, str) else None, warnings
+
+
+def check_evidence_count_for_round(round_dir: Path) -> AssertionResult:
+    """Round-level evidence-count check (§8.2 + §20.4 v0.4.0 add-on).
+
+    Inspects a single round directory:
+        1. Determine expected count (6 default; 7 when
+           ``next_action_plan.yaml.round_kind == 'ship_prep'``; missing
+           plan → default 6 with WARNING).
+        2. Enumerate present evidence files from the expected list; fail
+           when the count of present files is less than expected.
+
+    Returns a BLOCKER ``AssertionResult``. When the round directory
+    does not exist (e.g. unit-test fixture with no `.local/` tree) the
+    check is PASS-as-SKIP with ``evidence.skipped_reason = "round_dir_missing"``.
+
+    This helper is used both by ``check_dogfood_protocol`` (when it
+    walks actual round directories) and by direct test callers.
+    """
+
+    if not round_dir.exists() or not round_dir.is_dir():
+        return AssertionResult(
+            id="EVIDENCE_FILES",
+            name="§8.2 evidence-file count (round_kind-aware)",
+            passed=True,
+            severity="BLOCKER",
+            message=f"round_dir missing: {round_dir}",
+            evidence={
+                "round_dir": str(round_dir),
+                "skipped_reason": "round_dir_missing",
+            },
+        )
+
+    expected_count, rk, warnings = _expected_evidence_count_for_round(round_dir)
+    expected_names = (
+        EXPECTED_EVIDENCE_FILES_SHIP_PREP
+        if expected_count == 7
+        else EXPECTED_EVIDENCE_FILES
+    )
+    present: List[str] = []
+    missing: List[str] = []
+    for name in expected_names:
+        # Map logical name → filename convention. BasicAbilityProfile is
+        # emitted as basic_ability_profile.yaml; others are lowercase_snake.
+        if name == "BasicAbilityProfile":
+            fname = "basic_ability_profile.yaml"
+        else:
+            fname = f"{name}.yaml"
+        if (round_dir / fname).exists():
+            present.append(name)
+        else:
+            missing.append(name)
+    passed = len(present) >= expected_count and not missing
+    return AssertionResult(
+        id="EVIDENCE_FILES",
+        name="§8.2 evidence-file count (round_kind-aware)",
+        passed=passed,
+        severity="BLOCKER",
+        message=(
+            f"round_dir={round_dir} round_kind={rk!r} expected_count="
+            f"{expected_count} present={len(present)} missing={missing} "
+            f"warnings={warnings}"
+        ),
+        evidence={
+            "round_dir": str(round_dir),
+            "round_kind": rk,
+            "expected_count": expected_count,
+            "expected_names": expected_names,
+            "present": present,
+            "missing": missing,
+            "warnings": warnings,
+        },
+    )
+
+
 def check_dogfood_protocol(spec_text: str) -> AssertionResult:
-    """Invariant 7 — DOGFOOD_PROTOCOL: §8.1 8 steps + §8.2 6 evidence files."""
+    """Invariant 7 — DOGFOOD_PROTOCOL: §8.1 8 steps + §8.2 6 evidence files.
+
+    Evidence-file list is the BASE 6 per §8.2 main list; v0.4.0 add-on
+    adds a 7th optional file (``ship_decision.yaml``) keyed on
+    ``round_kind == 'ship_prep'`` — that round-level conditional count
+    is enforced by ``check_evidence_count_for_round`` against actual
+    round directories. At the spec-text level, we still assert the
+    BASE 6 names appear in §8.2.
+    """
 
     sec8 = _section(spec_text, r"^##\s+8\.\s")
     sub_steps = _subsection(sec8, r"^###\s+8\.1\b")
@@ -1071,7 +1451,7 @@ def check_dogfood_protocol(spec_text: str) -> AssertionResult:
     passed = steps_ok and evidence_ok
     return AssertionResult(
         id="DOGFOOD_PROTOCOL",
-        name="§8.1 8 ordered steps + §8.2 6 evidence files",
+        name="§8.1 8 ordered steps + §8.2 6 evidence files (base)",
         passed=passed,
         severity="BLOCKER",
         message=(
@@ -1083,6 +1463,7 @@ def check_dogfood_protocol(spec_text: str) -> AssertionResult:
             "observed_steps": found_steps,
             "expected_evidence": EXPECTED_EVIDENCE_FILES,
             "observed_evidence": evidence_found,
+            "expected_evidence_ship_prep": EXPECTED_EVIDENCE_FILES_SHIP_PREP,
         },
     )
 
@@ -1543,6 +1924,551 @@ def check_round_kind_template_valid(templates_dir: Path) -> AssertionResult:
     )
 
 
+# ─────────────────────────── v0.4.0 BLOCKERs 12 / 13 / 14 ────────
+#
+# Stage 4 Wave 1b (v0.4.0-rc1): three new round-level BLOCKERs walk
+# the `.local/dogfood/<DATE>/[abilities/<id>/]round_<N>/` tree and
+# check spec §18.1 / §19.3 / §21.2 invariants. When no artefacts are
+# found, each BLOCKER PASSes as SKIP — but when artefacts exist and
+# declare the relevant conditional, the invariant is HARD. No silent
+# pass: every BLOCKER has a concrete failure surface against broken
+# inputs (workspace rule "No Silent Failures").
+# ─────────────────────────────────────────────────────────────────
+
+# §18.1 token-tier axes.
+TOKEN_TIER_AXES: Tuple[str, ...] = (
+    "C7_eager_per_session",
+    "C8_oncall_per_trigger",
+    "C9_lazy_avg_per_load",
+)
+
+
+def _iter_round_metrics_reports(repo_root: Path) -> List[Path]:
+    """Enumerate ``metrics_report.yaml`` files under the dogfood tree.
+
+    Covers both layouts per §16:
+      * Legacy: ``.local/dogfood/<DATE>/round_<N>/metrics_report.yaml``
+      * Multi-ability: ``.local/dogfood/<DATE>/abilities/<id>/round_<N>/metrics_report.yaml``
+
+    Returns an empty list when neither tree exists.
+    """
+
+    roots = [repo_root / ".local" / "dogfood"]
+    out: List[Path] = []
+    for root in roots:
+        if not root.exists():
+            continue
+        # Walk the tree; include both layouts.
+        for p in root.rglob("metrics_report.yaml"):
+            out.append(p)
+    return sorted(out)
+
+
+def _iter_basic_ability_profiles(repo_root: Path) -> List[Path]:
+    """Enumerate ``basic_ability_profile.yaml`` files under the dogfood tree."""
+
+    root = repo_root / ".local" / "dogfood"
+    if not root.exists():
+        return []
+    return sorted(root.rglob("basic_ability_profile.yaml"))
+
+
+def _find_any_token_tier_axis(metrics_report: Dict[str, Any]) -> bool:
+    """Return True iff the report includes any C7/C8/C9 axis value.
+
+    Searches two surfaces:
+      * Top-level ``token_tier`` block (the §18.1 normative surface).
+      * Per-dimension ``context_economy.C7_*`` / ``C8_*`` / ``C9_*``
+        keys (pre-§18 ad-hoc placements we still want to detect).
+
+    Any presence (even ``null``) triggers the BLOCKER. Absence of all
+    axes → SKIP.
+    """
+
+    # Canonical top-level surface.
+    tier = metrics_report.get("token_tier")
+    if isinstance(tier, dict):
+        for axis in TOKEN_TIER_AXES:
+            if axis in tier:
+                return True
+    # Ad-hoc surfaces (e.g. stuffed under D2 context_economy).
+    metrics = metrics_report.get("metrics")
+    if isinstance(metrics, dict):
+        for dim_body in metrics.values():
+            if not isinstance(dim_body, dict):
+                continue
+            for axis in TOKEN_TIER_AXES:
+                if axis in dim_body:
+                    return True
+    return False
+
+
+def check_token_tier_declared_when_reported(
+    repo_root: Optional[Path] = None,
+) -> AssertionResult:
+    """BLOCKER 12 — TOKEN_TIER_DECLARED_WHEN_REPORTED (v0.4.0 §18.1).
+
+    When any ``metrics_report.yaml`` in the dogfood tree includes even
+    one of {C7_eager_per_session, C8_oncall_per_trigger,
+    C9_lazy_avg_per_load} (even as ``null``), the SAME report MUST
+    declare a top-level ``token_tier`` block with all three fields
+    present (null placeholders allowed; missing keys = FAIL).
+
+    Skipped as PASS when no metrics_report reports any token-tier axis
+    (abilities that haven't adopted §18 yet).
+    """
+
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+
+    reports = _iter_round_metrics_reports(repo_root)
+    findings: List[str] = []
+    per_report: List[Dict[str, Any]] = []
+    any_tier_reported = False
+
+    for path in reports:
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError) as exc:
+            findings.append(f"{path}: parse error: {exc}")
+            per_report.append({"path": str(path), "parse_error": str(exc)})
+            continue
+        if not isinstance(data, dict):
+            per_report.append({"path": str(path), "shape": "non_mapping"})
+            continue
+        reports_tier = _find_any_token_tier_axis(data)
+        top_tier = data.get("token_tier")
+        has_top_block = isinstance(top_tier, dict)
+        missing_axes: List[str] = []
+        if reports_tier:
+            any_tier_reported = True
+            # Top-level block is REQUIRED.
+            if not has_top_block:
+                findings.append(
+                    f"{path}: token-tier axis reported but top-level "
+                    "`token_tier` block missing (spec §18.1 REQUIRED)"
+                )
+            else:
+                for axis in TOKEN_TIER_AXES:
+                    if axis not in top_tier:
+                        missing_axes.append(axis)
+                if missing_axes:
+                    findings.append(
+                        f"{path}: top-level token_tier block is missing axes "
+                        f"{missing_axes} (spec §18.1 requires all 3, null OK)"
+                    )
+        per_report.append(
+            {
+                "path": str(path),
+                "reports_tier": reports_tier,
+                "has_top_block": has_top_block,
+                "missing_axes": missing_axes,
+            }
+        )
+
+    if not any_tier_reported:
+        return AssertionResult(
+            id="TOKEN_TIER_DECLARED_WHEN_REPORTED",
+            name=(
+                "metrics_report.yaml declares top-level token_tier block "
+                "when any C7/C8/C9 axis is reported (spec §18.1)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                f"skipped: no metrics_report among {len(reports)} inspected "
+                "reports includes any of C7/C8/C9 (abilities not yet "
+                "adopting §18)"
+            ),
+            evidence={
+                "reports_inspected": len(reports),
+                "skipped_reason": "no_token_tier_axis_reported",
+                "per_report": per_report,
+            },
+        )
+
+    passed = not findings
+    return AssertionResult(
+        id="TOKEN_TIER_DECLARED_WHEN_REPORTED",
+        name=(
+            "metrics_report.yaml declares top-level token_tier block "
+            "when any C7/C8/C9 axis is reported (spec §18.1)"
+        ),
+        passed=passed,
+        severity="BLOCKER",
+        message=(
+            "all reports declare token_tier correctly"
+            if passed
+            else "; ".join(findings)
+        ),
+        evidence={
+            "reports_inspected": len(reports),
+            "findings": findings,
+            "per_report": per_report,
+        },
+    )
+
+
+# §19.3 fixture-citation grep pattern.
+_REAL_DATA_PROVENANCE_RE = re.compile(
+    r"real-data sample provenance", re.IGNORECASE
+)
+
+
+def _iter_real_data_samples_files(repo_root: Path) -> List[Tuple[str, Path]]:
+    """Return (ability_id, path) pairs for every real_data_samples.yaml.
+
+    Discovery paths (per §19.2):
+      * ``.local/feedbacks/feedbacks_while_using/<ability_id>/real_data_samples.yaml``
+      * ``.agents/skills/<ability_id>/real_data_samples.yaml``
+
+    ``ability_id`` is derived from the enclosing directory name.
+    """
+
+    out: List[Tuple[str, Path]] = []
+    roots = [
+        repo_root / ".local" / "feedbacks" / "feedbacks_while_using",
+        repo_root / ".agents" / "skills",
+    ]
+    for root in roots:
+        if not root.exists():
+            continue
+        for p in root.rglob("real_data_samples.yaml"):
+            ability = p.parent.name
+            out.append((ability, p))
+    return sorted(out, key=lambda entry: (entry[0], str(entry[1])))
+
+
+def _ability_fixture_roots(repo_root: Path, ability_id: str) -> List[Path]:
+    """Return candidate test-fixture root directories for an ability.
+
+    Searches the following heuristic locations (spec §19.3 is
+    language-agnostic; test trees vary by stack):
+      * ``.agents/skills/<ability_id>/tests/``
+      * ``ChipPlugins/chips/<ability_id>/tests/``
+      * ``evals/<ability_id>/``
+      * Any repo-wide directory path that includes the ability id.
+
+    Returns only paths that exist.
+    """
+
+    candidates = [
+        repo_root / ".agents" / "skills" / ability_id / "tests",
+        repo_root / ".agents" / "skills" / ability_id / "__tests__",
+        repo_root
+        / "ChipPlugins"
+        / "chips"
+        / ability_id.replace("-", "_")
+        / "tests",
+        repo_root
+        / "ChipPlugins"
+        / "chips"
+        / ability_id.replace("-", "_")
+        / "__tests__",
+        repo_root / "evals" / ability_id,
+        repo_root / "evals" / "si-chip" / "runners" / ability_id,
+    ]
+    return [p for p in candidates if p.exists() and p.is_dir()]
+
+
+def _fixture_has_provenance(
+    fixture_root: Path,
+) -> Tuple[bool, List[Path]]:
+    """Return (found, paths_with_match) for any file citing provenance.
+
+    Scans common fixture extensions (.json, .ts, .tsx, .js, .jsx, .py,
+    .yaml, .yml, .md, .test.ts, .test.tsx). The presence of the
+    canonical ``real-data sample provenance`` phrase anywhere in the
+    file is sufficient; §19.3 allows any language-specific comment
+    syntax as long as the phrase is grep-able.
+    """
+
+    matches: List[Path] = []
+    for p in fixture_root.rglob("*"):
+        if not p.is_file():
+            continue
+        if p.suffix.lower() not in {
+            ".json",
+            ".ts",
+            ".tsx",
+            ".js",
+            ".jsx",
+            ".py",
+            ".yaml",
+            ".yml",
+            ".md",
+            ".html",
+        }:
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if _REAL_DATA_PROVENANCE_RE.search(text):
+            matches.append(p)
+    return bool(matches), matches
+
+
+def check_real_data_fixture_provenance(
+    repo_root: Optional[Path] = None,
+) -> AssertionResult:
+    """BLOCKER 13 — REAL_DATA_FIXTURE_PROVENANCE (v0.4.0 §19.3).
+
+    For every discovered ``feedback_real_data_samples.yaml`` with a
+    non-empty ``real_data_samples`` array, the owning ability's test
+    fixture tree MUST contain at least one file citing ``real-data
+    sample provenance`` (case-insensitive). Missing citation = FAIL.
+
+    Skipped as PASS when no real_data_samples.yaml exists OR when each
+    discovered file has an empty/zero ``real_data_samples`` list.
+    """
+
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+
+    samples_files = _iter_real_data_samples_files(repo_root)
+    findings: List[str] = []
+    per_ability: List[Dict[str, Any]] = []
+    any_nonempty = False
+
+    for ability_id, path in samples_files:
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError) as exc:
+            findings.append(f"{path}: parse error: {exc}")
+            per_ability.append(
+                {"ability_id": ability_id, "path": str(path), "parse_error": str(exc)}
+            )
+            continue
+        samples = None
+        if isinstance(data, dict):
+            samples = data.get("real_data_samples")
+        if not isinstance(samples, list) or not samples:
+            per_ability.append(
+                {
+                    "ability_id": ability_id,
+                    "path": str(path),
+                    "samples_count": 0,
+                    "skipped_reason": "no_samples_declared",
+                }
+            )
+            continue
+        any_nonempty = True
+        fixture_roots = _ability_fixture_roots(repo_root, ability_id)
+        if not fixture_roots:
+            findings.append(
+                f"{ability_id}: real_data_samples declared in {path} "
+                "(non-empty) but no test fixture root found under "
+                f".agents/skills/{ability_id}/tests, "
+                f"ChipPlugins/chips/{ability_id.replace('-', '_')}/tests, "
+                "or evals/"
+            )
+            per_ability.append(
+                {
+                    "ability_id": ability_id,
+                    "path": str(path),
+                    "samples_count": len(samples),
+                    "fixture_roots": [],
+                    "provenance_found": False,
+                }
+            )
+            continue
+        any_root_has_match = False
+        per_root: List[Dict[str, Any]] = []
+        for root in fixture_roots:
+            found, matches = _fixture_has_provenance(root)
+            per_root.append(
+                {
+                    "root": str(root),
+                    "found": found,
+                    "matched_files": [str(m) for m in matches[:20]],
+                }
+            )
+            if found:
+                any_root_has_match = True
+        if not any_root_has_match:
+            findings.append(
+                f"{ability_id}: real_data_samples declared in {path} "
+                f"({len(samples)} sample(s)) but fixture tree(s) "
+                f"{[str(r) for r in fixture_roots]} contain no "
+                "`real-data sample provenance` citation "
+                "(spec §19.3 + hard rule 12)"
+            )
+        per_ability.append(
+            {
+                "ability_id": ability_id,
+                "path": str(path),
+                "samples_count": len(samples),
+                "fixture_roots": [str(r) for r in fixture_roots],
+                "provenance_found": any_root_has_match,
+                "per_root": per_root,
+            }
+        )
+
+    if not samples_files or not any_nonempty:
+        return AssertionResult(
+            id="REAL_DATA_FIXTURE_PROVENANCE",
+            name=(
+                "Test fixtures cite `real-data sample provenance` when "
+                "feedback_real_data_samples.yaml is non-empty "
+                "(spec §19.3)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                f"skipped: no real_data_samples.yaml with a non-empty "
+                f"real_data_samples list (inspected {len(samples_files)} "
+                "file(s))"
+            ),
+            evidence={
+                "samples_files_inspected": len(samples_files),
+                "skipped_reason": (
+                    "no_real_data_samples_files"
+                    if not samples_files
+                    else "all_samples_empty"
+                ),
+                "per_ability": per_ability,
+            },
+        )
+
+    passed = not findings
+    return AssertionResult(
+        id="REAL_DATA_FIXTURE_PROVENANCE",
+        name=(
+            "Test fixtures cite `real-data sample provenance` when "
+            "feedback_real_data_samples.yaml is non-empty "
+            "(spec §19.3)"
+        ),
+        passed=passed,
+        severity="BLOCKER",
+        message=(
+            "all abilities with real_data_samples have grep-able "
+            "provenance citations"
+            if passed
+            else "; ".join(findings)
+        ),
+        evidence={
+            "samples_files_inspected": len(samples_files),
+            "findings": findings,
+            "per_ability": per_ability,
+        },
+    )
+
+
+def check_health_smoke_declared_when_live_backend(
+    repo_root: Optional[Path] = None,
+) -> AssertionResult:
+    """BLOCKER 14 — HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND (v0.4.0 §21.2).
+
+    For every discovered ``basic_ability_profile.yaml`` in the dogfood
+    tree (both legacy and multi-ability layouts), assert that when
+    ``current_surface.dependencies.live_backend == true``, the SAME
+    profile's ``packaging.health_smoke_check`` is a non-empty list.
+    Missing / empty = FAIL.
+
+    Skipped as PASS when no profile declares ``live_backend: true``.
+    """
+
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+
+    profiles = _iter_basic_ability_profiles(repo_root)
+    findings: List[str] = []
+    per_profile: List[Dict[str, Any]] = []
+    any_live_backend = False
+
+    for path in profiles:
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError) as exc:
+            findings.append(f"{path}: parse error: {exc}")
+            per_profile.append({"path": str(path), "parse_error": str(exc)})
+            continue
+        if not isinstance(data, dict):
+            per_profile.append({"path": str(path), "shape": "non_mapping"})
+            continue
+        bap = data.get("basic_ability")
+        if not isinstance(bap, dict):
+            per_profile.append({"path": str(path), "shape": "no_basic_ability"})
+            continue
+        current_surface = bap.get("current_surface") or {}
+        deps = current_surface.get("dependencies") if isinstance(
+            current_surface, dict
+        ) else None
+        live_backend = False
+        if isinstance(deps, dict):
+            live_backend = bool(deps.get("live_backend", False))
+        packaging = bap.get("packaging") or {}
+        smoke = packaging.get("health_smoke_check") if isinstance(
+            packaging, dict
+        ) else None
+        smoke_is_list = isinstance(smoke, list)
+        smoke_len = len(smoke) if smoke_is_list else 0
+        if live_backend:
+            any_live_backend = True
+            if not smoke_is_list or smoke_len == 0:
+                findings.append(
+                    f"{path}: current_surface.dependencies.live_backend=true "
+                    "but packaging.health_smoke_check is missing or empty "
+                    "(spec §21.2 + hard rule 13)"
+                )
+        per_profile.append(
+            {
+                "path": str(path),
+                "ability_id": bap.get("id"),
+                "live_backend": live_backend,
+                "smoke_is_list": smoke_is_list,
+                "smoke_len": smoke_len,
+            }
+        )
+
+    if not profiles or not any_live_backend:
+        return AssertionResult(
+            id="HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND",
+            name=(
+                "BasicAbilityProfile with live_backend:true declares "
+                "non-empty packaging.health_smoke_check (spec §21.2)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                "skipped: no basic_ability_profile.yaml declares "
+                "current_surface.dependencies.live_backend = true "
+                f"(inspected {len(profiles)} profile(s))"
+            ),
+            evidence={
+                "profiles_inspected": len(profiles),
+                "skipped_reason": (
+                    "no_basic_ability_profiles"
+                    if not profiles
+                    else "no_live_backend_declared"
+                ),
+                "per_profile": per_profile,
+            },
+        )
+
+    passed = not findings
+    return AssertionResult(
+        id="HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND",
+        name=(
+            "BasicAbilityProfile with live_backend:true declares "
+            "non-empty packaging.health_smoke_check (spec §21.2)"
+        ),
+        passed=passed,
+        severity="BLOCKER",
+        message=(
+            "all live_backend profiles declare non-empty health_smoke_check"
+            if passed
+            else "; ".join(findings)
+        ),
+        evidence={
+            "profiles_inspected": len(profiles),
+            "findings": findings,
+            "per_profile": per_profile,
+        },
+    )
+
+
 # ─────────────────────────── runner ───────────────────────────
 
 
@@ -1555,23 +2481,29 @@ def run_all(
 ) -> ValidationReport:
     """Execute every invariant in declared order.
 
-    Stage 4 Wave 2a (v0.3.0-rc1) widens the BLOCKER set to **eleven**:
-    the 9 historical invariants plus ``CORE_GOAL_FIELD_PRESENT`` (spec
-    §14) and ``ROUND_KIND_TEMPLATE_VALID`` (spec §15). The two new
-    BLOCKERs branch on the schema/template's own ``$schema_version``;
-    pre-v0.3.0 inputs return PASS-as-SKIP. Total order:
+    Stage 4 Wave 1b (v0.4.0-rc1) widens the BLOCKER set to **fourteen**:
+    the 11 historical invariants plus ``TOKEN_TIER_DECLARED_WHEN_REPORTED``
+    (§18.1), ``REAL_DATA_FIXTURE_PROVENANCE`` (§19.3), and
+    ``HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`` (§21.2). Each of the 3
+    new BLOCKERs PASSes as SKIP when no v0.4.0 artefacts exist in the
+    repo (backward compat with pre-v0.4.0 round histories).
+
+    Total order:
 
     1. ``BAP_SCHEMA``
     2. ``R6_KEYS``
     3. ``THRESHOLD_TABLE``
     4. ``ROUTER_MATRIX_CELLS``
-    5. ``VALUE_VECTOR_AXES``
+    5. ``VALUE_VECTOR_AXES`` *(version-aware: 7 ≤ v0.3.0; 8 @ v0.4.0+)*
     6. ``PLATFORM_PRIORITY``
     7. ``DOGFOOD_PROTOCOL``
     8. ``FOREVER_OUT_LIST``
     9. ``REACTIVATION_DETECTOR_EXISTS``
-    10. ``CORE_GOAL_FIELD_PRESENT`` *(NEW @ Stage 4 Wave 2a)*
-    11. ``ROUND_KIND_TEMPLATE_VALID`` *(NEW @ Stage 4 Wave 2a)*
+    10. ``CORE_GOAL_FIELD_PRESENT``
+    11. ``ROUND_KIND_TEMPLATE_VALID``
+    12. ``TOKEN_TIER_DECLARED_WHEN_REPORTED`` *(NEW @ Stage 4 Wave 1b)*
+    13. ``REAL_DATA_FIXTURE_PROVENANCE`` *(NEW @ Stage 4 Wave 1b)*
+    14. ``HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`` *(NEW @ Stage 4 Wave 1b)*
     """
 
     spec_text = _read_text(spec_path)
@@ -1594,13 +2526,16 @@ def run_all(
             spec_version=spec_version,
         ),
         check_router_matrix_cells(templates_dir),
-        check_value_vector_axes(templates_dir),
+        check_value_vector_axes(templates_dir, spec_version=spec_version),
         check_platform_priority(spec_text),
         check_dogfood_protocol(spec_text),
         check_forever_out_list(spec_text),
         check_reactivation_detector_exists(repo_root=repo_root),
         check_core_goal_field_present(templates_dir),
         check_round_kind_template_valid(templates_dir),
+        check_token_tier_declared_when_reported(repo_root=repo_root),
+        check_real_data_fixture_provenance(repo_root=repo_root),
+        check_health_smoke_declared_when_live_backend(repo_root=repo_root),
     ]
     verdict = "PASS" if all(r.passed for r in results) else "FAIL"
     return ValidationReport(
@@ -1614,9 +2549,12 @@ def run_all(
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Static structural validator for the Si-Chip spec. Runs 11 "
+            "Static structural validator for the Si-Chip spec. Runs 14 "
             "BLOCKERs (9 historical + 2 v0.3.0 additive: "
-            "CORE_GOAL_FIELD_PRESENT and ROUND_KIND_TEMPLATE_VALID)."
+            "CORE_GOAL_FIELD_PRESENT, ROUND_KIND_TEMPLATE_VALID; + 3 "
+            "v0.4.0 additive: TOKEN_TIER_DECLARED_WHEN_REPORTED, "
+            "REAL_DATA_FIXTURE_PROVENANCE, "
+            "HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND)."
         ),
     )
     parser.add_argument(
@@ -1624,9 +2562,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=DEFAULT_SPEC,
         help=(
             f"Path to spec markdown (default: {DEFAULT_SPEC}). "
-            "Latest accepted spec version is v0.3.0-rc1 "
-            "(`.local/research/spec_v0.3.0-rc1.md`); v0.2.0 / v0.2.0-rc1 / "
-            "v0.1.0 remain accepted for historical artefact regression."
+            "Latest accepted spec version is v0.4.0-rc1 "
+            "(`.local/research/spec_v0.4.0-rc1.md`); v0.3.0 / v0.3.0-rc1 / "
+            "v0.2.0 / v0.2.0-rc1 / v0.1.0 remain accepted for historical "
+            "artefact regression."
         ),
     )
     parser.add_argument(
@@ -1644,11 +2583,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         action="store_true",
         help=(
             "Enforce spec §13.4 prose counts: v0.2.0 / v0.2.0-rc1 / v0.3.0-rc1 "
-            "expect 37 sub-metrics + 30 threshold cells (post-Round-11 "
-            "reconciliation; v0.3.0-rc1 §13.4 is byte-identical to v0.2.0); "
-            "v0.1.0 expects 28 + 21 (legacy; validator preserves the mode "
-            "for historical regression). Spec version is auto-detected from "
-            "frontmatter."
+            "/ v0.3.0 / v0.4.0-rc1 expect 37 sub-metrics + 30 threshold cells "
+            "(post-Round-11 reconciliation; v0.3.0 + v0.4.0 §13.4 preserve "
+            "byte-identicality; v0.4.0 §6.1 axes change is separate from §13.4 "
+            "prose counts); v0.1.0 expects 28 + 21 (legacy; validator preserves "
+            "the mode for historical regression). Spec version is auto-detected "
+            "from frontmatter."
         ),
     )
     parser.add_argument(

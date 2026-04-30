@@ -1,0 +1,33 @@
+# Si-Chip Real-Data Samples Template — spec v0.4.0-rc1 §19.2.
+# Instance template (NOT a DevolaFlow WorkflowTemplate).
+# Lives at .local/feedbacks/feedbacks_while_using/<ability_id>/real_data_samples.yaml.
+# Every msw / vitest / equivalent fixture used in the ability's test suite MUST cite
+# provenance from this file per spec §19.3 + hard rule 12 (BLOCKER 13
+# REAL_DATA_FIXTURE_PROVENANCE).
+
+$schema_version: "0.1.0"
+$spec_section: "§19.2"
+$source_of_truth: ".local/feedbacks/feedbacks_while_using/<ability_id>/real_data_samples.yaml"
+
+description: |
+  Structured real-data samples extracted from bug reports / production traces.
+  Every msw fixture used in the ability's test suite MUST cite provenance from
+  this file per spec §19.3 + hard rule 12 (BLOCKER 13 REAL_DATA_FIXTURE_PROVENANCE).
+
+ability_id: "<ability-name>"
+real_data_samples:
+  - endpoint: "<https://...>"
+    request_params:
+      <key>: <value>
+    response_json: |
+      {
+        "...": "actual JSON excerpt from bug report or prod trace"
+      }
+    observed_state: "<e.g. 'ai-bill upstream returned isEmpty=true'>"
+    captured_at: "<YYYY-MM-DDTHH:MM:SSZ>"
+    observer: "<user email / agent id / operator name>"
+    feedback_source: "<path to bug report or feedback md file>"
+
+provenance:
+  spec_version: "v0.4.0-rc1"
+  authored_at: "<timestamp>"

@@ -601,7 +601,14 @@ class V030Rc1AcceptanceTests(unittest.TestCase):
     """v0.3.0-rc1 spec acceptance: 11/11 BLOCKER PASS via subprocess."""
 
     def test_v0_3_0_rc1_spec_loads_11_of_11_pass(self) -> None:
-        """``--spec spec_v0.3.0-rc1.md --json`` exits 0 with 11/11 PASS."""
+        """``--spec spec_v0.3.0-rc1.md --json`` exits 0 with >= 11/11 PASS.
+
+        Stage 4 Wave 1b (v0.4.0-rc1) widened to 14 BLOCKERs (added
+        TOKEN_TIER_DECLARED_WHEN_REPORTED, REAL_DATA_FIXTURE_PROVENANCE,
+        HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND). All 11 historical
+        BLOCKERs MUST still PASS against v0.3.0-rc1 spec; the 3 new
+        ones PASS-as-SKIP when no v0.4.0 artefacts exist. Total = 14.
+        """
 
         proc = subprocess.run(
             [
@@ -618,9 +625,11 @@ class V030Rc1AcceptanceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        self.assertEqual(len(payload["results"]), 11)
+        # Floor: at least 11 BLOCKERs (v0.3.0-rc1). Wave 1b adds 3 more
+        # (12-14) but the v0.3.0 floor is preserved for backward-compat.
+        self.assertGreaterEqual(len(payload["results"]), 11)
         passed_count = sum(1 for r in payload["results"] if r["passed"])
-        self.assertEqual(passed_count, 11)
+        self.assertEqual(passed_count, len(payload["results"]))
         ids = [r["id"] for r in payload["results"]]
         self.assertIn("CORE_GOAL_FIELD_PRESENT", ids)
         self.assertIn("ROUND_KIND_TEMPLATE_VALID", ids)
@@ -628,7 +637,11 @@ class V030Rc1AcceptanceTests(unittest.TestCase):
         self.assertEqual(payload["spec_path"], str(SPEC_V0_3_0_RC1.resolve()))
 
     def test_v0_2_0_default_mode_still_9_of_9_pass(self) -> None:
-        """Default v0.2.0 spec still PASS; 9 historical + 2 new BLOCKERs (= 11 PASS)."""
+        """Default v0.2.0 spec still PASS; 9 historical + 2 new BLOCKERs (= 11 PASS).
+
+        Stage 4 Wave 1b widens the set to 14 (11 historical + 3 v0.4.0
+        BLOCKERs that PASS-as-SKIP against the default v0.2.0 spec).
+        """
 
         proc = subprocess.run(
             [
@@ -643,7 +656,8 @@ class V030Rc1AcceptanceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        self.assertEqual(len(payload["results"]), 11)
+        # Floor: at least 11 BLOCKERs. Wave 1b adds 3 more (total 14).
+        self.assertGreaterEqual(len(payload["results"]), 11)
         # All 9 historical BLOCKERs MUST be present and PASSed.
         historical = {
             "BAP_SCHEMA",
@@ -694,13 +708,19 @@ class CheckCoreGoalFieldPresentTests(unittest.TestCase):
     """v0.3.0 §14 BLOCKER — CORE_GOAL_FIELD_PRESENT."""
 
     def test_real_v0_2_0_schema_passes(self) -> None:
-        """The real shipped BAP schema satisfies §14.1.1 / §14.3."""
+        """The real shipped BAP schema satisfies §14.1.1 / §14.3.
+
+        The shipped schema's ``$schema_version`` is now 0.3.0 (additive
+        v0.4.0 extension per Stage 4 Wave 1a); the v0.3.0 +core_goal
+        contract from Stage 4 Wave 2a is preserved in both 0.2.0 and
+        0.3.0 schema buckets.
+        """
 
         result = sv.check_core_goal_field_present(REAL_TEMPLATES_DIR)
         self.assertEqual(result.id, "CORE_GOAL_FIELD_PRESENT")
         self.assertEqual(result.severity, "BLOCKER")
         self.assertTrue(result.passed, msg=result.message)
-        self.assertEqual(result.evidence["schema_version"], "0.2.0")
+        self.assertIn(result.evidence["schema_version"], {"0.2.0", "0.3.0"})
         self.assertNotIn("skipped_reason", result.evidence)
 
     def test_core_goal_field_present_blocker_skips_for_v0_1_0_schema(self) -> None:
@@ -781,7 +801,13 @@ class CheckRoundKindTemplateValidTests(unittest.TestCase):
     """v0.3.0 §15 BLOCKER — ROUND_KIND_TEMPLATE_VALID."""
 
     def test_round_kind_template_valid_pass(self) -> None:
-        """Real shipped templates declare round_kind from the §15.1.1 enum."""
+        """Real shipped templates declare round_kind from the §15.1.1 enum.
+
+        Real templates were bumped to 0.3.0 by Stage 4 Wave 1a
+        (additive v0.4.0 extensions: tier_transitions + promotion_state).
+        Both 0.2.0 and 0.3.0 are acceptable for this BLOCKER — neither
+        widens the round_kind enum past the §15.1.1 4-value set.
+        """
 
         result = sv.check_round_kind_template_valid(REAL_TEMPLATES_DIR)
         self.assertEqual(result.id, "ROUND_KIND_TEMPLATE_VALID")
@@ -791,15 +817,15 @@ class CheckRoundKindTemplateValidTests(unittest.TestCase):
             sorted(result.evidence["expected_enum"]),
             sorted(ROUND_KINDS),
         )
-        # Both real templates are at $schema_version 0.2.0.
+        # Real templates are at $schema_version 0.2.0 or 0.3.0 (Wave 1a bump).
         per_t = result.evidence["per_template"]
-        self.assertEqual(
+        self.assertIn(
             per_t["iteration_delta_report.template.yaml"]["schema_version"],
-            "0.2.0",
+            {"0.2.0", "0.3.0"},
         )
-        self.assertEqual(
+        self.assertIn(
             per_t["next_action_plan.template.yaml"]["schema_version"],
-            "0.2.0",
+            {"0.2.0", "0.3.0"},
         )
 
     def test_round_kind_template_valid_fail_on_unknown_kind(self) -> None:
@@ -965,13 +991,20 @@ class BapSchemaVersionAwareTests(unittest.TestCase):
     """Stage 4 Wave 2a: BAP_SCHEMA branches on schema's own $schema_version."""
 
     def test_real_v0_2_0_schema_yields_11_keys(self) -> None:
-        """Real templates at $schema_version 0.2.0 → expect 11 keys (with core_goal)."""
+        """Real templates at $schema_version 0.2.0 or 0.3.0 → expect 11 keys.
+
+        Stage 4 Wave 1a bumped the shipped schema to 0.3.0 (additive
+        v0.4.0 sub-fields); the 0.3.0 top-level key set is IDENTICAL
+        to 0.2.0 (11 keys including core_goal), per the version-keyed
+        ``EXPECTED_BAP_KEYS_BY_SCHEMA`` dict.
+        """
 
         result = sv.check_bap_schema(REAL_TEMPLATES_DIR)
         self.assertEqual(result.id, "BAP_SCHEMA")
         self.assertTrue(result.passed, msg=result.message)
-        self.assertEqual(result.evidence["schema_version"], "0.2.0")
+        self.assertIn(result.evidence["schema_version"], {"0.2.0", "0.3.0"})
         self.assertIn("core_goal", result.evidence["actual"])
+        self.assertEqual(len(result.evidence["actual"]), 11)
 
     def test_v0_1_0_schema_yields_10_keys(self) -> None:
         """v0.1.0 schema fixture → expects the 10-key set (no core_goal)."""
@@ -997,6 +1030,844 @@ class BapSchemaVersionAwareTests(unittest.TestCase):
             self.assertFalse(result.passed, msg=result.message)
             self.assertIn("unknown $schema_version", result.message)
             self.assertIn("9.9.9", result.message)
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Stage 4 Wave 1b tests — v0.4.0-rc1 additive BLOCKERs 12 / 13 / 14
+# ─────────────────────────────────────────────────────────────────────
+
+
+SPEC_V0_4_0_RC1 = _REPO_ROOT / ".local/research/spec_v0.4.0-rc1.md"
+
+
+def _write_round(
+    root: Path,
+    ability_id: str,
+    round_id: str,
+    round_kind: str,
+    present_files: List[str],
+    layout: str = "multi_ability",
+) -> Path:
+    """Helper: materialize a round directory with selected evidence files.
+
+    ``layout``:
+      * ``multi_ability`` → ``.local/dogfood/<DATE>/abilities/<id>/<round_id>/``
+      * ``legacy``        → ``.local/dogfood/<DATE>/<round_id>/`` (Si-Chip self)
+
+    ``present_files`` is a list of logical evidence names from the
+    EXPECTED_EVIDENCE_FILES set; each is materialized as a minimal
+    YAML stub ``{spec_section: dummy}``. ``next_action_plan.yaml`` is
+    always materialized (with round_kind embedded) so the round-level
+    ``_expected_evidence_count_for_round`` helper has something to
+    parse.
+    """
+
+    date = "2026-04-30"
+    if layout == "multi_ability":
+        round_dir = root / ".local" / "dogfood" / date / "abilities" / ability_id / round_id
+    else:
+        round_dir = root / ".local" / "dogfood" / date / round_id
+    round_dir.mkdir(parents=True, exist_ok=True)
+    # next_action_plan.yaml always written with round_kind.
+    nap = round_dir / "next_action_plan.yaml"
+    nap.write_text(
+        yaml.safe_dump({"round_id": round_id, "round_kind": round_kind}),
+        encoding="utf-8",
+    )
+    for logical in present_files:
+        if logical == "BasicAbilityProfile":
+            fname = "basic_ability_profile.yaml"
+        elif logical == "next_action_plan":
+            continue  # already written
+        else:
+            fname = f"{logical}.yaml"
+        (round_dir / fname).write_text(
+            yaml.safe_dump(
+                {"spec_section": "stub", "ability_id": ability_id}
+            ),
+            encoding="utf-8",
+        )
+    return round_dir
+
+
+class V040Rc1AcceptanceTests(unittest.TestCase):
+    """v0.4.0-rc1 spec acceptance: 14/14 BLOCKER PASS via subprocess."""
+
+    def test_v0_4_0_rc1_spec_loads_14_of_14_pass(self) -> None:
+        """``--spec spec_v0.4.0-rc1.md --json`` exits 0 with 14/14 PASS."""
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--spec",
+                str(SPEC_V0_4_0_RC1),
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        self.assertEqual(len(payload["results"]), 14)
+        passed_count = sum(1 for r in payload["results"] if r["passed"])
+        self.assertEqual(passed_count, 14)
+        ids = [r["id"] for r in payload["results"]]
+        # All 3 new v0.4.0 BLOCKERs must be present.
+        self.assertIn("TOKEN_TIER_DECLARED_WHEN_REPORTED", ids)
+        self.assertIn("REAL_DATA_FIXTURE_PROVENANCE", ids)
+        self.assertIn("HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND", ids)
+        # VALUE_VECTOR should report 8 expected axes under v0.4.0-rc1.
+        value_vector = next(
+            r for r in payload["results"] if r["id"] == "VALUE_VECTOR_AXES"
+        )
+        self.assertEqual(
+            value_vector["evidence"]["spec_version"], "v0.4.0-rc1"
+        )
+        self.assertEqual(len(value_vector["evidence"]["expected"]), 8)
+        self.assertIn("eager_token_delta", value_vector["evidence"]["expected"])
+
+    def test_v0_4_0_rc1_strict_prose_count_passes(self) -> None:
+        """``--strict-prose-count`` against v0.4.0-rc1 spec exits 0."""
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--spec",
+                str(SPEC_V0_4_0_RC1),
+                "--strict-prose-count",
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        self.assertIn("v0.4.0-rc1", sv.SUPPORTED_SPEC_VERSIONS)
+        self.assertEqual(sv.EXPECTED_R6_PROSE_BY_SPEC["v0.4.0-rc1"], 37)
+        self.assertEqual(
+            sv.EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC["v0.4.0-rc1"], 30
+        )
+        self.assertEqual(
+            sv.EXPECTED_VALUE_VECTOR_PROSE_BY_SPEC["v0.4.0-rc1"], 8
+        )
+
+    def test_default_v0_2_0_mode_still_11_of_11_pass(self) -> None:
+        """Default v0.2.0 spec still PASS.
+
+        Back-compat floor: 11 historical BLOCKERs (9 + Wave 2a's 2
+        additive) still PASS; Wave 1b's 3 additive BLOCKERs PASS-as-SKIP
+        when no v0.4.0 artefacts exist → total 14/14.
+        """
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        # v0.4.0 Wave 1b widens to 14 but the 11 historical floor holds.
+        self.assertEqual(len(payload["results"]), 14)
+        for r in payload["results"]:
+            with self.subTest(invariant=r["id"]):
+                self.assertTrue(r["passed"], msg=r["message"])
+
+
+class ValueVectorAxesVersionAwareTests(unittest.TestCase):
+    """BLOCKER 5 VALUE_VECTOR_AXES is version-aware (7 ≤ v0.3.0; 8 @ v0.4.0+)."""
+
+    def test_value_vector_8_axes_for_v0_4_0_rc1(self) -> None:
+        """Spec v0.4.0-rc1 → expect 8 axes (eager_token_delta added)."""
+
+        result = sv.check_value_vector_axes(
+            REAL_TEMPLATES_DIR, spec_version="v0.4.0-rc1"
+        )
+        self.assertTrue(result.passed, msg=result.message)
+        expected = set(result.evidence["expected"])
+        self.assertEqual(len(expected), 8)
+        self.assertIn("eager_token_delta", expected)
+
+    def test_value_vector_7_axes_for_v0_3_0(self) -> None:
+        """Spec v0.3.0 → expect 7 axes (no eager_token_delta); backward-compat."""
+
+        result = sv.check_value_vector_axes(
+            REAL_TEMPLATES_DIR, spec_version="v0.3.0"
+        )
+        self.assertTrue(result.passed, msg=result.message)
+        expected = set(result.evidence["expected"])
+        self.assertEqual(len(expected), 7)
+        self.assertNotIn("eager_token_delta", expected)
+
+    def test_value_vector_7_axes_for_v0_3_0_rc1(self) -> None:
+        """Spec v0.3.0-rc1 preserves the 7-axis set (byte-identical to v0.3.0)."""
+
+        result = sv.check_value_vector_axes(
+            REAL_TEMPLATES_DIR, spec_version="v0.3.0-rc1"
+        )
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(len(result.evidence["expected"]), 7)
+
+    def test_value_vector_default_spec_version_uses_7_axes_base(self) -> None:
+        """When spec_version is None, default falls back to 7 axes (legacy)."""
+
+        result = sv.check_value_vector_axes(REAL_TEMPLATES_DIR)
+        self.assertTrue(result.passed, msg=result.message)
+        self.assertEqual(len(result.evidence["expected"]), 7)
+
+
+class R6KeysCompanionSuffixTests(unittest.TestCase):
+    """R6_KEYS BLOCKER ignores §23 method-tag companion suffixes."""
+
+    def test_companion_suffixes_filtered_from_count(self) -> None:
+        """Companion fields like T1_pass_rate_method / _ci_low / _ci_high
+        do not inflate the sub-metric count.
+        """
+
+        metrics = {
+            "task_quality": {
+                "properties": {
+                    "T1_pass_rate": {},
+                    "T1_pass_rate_method": {},
+                    "T1_pass_rate_ci_low": {},
+                    "T1_pass_rate_ci_high": {},
+                    "T2_pass_k": {},
+                    "T2_pass_k_method": {},
+                    "T3_baseline_delta": {},
+                    "T4_error_recovery_rate": {},
+                }
+            },
+        }
+        counts = sv._count_metric_keys(metrics)
+        # Only 4 primary keys; 4 companions excluded.
+        self.assertEqual(counts["task_quality"], 4)
+
+    def test_companion_predicate_recognizes_all_suffixes(self) -> None:
+        """_is_companion_key returns True for every declared suffix."""
+
+        for key in (
+            "T1_pass_rate_method",
+            "C1_metadata_tokens_ci_low",
+            "C1_metadata_tokens_ci_high",
+            "U1_language_breakdown",
+            "U4_state",
+            "G1_provenance",
+            "G1_sampled_at",
+            "G1_sample_size_per_cell",
+        ):
+            with self.subTest(key=key):
+                self.assertTrue(sv._is_companion_key(key))
+
+    def test_companion_predicate_rejects_primary_keys(self) -> None:
+        """Primary metric keys are NOT companions."""
+
+        for key in (
+            "T1_pass_rate",
+            "C1_metadata_tokens",
+            "U1_description_readability",
+            "U4_time_to_first_success",
+            "R3_trigger_F1",
+            "R5_router_floor",
+        ):
+            with self.subTest(key=key):
+                self.assertFalse(sv._is_companion_key(key))
+
+
+class TokenTierDeclaredWhenReportedTests(unittest.TestCase):
+    """BLOCKER 12 TOKEN_TIER_DECLARED_WHEN_REPORTED (v0.4.0 §18.1)."""
+
+    def test_token_tier_blocker_skips_when_no_c7_c8_c9_present(self) -> None:
+        """No metrics_report reports C7/C8/C9 → PASS-as-SKIP."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=[
+                    "BasicAbilityProfile",
+                    "metrics_report",
+                ],
+            )
+            # Write a metrics_report.yaml with NO token-tier axes.
+            (round_dir / "metrics_report.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": "0.2.0",
+                        "metrics": {
+                            "task_quality": {"T1_pass_rate": 1.0},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_token_tier_declared_when_reported(
+                repo_root=root
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(
+                result.evidence["skipped_reason"],
+                "no_token_tier_axis_reported",
+            )
+
+    def test_token_tier_blocker_fails_when_c7_present_but_block_missing(
+        self,
+    ) -> None:
+        """C7 reported without top-level token_tier block → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=["metrics_report"],
+            )
+            # Report C7 stuffed under context_economy (ad-hoc surface
+            # we still detect), but DO NOT emit top-level token_tier.
+            (round_dir / "metrics_report.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": "0.3.0",
+                        "metrics": {
+                            "context_economy": {
+                                "C7_eager_per_session": 365,
+                            },
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_token_tier_declared_when_reported(
+                repo_root=root
+            )
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn(
+                "top-level `token_tier` block missing", result.message
+            )
+
+    def test_token_tier_blocker_fails_when_axis_missing_from_block(
+        self,
+    ) -> None:
+        """token_tier block missing one of C7/C8/C9 → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=["metrics_report"],
+            )
+            (round_dir / "metrics_report.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": "0.4.0-rc1",
+                        "token_tier": {
+                            "C7_eager_per_session": 365,
+                            "C8_oncall_per_trigger": 7338,
+                            # C9 intentionally omitted
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_token_tier_declared_when_reported(
+                repo_root=root
+            )
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn("C9_lazy_avg_per_load", result.message)
+
+    def test_token_tier_blocker_passes_when_block_complete(self) -> None:
+        """token_tier block with all 3 fields (null OK) → PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=["metrics_report"],
+            )
+            (round_dir / "metrics_report.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "schema_version": "0.4.0-rc1",
+                        "token_tier": {
+                            "C7_eager_per_session": None,
+                            "C8_oncall_per_trigger": None,
+                            "C9_lazy_avg_per_load": None,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_token_tier_declared_when_reported(
+                repo_root=root
+            )
+            self.assertTrue(result.passed, msg=result.message)
+
+
+class RealDataFixtureProvenanceTests(unittest.TestCase):
+    """BLOCKER 13 REAL_DATA_FIXTURE_PROVENANCE (v0.4.0 §19.3)."""
+
+    def test_real_data_provenance_blocker_skips_when_no_samples_yaml(
+        self,
+    ) -> None:
+        """No real_data_samples.yaml anywhere → PASS-as-SKIP."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            # No .local/feedbacks or .agents/skills → no samples files.
+            result = sv.check_real_data_fixture_provenance(repo_root=root)
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(
+                result.evidence["skipped_reason"],
+                "no_real_data_samples_files",
+            )
+
+    def test_real_data_provenance_blocker_skips_when_samples_empty(
+        self,
+    ) -> None:
+        """real_data_samples.yaml with empty list → PASS-as-SKIP."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            feedback_dir = (
+                root
+                / ".local"
+                / "feedbacks"
+                / "feedbacks_while_using"
+                / "test-ability"
+            )
+            feedback_dir.mkdir(parents=True)
+            (feedback_dir / "real_data_samples.yaml").write_text(
+                yaml.safe_dump(
+                    {"ability_id": "test-ability", "real_data_samples": []}
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_real_data_fixture_provenance(repo_root=root)
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(
+                result.evidence["skipped_reason"], "all_samples_empty"
+            )
+
+    def test_real_data_provenance_blocker_fails_when_samples_declared_but_no_fixture_citation(
+        self,
+    ) -> None:
+        """real_data_samples declared but no test fixture cites provenance → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            feedback_dir = (
+                root
+                / ".local"
+                / "feedbacks"
+                / "feedbacks_while_using"
+                / "test-ability"
+            )
+            feedback_dir.mkdir(parents=True)
+            (feedback_dir / "real_data_samples.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "ability_id": "test-ability",
+                        "real_data_samples": [
+                            {
+                                "id": "sample_1",
+                                "endpoint": "/api/v1/health",
+                                "captured_at": "2026-04-30T00:00:00Z",
+                                "observer": "test@example.com",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            # Create test fixture root WITHOUT provenance citation.
+            fixture_dir = (
+                root
+                / ".agents"
+                / "skills"
+                / "test-ability"
+                / "tests"
+                / "fixtures"
+            )
+            fixture_dir.mkdir(parents=True)
+            (fixture_dir / "some_fixture.json").write_text(
+                '{"data": "mock"}', encoding="utf-8"
+            )
+            result = sv.check_real_data_fixture_provenance(repo_root=root)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("test-ability", result.message)
+            self.assertIn("real-data sample provenance", result.message)
+
+    def test_real_data_provenance_blocker_passes_when_fixture_cites_provenance(
+        self,
+    ) -> None:
+        """real_data_samples declared + fixture cites provenance → PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            feedback_dir = (
+                root
+                / ".local"
+                / "feedbacks"
+                / "feedbacks_while_using"
+                / "test-ability"
+            )
+            feedback_dir.mkdir(parents=True)
+            (feedback_dir / "real_data_samples.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "ability_id": "test-ability",
+                        "real_data_samples": [
+                            {
+                                "id": "sample_1",
+                                "endpoint": "/api/v1/health",
+                                "captured_at": "2026-04-30T00:00:00Z",
+                                "observer": "test@example.com",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            fixture_dir = (
+                root
+                / ".agents"
+                / "skills"
+                / "test-ability"
+                / "tests"
+                / "fixtures"
+            )
+            fixture_dir.mkdir(parents=True)
+            (fixture_dir / "some_fixture.ts").write_text(
+                "// real-data sample provenance: 2026-04-30T00:00:00Z / test\n"
+                "export const fixture = { data: 'mock' };\n",
+                encoding="utf-8",
+            )
+            result = sv.check_real_data_fixture_provenance(repo_root=root)
+            self.assertTrue(result.passed, msg=result.message)
+
+
+class HealthSmokeDeclaredWhenLiveBackendTests(unittest.TestCase):
+    """BLOCKER 14 HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND (v0.4.0 §21.2)."""
+
+    def test_health_smoke_blocker_skips_when_no_live_backend(self) -> None:
+        """No profile declares live_backend:true → PASS-as-SKIP."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=["BasicAbilityProfile"],
+            )
+            # Profile without live_backend declaration.
+            (round_dir / "basic_ability_profile.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "basic_ability": {
+                            "id": "test-ability",
+                            "current_surface": {"type": "script"},
+                            "packaging": {},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_health_smoke_declared_when_live_backend(
+                repo_root=root
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(
+                result.evidence["skipped_reason"], "no_live_backend_declared"
+            )
+
+    def test_health_smoke_blocker_skips_when_no_profiles(self) -> None:
+        """No basic_ability_profile.yaml anywhere → PASS-as-SKIP."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            result = sv.check_health_smoke_declared_when_live_backend(
+                repo_root=root
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(
+                result.evidence["skipped_reason"],
+                "no_basic_ability_profiles",
+            )
+
+    def test_health_smoke_blocker_fails_when_live_backend_true_but_smoke_empty(
+        self,
+    ) -> None:
+        """live_backend=true + empty smoke list → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=["BasicAbilityProfile"],
+            )
+            (round_dir / "basic_ability_profile.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "basic_ability": {
+                            "id": "test-ability",
+                            "current_surface": {
+                                "type": "mcp",
+                                "dependencies": {"live_backend": True},
+                            },
+                            "packaging": {
+                                "health_smoke_check": [],
+                            },
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_health_smoke_declared_when_live_backend(
+                repo_root=root
+            )
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("test-ability", str(result.evidence))
+
+    def test_health_smoke_blocker_fails_when_live_backend_true_but_smoke_missing(
+        self,
+    ) -> None:
+        """live_backend=true + missing smoke field → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=["BasicAbilityProfile"],
+            )
+            (round_dir / "basic_ability_profile.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "basic_ability": {
+                            "id": "test-ability",
+                            "current_surface": {
+                                "type": "mcp",
+                                "dependencies": {"live_backend": True},
+                            },
+                            "packaging": {},
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_health_smoke_declared_when_live_backend(
+                repo_root=root
+            )
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertIn(
+                "health_smoke_check is missing or empty", result.message
+            )
+
+    def test_health_smoke_blocker_passes_when_live_backend_true_and_smoke_populated(
+        self,
+    ) -> None:
+        """live_backend=true + non-empty smoke list → PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=["BasicAbilityProfile"],
+            )
+            (round_dir / "basic_ability_profile.yaml").write_text(
+                yaml.safe_dump(
+                    {
+                        "basic_ability": {
+                            "id": "test-ability",
+                            "current_surface": {
+                                "type": "mcp",
+                                "dependencies": {"live_backend": True},
+                            },
+                            "packaging": {
+                                "health_smoke_check": [
+                                    {
+                                        "endpoint": "https://example.com/health",
+                                        "expected_status": 200,
+                                        "max_attempts": 3,
+                                        "retry_delay_ms": 1000,
+                                        "sentinel_field": "data.ok",
+                                        "sentinel_value_predicate": "== true",
+                                        "axis": "dependency",
+                                        "description": "health probe",
+                                    }
+                                ],
+                            },
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            result = sv.check_health_smoke_declared_when_live_backend(
+                repo_root=root
+            )
+            self.assertTrue(result.passed, msg=result.message)
+
+
+class EvidenceFilesPerRoundTests(unittest.TestCase):
+    """Round-level evidence-count check (§8.2 + §20.4 round_kind-aware)."""
+
+    def test_evidence_files_6_for_code_change_round_kind(self) -> None:
+        """round_kind=code_change with 6 evidence files → PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="code_change",
+                present_files=[
+                    "BasicAbilityProfile",
+                    "metrics_report",
+                    "router_floor_report",
+                    "half_retire_decision",
+                    "iteration_delta_report",
+                ],
+            )
+            # 5 present_files + implicit next_action_plan = 6
+            result = sv.check_evidence_count_for_round(round_dir)
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.evidence["expected_count"], 6)
+            self.assertEqual(result.evidence["round_kind"], "code_change")
+            self.assertEqual(len(result.evidence["present"]), 6)
+            self.assertEqual(result.evidence["missing"], [])
+
+    def test_evidence_files_7_for_ship_prep_round_kind(self) -> None:
+        """round_kind=ship_prep with ONLY 6 files (missing ship_decision) → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="ship_prep",
+                present_files=[
+                    "BasicAbilityProfile",
+                    "metrics_report",
+                    "router_floor_report",
+                    "half_retire_decision",
+                    "iteration_delta_report",
+                ],
+            )
+            result = sv.check_evidence_count_for_round(round_dir)
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.evidence["expected_count"], 7)
+            self.assertEqual(result.evidence["round_kind"], "ship_prep")
+            self.assertIn("ship_decision", result.evidence["missing"])
+
+    def test_evidence_files_7_for_ship_prep_with_ship_decision_passes(
+        self,
+    ) -> None:
+        """round_kind=ship_prep WITH ship_decision.yaml → PASS (7 files)."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            round_dir = _write_round(
+                root,
+                ability_id="test-ability",
+                round_id="round_1",
+                round_kind="ship_prep",
+                present_files=[
+                    "BasicAbilityProfile",
+                    "metrics_report",
+                    "router_floor_report",
+                    "half_retire_decision",
+                    "iteration_delta_report",
+                    "ship_decision",
+                ],
+            )
+            result = sv.check_evidence_count_for_round(round_dir)
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.evidence["expected_count"], 7)
+            self.assertEqual(result.evidence["round_kind"], "ship_prep")
+            self.assertIn("ship_decision", result.evidence["present"])
+
+    def test_evidence_files_defaults_to_6_when_next_action_plan_missing(
+        self,
+    ) -> None:
+        """Missing next_action_plan.yaml → default to 6, emit WARNING."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            # Manually create a round directory WITHOUT next_action_plan.
+            date = "2026-04-30"
+            round_dir = (
+                root
+                / ".local"
+                / "dogfood"
+                / date
+                / "abilities"
+                / "test-ability"
+                / "round_1"
+            )
+            round_dir.mkdir(parents=True)
+            for name in (
+                "basic_ability_profile",
+                "metrics_report",
+                "router_floor_report",
+                "half_retire_decision",
+                "iteration_delta_report",
+            ):
+                (round_dir / f"{name}.yaml").write_text(
+                    yaml.safe_dump({"stub": True}), encoding="utf-8"
+                )
+            result = sv.check_evidence_count_for_round(round_dir)
+            self.assertEqual(result.evidence["expected_count"], 6)
+            self.assertIn(
+                "next_action_plan.yaml missing",
+                " ".join(result.evidence["warnings"]),
+            )
+
+    def test_evidence_files_skip_when_round_dir_missing(self) -> None:
+        """Non-existent round directory → PASS-as-SKIP."""
+
+        result = sv.check_evidence_count_for_round(
+            Path("/nonexistent/round/dir")
+        )
+        self.assertTrue(result.passed)
+        self.assertEqual(
+            result.evidence["skipped_reason"], "round_dir_missing"
+        )
 
 
 if __name__ == "__main__":

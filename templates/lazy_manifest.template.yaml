@@ -1,0 +1,29 @@
+# Si-Chip LAZY tier sibling manifest — spec v0.4.0-rc1 §18.5.
+# Instance template (NOT a DevolaFlow WorkflowTemplate).
+# Authors drop one `.lazy-manifest` file per ability source tree; packager and
+# spec_validator cross-check that declared paths never appear in the EAGER
+# (rule frontmatter/body) or ON-CALL (SKILL.md body + explicit imports) load paths.
+
+$schema_version: "0.1.0"
+$spec_section: "§18.5"
+$source_of_truth: ".agents/skills/<id>/.lazy-manifest"
+
+description: |
+  LAZY tier sibling manifest per spec §18.5. Files listed here are bundled in
+  the ability tarball but MUST NOT be pulled into agent context at trigger time.
+  Packager and spec_validator cross-check that none of these paths appear in
+  EAGER (rule frontmatter/body) or ON-CALL (SKILL.md body + imports) surfaces.
+
+ability_id: "<ability-name>"
+lazy_paths:
+  - path: "templates/types.d.ts"
+    purpose: "Author reference types for canvas template; not read at render time"
+    loaded_by: "author tooling only"
+  - path: "templates/empty-data.ts"
+    purpose: "Default-state stub; SKILL recipe always substitutes before render"
+    loaded_by: "author tooling only"
+
+provenance:
+  authored_at: "<YYYY-MM-DDTHH:MM:SSZ>"
+  spec_version: "v0.4.0-rc1"
+  authored_by: "<round_id or ability author>"
