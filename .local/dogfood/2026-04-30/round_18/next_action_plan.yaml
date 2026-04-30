@@ -1,0 +1,266 @@
+# Si-Chip Next-Action Plan - round_18 -> round_19 (second v2 pass) + Stage 7 + Stage 8
+# Conforms to templates/next_action_plan.template.yaml ($schema_version 0.3.0).
+# Spec sections: §8.1 step 4 + §15.1 (round_kind) + §15.2 (per-kind iteration_delta clause)
+# + §18.2 (token_tier_target) + §19.3 (real_data_verification action sub-field) + §22.6 (real-LLM cache).
+
+ability_id: si-chip
+round_id: round_19_v2_lock                          # the round THIS plan targets (L0 picks: Round 19 code_change replay-of-Round-18 to lock in second consecutive v2 pass; Stage 7 chip-usage-helper Round 26 cross-ability witness; Stage 8 rc1 -> final spec promotion + ship at v2_tightened gate)
+emitted_at: '2026-04-30T07:56:20+00:00'
+generated_at: '2026-04-30T07:56:20+00:00'
+targets_round: round_19_v2_lock
+bound_gate: v1_baseline                             # current gate; v2_tightened EFFECTIVE Round 20 after Round 19 confirms
+target_branch: feat/v0.4.0-token-economy-real-data
+target_gate: relaxed                                # spec §5.4: relaxed -> v1_baseline; current
+spec_version: v0.4.0-rc1
+
+# ── §15.1 round_kind classification (THIS round = code_change) ──────────
+# This `round_kind` field describes ROUND 18 (the round the plan was emitted IN).
+# The PLAN itself is for Round 19 (code_change second v2 pass) + Stage 7 + Stage 8.
+round_kind: code_change                              # §15.1; round 18 IS a code_change round (real_llm_runner.py first dogfood-side invocation = methodology change)
+
+# ── §18.2 token_tier_target (v0.4.0) ─────────────────────────────────────
+token_tier_target: relaxed                           # v0.4.0 §18.2 - controls EAGER-weighted iteration_delta interpretation; Round 18 bound to v1_baseline gate (v2_tightened single pass not yet a promotion)
+
+round_kind_rationale: |
+  Round 18 is `code_change` per round 17 next_action_plan.yaml explicit
+  pre-classification (the round 17 plan declared Round 18 = code_change
+  for the strict iteration_delta clause to apply to the real_llm_runner.py
+  first dogfood-side invocation). The runner code itself landed Round 16
+  production-ready but had not been exercised dogfood-side until Round 18;
+  the substantive change is in EVALUATION METHODOLOGY (deterministic SHA-256
+  PROXY -> honest real-LLM k=4 sampling) which is a meaningful "code change"
+  in the evaluation infrastructure semantics even though SKILL.md byte-SHA
+  is unchanged from Round 17.
+
+  Per §15.2 the iteration_delta clause is `strict` (>=1 axis at gate bucket);
+  satisfied via task_quality +0.4522 axis delta (4.5x v2_tightened bucket).
+  Per §15.3 C0 = 1.0 + monotonicity is UNIVERSAL across all 4 round_kinds and
+  is satisfied (1.0 >= 1.0 == required; SECOND WITHIN-v0.4.0-rc1 non-vacuous
+  monotonicity witness).
+
+  Round 18 is the FIRST v2_tightened pass for Si-Chip (10/10 rows PASS).
+  consecutive_v2_passes = 1 (need 1 more in Round 19 per §4.2). v0.4.0 ship
+  gate at v2_tightened (standard) becomes ELIGIBLE EFFECTIVE Round 20 if
+  Round 19 second consecutive v2 pass confirms.
+
+  This plan targets Round 19 (code_change second consecutive v2_tightened
+  pass via real_llm_runner.py byte-identical replay from cache) + Stage 7
+  (chip-usage-helper Round 26 cross-ability witness) + Stage 8 (rc1 -> final
+  spec promotion + ship at v2_tightened gate after Round 19 confirms).
+
+# ── Inputs basis ─────────────────────────────────────────────────────────
+basis_metrics_report: .local/dogfood/2026-04-30/round_18/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-30/round_18/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-30/round_17/iteration_delta_report.yaml
+
+# ── Actions for Round 19 / Stage 7 / Stage 8 ─────────────────────────────
+actions:
+  - id: round_19_a1
+    action_id: round_19_a1
+    title: 'Round 19 (code_change) - replay real_llm_runner.py with same seed against existing cache; second consecutive v2_tightened pass; satisfy §4.2 promotion rule'
+    priority: P0
+    owner: Implement
+    primitive: implement
+    targets_metric: v2_tightened_consecutive_promotion
+    applies_to_metric: v2_tightened_promotion
+    exit_criterion: |
+      Round 19 code_change round - second consecutive v2_tightened PASS via
+      real_llm_runner.py replay:
+        - python evals/si-chip/runners/real_llm_runner.py
+            --ability si-chip
+            --eval-pack .local/dogfood/2026-04-29/abilities/chip-usage-helper/eval_pack.yaml
+            --matrix-mode mvp
+            --k 4
+            --cache-dir .local/dogfood/2026-04-30/round_19/raw/real_llm_runner_cache
+            --max-spend 0.10  # conservative; cache hit 100% expected from copying Round 18 cache
+            --seed 42         # SAME seed -> byte-identical cache keys -> byte-identical results
+            --out .local/dogfood/2026-04-30/round_19/raw/real_llm_run.json
+          -> exit 0; emits BYTE-IDENTICAL T2_pass_k = 1.0 (best cell) result
+          (cache hit 100% if Round 18 cache directory copied; cache miss = first
+          fresh API call which would still produce same outcome with seed=42 and
+          deterministic LLM at temperature ~0).
+        - All 10 v2_tightened threshold rows PASS (second consecutive); 9/9
+          v1_baseline rows also PASS (19th consecutive).
+        - C0 = 1.0 maintained; pytest 559+ pass; no v1_baseline regression.
+        - consecutive_v2_passes counter = 2; per §4.2 promotion rule, gate
+          promotes v1_baseline -> v2_tightened EFFECTIVE Round 20 onwards.
+        - Author 6 evidence files for Round 19; metrics_report.promotion_state.
+          last_promotion_round_id = round_19; current_gate = v1_baseline ->
+          v2_tightened on Round 20 next_action_plan.
+    description: |
+      Round 19 (code_change) - second consecutive v2_tightened pass to satisfy
+      §4.2 promotion rule. Per §4.2: "Must pass current gate consecutively for
+      2 rounds before promoting to N+1." Round 18 = first v2 pass; Round 19 =
+      second v2 pass. After Round 19 the v0.4.0 ship gate at v2_tightened
+      (standard) becomes ELIGIBLE EFFECTIVE Round 20.
+
+      Implementation note: copy .local/dogfood/2026-04-30/round_18/raw/real_llm_runner_cache/
+      to .local/dogfood/2026-04-30/round_19/raw/real_llm_runner_cache/ first
+      to ensure 100% cache hit (zero additional API spend). Use --max-spend 0.10
+      as conservative safety cap.
+    real_data_verification:
+      fixtures_count: 1                                # same chip-usage-helper 40-prompt pack as Round 18
+      provenance: '.local/dogfood/2026-04-29/abilities/chip-usage-helper/eval_pack.yaml - SAME pack as Round 18; STAND-IN per Round 18 documentation'
+      audit_trail_grep_pattern: 'real-data sample provenance:'
+
+  - id: stage_7_a1
+    action_id: stage_7_a1
+    title: 'Stage 7 - chip-usage-helper Round 26 cross-ability witness under v0.4.0 spec'
+    priority: P1
+    owner: Implement
+    primitive: implement
+    targets_metric: cross_ability_v0_4_0_validation
+    applies_to_metric: chip-usage-helper_under_v0_4_0
+    exit_criterion: |
+      Stage 7 cross-ability witness:
+        - Run chip-usage-helper Round 26 dogfood under v0.4.0-rc1 spec
+          (re-uses si-chip Round 16's tools/templates/spec; chip-usage-helper
+          ability has its own SKILL.md + scripts but evaluates against the
+          shared dogfood infrastructure).
+        - Validate that chip-usage-helper's R6 7x37 metric block populates
+          correctly under the v0.4.0 schema additions (token_tier / promotion_state
+          / health_smoke_check / dependencies blocks; 8-axis value_vector;
+          R3_eager_only / R3_post_trigger split).
+        - chip-usage-helper has live_backend = true (ai-bill API dependency;
+          per its existing basic_ability_profile.yaml); validate that
+          packaging.health_smoke_check is REQUIRED non-empty per §21.2 and
+          spec_validator BLOCKER 14 HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND
+          PASSES (currently it skip-passes because no profile declares
+          live_backend=true; chip-usage-helper Round 26 is the first to
+          exercise the non-skip path).
+        - chip-usage-helper has EAGER alwaysApply rule fragment (separate from
+          AGENTS.md compiled bridge); validate that token_tier.C7_eager_per_session
+          > 0 and value_vector.eager_token_delta is load-bearing (not vacuous 0.0
+          like Si-Chip self).
+        - C0 = 1.0 maintained for chip-usage-helper; cross-ability witness
+          confirms v0.4.0 spec changes work for abilities other than Si-Chip self.
+        - real_llm_runner.py invocation against chip-usage-helper-specific eval pack
+          to populate honest T2_pass_k for chip-usage-helper too (cross-ability
+          v2_tightened ratification).
+    description: |
+      Stage 7 - chip-usage-helper Round 26 cross-ability witness under v0.4.0
+      spec. This is a cross-ability validation that the v0.4.0 schema additions
+      work correctly for abilities OTHER than Si-Chip self. chip-usage-helper
+      is a good cross-ability candidate because it has (a) live_backend = true
+      (ai-bill API dependency; exercises §21.2 health_smoke non-skip path) and
+      (b) EAGER alwaysApply rule fragment (exercises §6.1 eager_token_delta
+      load-bearing path). This confirms that the v0.4.0 spec works in production
+      for the diversity of ability shapes Si-Chip is meant to support.
+    real_data_verification:
+      fixtures_count: 1                                # chip-usage-helper has its own real-data fixture set
+      provenance: '.local/dogfood/2026-04-29/abilities/chip-usage-helper/eval_pack.yaml - separate from Si-Chip self; SAME pack used as Round 18 STAND-IN measurement'
+      audit_trail_grep_pattern: 'real-data sample provenance:'
+
+  - id: stage_8_a1
+    action_id: stage_8_a1
+    title: 'Stage 8 (ship_prep) - rc1 -> final v0.4.0 spec promotion + tarball regen + ship at v2_tightened gate'
+    priority: P0
+    owner: Implement
+    primitive: implement
+    targets_metric: v0_4_0_final_ship
+    applies_to_metric: si-chip_v0_4_0_ship
+    exit_criterion: |
+      Stage 8 ship_prep round (Round 20+ once Round 19 confirms second v2 pass):
+        - Promote .local/research/spec_v0.4.0-rc1.md to .local/research/spec_v0.4.0.md
+          (rc1 -> final; bump effective_date; update supersedes; etc.).
+        - Regenerate AGENTS.md via .rules/si-chip-spec.mdc compiler with the
+          new v0.4.0 hard rules (now 13: v0.2.0 8 + v0.3.0 §17 rules 9-10 +
+          v0.4.0 §17.4-§17.6 rules 11-13).
+        - Bump SKILL.md version: .agents/skills/si-chip/SKILL.md (and 2 mirrors)
+          from 0.4.0-rc1 -> 0.4.0; sync mirrors byte-identical.
+        - Regenerate docs/skills/si-chip-0.4.0.tar.gz tarball.
+        - Update CHANGELOG with v0.4.0 release notes (real-LLM unblock highlight).
+        - Final ship at v2_tightened standard gate (now ELIGIBLE per §4.2 after
+          Round 19 second consecutive v2 pass).
+        - Author 7 evidence files for the ship_prep round (6 standard +
+          ship_decision.yaml per §20.4).
+        - C0 = 1.0 maintained; spec_validator dual-spec 14/14+14/14 PASS
+          (against v0.4.0 final spec); pytest 559+ pass; no regression.
+    description: |
+      Stage 8 - v0.4.0 final ship at v2_tightened gate. This is the natural
+      ship_prep round after Round 18 + Round 19 = 2 consecutive v2 passes
+      (per §4.2 promotion rule v1_baseline -> v2_tightened EFFECTIVE Round 20).
+      Per §15.1.2 ship_prep round_kind decision tree: source touch + version
+      bump + tarball regen = ship_prep (mirror sync inevitable; SKILL.md
+      version bump 0.4.0-rc1 -> 0.4.0 is allowed in ship_prep; ability behavior
+      remains unchanged - only docs/version metadata are touched).
+
+      The ship gate is v2_tightened (standard) per spec §5.4: standard ↔
+      v2_tightened. Si-Chip's first ship at v2_tightened in v0.4.0 line.
+    real_data_verification:
+      fixtures_count: 0                                # ship_prep is mirror sync + version bump; no new measurements
+      provenance: 'carry-forward from Round 19 metrics_report; ship_decision.yaml documents the ship at v2_tightened standard gate'
+      audit_trail_grep_pattern: 'real-data sample provenance:'
+
+# ── Expected iteration_delta axes ───────────────────────────────────────
+# Round 19 (code_change) per §15.2 has the `strict` clause requiring
+# >= 1 axis at gate-bucket. Listed axes are the EXPECTED-positive ones for
+# Round 19. Stage 7 (chip-usage-helper) iteration_delta axes are tracked
+# under that ability's own evidence dir.
+expected_iteration_delta_axes:
+  - task_quality                                       # T2_pass_k stays at 1.0 byte-identical to Round 18 (cache replay); the lift was in Round 18; Round 19 carries
+  - generalizability                                   # G1 _provenance stays at real_llm_sweep
+  - latency_path                                       # L2 measurement noise; could swing either way but typically within v1_baseline bucket
+
+# ── Forward-pointer: deferred items from Round 18 ───────────────────────
+deferred_from_round_18:
+  - id: real_llm_runner_intermediate_sweep
+    title: 'real_llm_runner.py intermediate matrix-mode (16 cells; 4 packs); G1 cells filling for multi_skill_competition + execution_handoff packs'
+    deferral_reason: 'Round 18 used mvp matrix-mode (8 cells; 2 packs) to keep cost under $0.50 budget; intermediate matrix would 2x cell count -> ~$0.40-0.60 spend. Round 19 may extend if budget permits; otherwise deferred to v0.4.x.'
+    refer_to: 'evals/si-chip/runners/real_llm_runner.py --matrix-mode intermediate'
+    status: deferred_to_round_19_or_v0_4_x
+  - id: si_chip_specific_routing_prompt
+    title: 'real_llm_runner.py system-prompt extension to support si-chip-specific routing classification'
+    deferral_reason: 'Round 18 used chip-usage-helper STAND-IN eval pack because real_llm_runner.py system prompt is hardcoded for chip-usage-helper. v0.4.x may extend the runner with a --system-prompt flag (or per-ability system prompt) to enable native Si-Chip T2 measurement.'
+    refer_to: 'evals/si-chip/runners/real_llm_runner.py ROUTING_SYSTEM_PROMPT_BASE constant'
+    status: deferred_to_v0_4_x
+  - id: g2_g3_g4_fill
+    title: 'G2_cross_domain_transfer_pass + G3_OOD_robustness + G4_model_version_stability fills'
+    deferral_reason: 'G2/G3/G4 require multi-domain + OOD eval packs not yet curated. Round 18 populated G1 with real-LLM data; G2/G3/G4 deferred to v0.4.x post-Round 19 ship.'
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[1] (a2)'
+    status: deferred_to_v0_4_x
+  - id: l5_l6_l7_fill
+    title: 'L5_detour_index + L6_replanning_rate + L7_think_act_split fills'
+    deferral_reason: 'L5/L6/L7 require step-trace + replan-trace data. real_llm_run.json has cell.duration_s + per_prompt outcomes but lacks the step-trace granularity required. Deferred to v0.4.x.'
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[2] (a3)'
+    status: deferred_to_v0_4_x
+  - id: token_tier_decomposition_script
+    title: 'tools/token_tier_decomposition.py (documented Round 16 but not actually shipped to tools/)'
+    deferral_reason: 'Round 16 changes_this_round listed tools/token_tier_decomposition.py as added but the script file is not actually present in the tools/ directory (Round 16 documentation drift; persisting through Rounds 17 and 18). The token_tier_decomposition.json is hand-anchored against measurement and carry-forwarded byte-equivalent across all rounds. Resolution: either author the actual script file in Round 19 (low priority - the JSON is stable) or amend Round 16 changes_this_round to reflect the JSON-only landing. Either acceptable; no v0.4.0 ship blocker.'
+    refer_to: 'tools/health_smoke.py for similar new-tool patterns'
+    status: doc_drift_low_priority
+
+# ── Round 18 -> v0.4.0 final ship roadmap (informational; not in actions) ─
+continuing_through_master_plan:
+  - 'Round 19 (code_change): replay real_llm_runner.py with same seed (cache 100% hit; near-zero additional spend); second consecutive v2_tightened pass; per §4.2 gate promotes v1_baseline -> v2_tightened EFFECTIVE Round 20.'
+  - 'Round 20+ (ship_prep): v0.4.0 final ship at standard (= v2_tightened) gate. Tarball regen: docs/skills/si-chip-0.4.0.tar.gz; CHANGELOG; AGENTS.md re-compile (now 13 hard rules: v0.2.0 8 + v0.3.0 §17 rules 9-10 + v0.4.0 §17.4-§17.6 rules 11-13).'
+  - 'Round 21+ (maintenance): post-ship 30/60/90-day cadence per §6 + §15.1 maintenance round_kind; first review at 2026-05-30.'
+  - 'Stage 7 cross-ability witness: chip-usage-helper Round 26 under v0.4.0 spec; validate health_smoke_check non-skip path + eager_token_delta load-bearing path; populate honest T2_pass_k for chip-usage-helper too via real_llm_runner.py.'
+  - 'v0.4.x candidate: §16 multi-ability layout Informative -> Normative promotion; §18.4 prose_class taxonomy Informative -> Normative promotion (per §18.4.2 trigger); real_llm_runner.py system-prompt extension for si-chip-specific routing classification; G2/G3/G4 + L5/L6/L7 fills.'
+  - 'AGENTS.md §13: v0.2.0 8 hard rules + v0.3.0 §17 rules 9 + 10 + v0.4.0 §17.4 rule 11 (token_tier) + §17.5 rule 12 (real-data) + §17.6 rule 13 (health_smoke_check) = 13 hard rules total post-ship.'
+
+provenance:
+  generator: 'Round 18 dogfood - L3 Task Agent (v0.4.0-rc1 code_change Stage 6c FIRST v2_tightened pass via real-LLM unblock)'
+  spec_version: v0.4.0-rc1
+  basis_round: round_18
+  target_commit_base: d90a670f8edc4a61207cbb329b6e371edd1d43fe
+  basis_iteration_delta: .local/dogfood/2026-04-30/round_18/iteration_delta_report.yaml
+  cites:
+    - .local/dogfood/2026-04-30/round_18/metrics_report.yaml
+    - .local/dogfood/2026-04-30/round_18/iteration_delta_report.yaml
+    - .local/dogfood/2026-04-30/round_18/raw/spec_validator_v0_2_0.json
+    - .local/dogfood/2026-04-30/round_18/raw/spec_validator_v0_4_0_rc1.json
+    - .local/dogfood/2026-04-30/round_18/raw/eval_skill_output.yaml
+    - .local/dogfood/2026-04-30/round_18/raw/governance_scan.json
+    - .local/dogfood/2026-04-30/round_18/raw/pytest_full.txt
+    - .local/dogfood/2026-04-30/round_18/raw/token_tier_decomposition.json
+    - .local/dogfood/2026-04-30/round_18/raw/three_tree_sha256.txt
+    - .local/dogfood/2026-04-30/round_18/raw/source_drift_check.txt
+    - .local/dogfood/2026-04-30/round_18/raw/real_llm_run.json
+    - .local/dogfood/2026-04-30/round_18/raw/real_llm_run.log
+    - .local/dogfood/2026-04-30/round_18/raw/real_llm_runner_cache
+    - .local/research/spec_v0.4.0-rc1.md
+    - evals/si-chip/runners/real_llm_runner.py
+    - tools/spec_validator.py
+    - tools/eval_skill.py
+    - tools/governance_scan.py

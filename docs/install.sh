@@ -24,7 +24,7 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-SI_CHIP_VERSION_DEFAULT="v0.3.0"
+SI_CHIP_VERSION_DEFAULT="v0.4.0"
 SOURCE_URL_DEFAULT="https://yorha-agents.github.io/Si-Chip"
 
 MANIFEST=(
@@ -38,14 +38,21 @@ MANIFEST=(
   "references/core-goal-invariant-r11-summary.md"
   "references/round-kind-r11-summary.md"
   "references/multi-ability-layout-r11-summary.md"
+  "references/token-tier-invariant-r12-summary.md"
+  "references/real-data-verification-r12-summary.md"
+  "references/lifecycle-state-machine-r12-summary.md"
+  "references/health-smoke-check-r12-summary.md"
+  "references/eval-pack-curation-r12-summary.md"
+  "references/method-tagged-metrics-r12-summary.md"
   "scripts/profile_static.py"
   "scripts/count_tokens.py"
   "scripts/aggregate_eval.py"
   "scripts/eval_skill_quickstart.md"
+  "scripts/real_llm_runner_quickstart.md"
 )
 
-EXPECTED_REFS=8
-EXPECTED_SCRIPTS=4
+EXPECTED_REFS=14
+EXPECTED_SCRIPTS=5
 
 # ---------------------------------------------------------------------------
 # Globals (populated by parse_args)
@@ -112,7 +119,7 @@ print_version_info() {
 
 print_help() {
   cat <<'EOF'
-Si-Chip installer v0.3.0
+Si-Chip installer v0.4.0
 
 Usage:
   curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash

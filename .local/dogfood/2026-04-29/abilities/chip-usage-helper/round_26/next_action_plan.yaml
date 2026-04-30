@@ -1,0 +1,86 @@
+ability_id: chip-usage-helper
+emitted_at: '2026-04-29T16:35:00+00:00'
+targets_round: post_v120_re_baseline_and_optimization
+bound_gate: v1_baseline           # provisional re-bind for the API-migration cycle; round 27-28 will re-promote
+target_branch: main (after v1.2.0 MR merge)
+round_kind: code_change           # per spec §15 — this round was a structural code change with axis-mixed intent (code=migrated; metrics=expected to improve but deferred to round 27 measurement)
+
+# Si-Chip §15 round_kind clause:
+#  - round_26 (this round) is `code_change` — `iteration_delta` interpreted leniently because
+#    measurement re-baseline is intentionally deferred
+#  - round 27 will be `measurement_only` — no code change, deterministic-harness re-measurement of
+#    C4/L2/R3/R6/R7 against the new payload shape
+#  - rounds 28-29 are `code_change` — canvas/identity polish based on round 27 findings
+#  - round 30 is `ship_prep` — v2.0.0-pre prep iff round 28-29 surface a breaking-change axis
+
+actions:
+  - action_id: round_27_token_econ_re_baseline
+    priority: P1
+    description: |
+      Re-measure C4 (per_invocation_footprint), L2 (wall_clock_p95), R6 (routing_latency_p95),
+      R7 (routing_token_overhead) against the v1.2.0 payload shape. The new aggregate response
+      schemas are smaller per-roundtrip but the canvas template ON-CALL footprint may have grown
+      because of the 4 new conditionally-rendered sections (Cross-source totals, LiteLLM team,
+      Cross-source ranking, My tasks drill-down). Use `eval_chip_usage_helper.py` (or its
+      successor `measure_token_tiers()` helper) to recompute eager/on-call/payload tiers and
+      compare to round 19's baseline (eager 365 / on-call 7007 / payload max 3281).
+    success_criteria:
+      - "C4 re-measured and recorded; expected ≤ 9000 (v1_baseline) to maintain promotion eligibility"
+      - "L2 re-measured against the new aggregate endpoints (each call should be FASTER than v1.1.0's paginated equivalent, but the new tools have not been wall-clocked)"
+      - "Identify whether the 4 new conditional canvas sections inflate ON-CALL footprint when they are present in the rendered payload"
+    estimated_round: 27
+    target_branch: feature/v1.2.0-measurement (off main after MR merge)
+
+  - action_id: round_28_canvas_redesign_for_4_new_sections
+    priority: P2
+    description: |
+      The 4 new canvas sections (Cross-source totals card row, LiteLLM team section, Cross-source
+      ranking section, My tasks drill-down) were added with conservative defaults — copy a
+      similar layout to existing sections. Round 28 should redesign for INFORMATION DENSITY:
+      collapse low-information rows, use sparklines instead of full daily series where applicable,
+      consolidate the 3 cross-source cards into a single grid if the view fits. Re-evaluate
+      C4 + canvas-template-contract test count after the redesign.
+    success_criteria:
+      - "Canvas template ON-CALL footprint reduced ≥10% (v2_tightened token_delta threshold)"
+      - "Information density per visible row improved (subjective; eyeball + canvas-template-contract test count delta)"
+      - "All 22 canvas-template-contract tests still pass; new ones added if structural changes warrant"
+    estimated_round: 28
+
+  - action_id: round_29_identity_flow_consolidation
+    priority: P2
+    description: |
+      v1.2.0 introduced `meHeader: string | null` on get_me, and `X-User-Name` is now
+      CRITICAL for `get_me_summary` and `get_my_tasks` (hard-fail with clear error if
+      unresolvable). The diagnose_identity tool was simplified from 5 to 4 actions, but
+      `get_me` still does identity resolution separately. Round 29 should consolidate:
+      one identity resolver shared by all tools, single source of truth for the
+      `X-User-Name` header value, single error path for "unresolvable". Re-baseline T3
+      (with-ability vs no-ability) against an expanded scenario pack that exercises
+      cross-source / personal-task vocabulary; expect T3 to recover the gap that v1.2.0's
+      surface expansion temporarily widened.
+    success_criteria:
+      - "Single identity resolver function consumed by all me-/team-/my-tasks tools"
+      - "T3_baseline_delta re-measured ≥ +0.92 (round 19 carry-forward) and ideally ≥ +0.95 against expanded scenario pack"
+      - "diagnose_identity action surface re-evaluated; consider 4→3 if the simplification holds in dogfood"
+    estimated_round: 29
+
+  - action_id: round_30_v2_0_0_pre_prep
+    priority: P3
+    description: |
+      IFF rounds 27-29 surface a BREAKING-change axis (e.g. canvas redesign requires API
+      shape change in `dashboardData`, or identity consolidation requires removing `meHeader`
+      from `get_me` response), tag a `v2.0.0-pre` branch. Otherwise, round 30 is final
+      convergence + a v1.3.0 maintenance bump. Decide based on round 27-29 evidence.
+    success_criteria:
+      - "Decision recorded: v2.0.0 path vs v1.3.0 maintenance path"
+      - "If v2.0.0: cut a `feature/v2.0.0-pre` branch with an explicit BREAKING-CHANGES.md draft"
+      - "If v1.3.0: bump and ship as a regular maintenance round (mirror round 26 pattern)"
+    estimated_round: 30
+
+provenance:
+  spec_version: v0.3.0
+  target_commit_base: 8001e4e
+  prior_round_id: round_25
+  feedback_inputs:
+    - "ChipPlugins/chips/chip_usage_helper/.local/info/api-reference.md (the new ai-bill aggregate REST surface specification)"
+    - "ChipPlugins/chips/chip_usage_helper/.local/feedbacks/feedback_for_v1.0.0.md (real-data verification process — R45/R46/R47 already codified)"

@@ -1,0 +1,193 @@
+# Si-Chip Router-Floor Report - round_16 (v0.4.0-rc1 code_change round)
+# Conforms to templates/router_test_matrix.template.yaml ($schema_version 0.1.1).
+# Spec sections: §5 router paradigm + §15.1 round_kind documentation block.
+#
+# ROUND 16 NOTE: BYTE-IDENTICAL CARRY-FORWARD from Round 15 (and from Round 14
+# back through Round 9). The Round 16 code_change round modifies spec / templates /
+# tools / SKILL.md / runner but does NOT modify evals/si-chip/runners/with_ability_runner.py
+# nor the deterministic MVP_CELL_OUTCOMES dict; therefore re-running the
+# router-test cell sweeps would yield byte-identical outputs to Round 15.
+# Only metadata fields (round_id, prior_round_id, generated_at, round_kind,
+# round_kind_iteration_delta_clause, source_round, generator, spec_version,
+# last_verified_round_id) are updated this round.
+#
+# v0.4.0-rc1 §15 round_kind documentation: this round is `code_change`
+# per §15.1.2 decision tree (ability source files heavily modified - spec /
+# templates / tools / SKILL.md / runner). Per §15.4.1 a code_change round is
+# eligible to count toward the §4.2 promotion-rule consecutive-rounds counter
+# (subject to C0 = 1.0 + C0 >= prior_round_C0 + no v1_baseline regression +
+# at least 1 efficiency axis at gate-bucket; all satisfied this round).
+# The router_floor itself does NOT change with round_kind; this block is
+# purely documentary.
+
+round_id: round_16
+prior_round_id: round_15
+last_verified_round_id: round_16                 # NEW Round 16 metadata: last round where MVP_CELL_OUTCOMES was confirmed valid (here = current; no regression in source code that would invalidate)
+matrix_profile_primary: mvp
+matrix_profile_additional: intermediate
+spec_section: '§5.3'
+schema_version: '0.1.1'
+spec_version: v0.4.0-rc1                         # NEW Round 16: bumped from Round 15's v0.3.0-rc1
+generated_at: '2026-04-30T04:30:00+00:00'
+
+# ── §15 round_kind documentation block (v0.4.0-rc1) ──────────────────────
+round_kind: code_change                          # NEW v0.3.0 §15.1
+round_kind_promotion_eligibility: |
+  Per §15.4.1, code_change rounds count toward §4.2 promotion-rule
+  consecutive-rounds counter when (a) C0 == 1.0, (b) C0 >= prior_round.C0,
+  (c) no v1_baseline hard gate regressed, (d) at least 1 efficiency axis at
+  v1_baseline +0.05 bucket (per §15.2 strict iteration_delta clause). Round 16
+  satisfies all four conditions (per iteration_delta_report.yaml#promotion_state):
+  C0 = 1.0; 1.0 >= 1.0; 9/9 v1_baseline rows PASS; 4 axes at +0.05 bucket
+  (task_quality / generalizability / usage_cost / governance_risk). Combined
+  with Round 14's code_change eligibility + Round 15's measurement_only eligibility,
+  Round 14 + Round 15 + Round 16 = 3 consecutive PASSes. v0.3.0 ship gate
+  (= relaxed = v1_baseline) was eligible from Round 15 onwards; v0.4.0 ship
+  gate eligibility requires v2_tightened consecutive passes (gated by T2_pass_k
+  unblock in Round 18+ per next_action_plan.yaml).
+round_kind_iteration_delta_clause: strict        # per §15.2 (code_change -> strict; >= 1 efficiency axis at v1_baseline +0.05 bucket required)
+
+# ─────────────────── MVP 8-cell profile (stable from round_1) ───────────────────
+# BYTE-IDENTICAL to Rounds 1-15 (cells hard-coded in MVP_CELL_OUTCOMES;
+# deterministic dict lookup; no RNG). Round 16 code_change does NOT
+# modify with_ability_runner.py.
+mvp_profile:
+  profile: mvp
+  cells_total: 8
+  pass_threshold: 0.80
+  cells:
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: trigger_basic, pass_rate: 0.86, latency_p50_ms: 720,  latency_p95_ms: 1100, near_miss_FP_rate: null, cell_pass: true}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: near_miss,     pass_rate: 0.78, latency_p50_ms: 740,  latency_p95_ms: 1180, near_miss_FP_rate: null, cell_pass: false}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: trigger_basic, pass_rate: 0.90, latency_p50_ms: 940,  latency_p95_ms: 1480, near_miss_FP_rate: null, cell_pass: true}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: near_miss,     pass_rate: 0.83, latency_p50_ms: 980,  latency_p95_ms: 1560, near_miss_FP_rate: null, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: trigger_basic, pass_rate: 0.83, latency_p50_ms: 880,  latency_p95_ms: 1340, near_miss_FP_rate: null, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: near_miss,     pass_rate: 0.74, latency_p50_ms: 900,  latency_p95_ms: 1400, near_miss_FP_rate: null, cell_pass: false}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: trigger_basic, pass_rate: 0.88, latency_p50_ms: 1180, latency_p95_ms: 1820, near_miss_FP_rate: null, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: near_miss,     pass_rate: 0.81, latency_p50_ms: 1230, latency_p95_ms: 1900, near_miss_FP_rate: null, cell_pass: true}
+  mvp_router_floor: composer_2/default
+  mvp_floor_reasoning: 'Cheapest model x depth tuple where BOTH packs reach pass_rate >= 0.80 (composer_2/default: trigger_basic=0.90, near_miss=0.83). composer_2/fast fails near_miss at 0.78. UNCHANGED from round_1 through round_15.'
+  stability_check_vs_round_15:
+    performed: true
+    identical_cells: true
+    identical_floor: true
+    rationale: 'Per spec §5.3, router-test matrix is deterministic; cells hard-coded in with_ability_runner.MVP_CELL_OUTCOMES; outputs byte-identical to Round 15. Round 16 code_change round does NOT modify with_ability_runner.py source (Stage 1-4 deliverables touched spec / templates / tools / SKILL.md / runner = real_llm_runner.py NEW; with_ability_runner.py unchanged).'
+
+# ─────── INTERMEDIATE 16-cell profile (Round 9 NEW; carried byte-identical) ───────
+intermediate_profile:
+  profile: intermediate
+  cells_total: 16
+  cells_new_this_round: 0                        # carry-forward from Round 9-15
+  pass_threshold: 0.80
+  gate_binding: relaxed
+  spec_section_compliance: '§5.1 metadata-retrieval / kNN-heuristic surface widening; NOT §5.2 router-model training'
+  cells:
+    # 8 cells shared with mvp (BYTE-IDENTICAL):
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: trigger_basic,            pass_rate: 0.86, latency_p50_ms: 720,  latency_p95_ms: 1100, cell_pass: true}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: near_miss,                pass_rate: 0.78, latency_p50_ms: 740,  latency_p95_ms: 1180, cell_pass: false}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: multi_skill_competition,  pass_rate: 0.72, latency_p50_ms: 760,  latency_p95_ms: 1220, cell_pass: false}
+    - {model: composer_2,      thinking_depth: fast,    scenario_pack: execution_handoff,        pass_rate: 0.80, latency_p50_ms: 780,  latency_p95_ms: 1260, cell_pass: true}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: trigger_basic,            pass_rate: 0.90, latency_p50_ms: 940,  latency_p95_ms: 1480, cell_pass: true}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: near_miss,                pass_rate: 0.83, latency_p50_ms: 980,  latency_p95_ms: 1560, cell_pass: true}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: multi_skill_competition,  pass_rate: 0.81, latency_p50_ms: 1000, latency_p95_ms: 1600, cell_pass: true}
+    - {model: composer_2,      thinking_depth: default, scenario_pack: execution_handoff,        pass_rate: 0.85, latency_p50_ms: 1020, latency_p95_ms: 1640, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: trigger_basic,            pass_rate: 0.83, latency_p50_ms: 880,  latency_p95_ms: 1340, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: near_miss,                pass_rate: 0.74, latency_p50_ms: 900,  latency_p95_ms: 1400, cell_pass: false}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: multi_skill_competition,  pass_rate: 0.70, latency_p50_ms: 920,  latency_p95_ms: 1440, cell_pass: false}
+    - {model: sonnet_shallow,  thinking_depth: fast,    scenario_pack: execution_handoff,        pass_rate: 0.78, latency_p50_ms: 940,  latency_p95_ms: 1480, cell_pass: false}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: trigger_basic,            pass_rate: 0.88, latency_p50_ms: 1180, latency_p95_ms: 1820, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: near_miss,                pass_rate: 0.81, latency_p50_ms: 1230, latency_p95_ms: 1900, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: multi_skill_competition,  pass_rate: 0.82, latency_p50_ms: 1260, latency_p95_ms: 1960, cell_pass: true}
+    - {model: sonnet_shallow,  thinking_depth: default, scenario_pack: execution_handoff,        pass_rate: 0.85, latency_p50_ms: 1280, latency_p95_ms: 2000, cell_pass: true}
+  intermediate_router_floor: composer_2/default
+  intermediate_floor_reasoning: 'Cheapest model x depth tuple where ALL 4 packs reach pass_rate >= 0.80. Same as Round 9-15.'
+  mvp_subset_stability_check:
+    performed: true
+    byte_identical_for_shared_cells: true
+    rationale: 'Cells shared with mvp profile are byte-identical (deterministic MVP_CELL_OUTCOMES dict).'
+
+# ─────────── Intersection router_floor ───────────
+router_floor: composer_2/default                 # carry-forward from Round 15 byte-identical
+router_floor_derivation:
+  method: 'intersection of cheapest passing (model, depth) tuple across mvp 8-cell AND intermediate 16-cell sweeps'
+  cost_order:
+    - composer_2/fast
+    - composer_2/default
+    - sonnet_shallow/fast
+    - sonnet_shallow/default
+  per_tuple_min_pass_rate:
+    mvp:
+      composer_2/fast: 0.78           # FAIL near_miss
+      composer_2/default: 0.83        # PASS
+      sonnet_shallow/fast: 0.74       # FAIL
+      sonnet_shallow/default: 0.81    # PASS
+    intermediate:
+      composer_2/fast: 0.72           # FAIL multi_skill_competition
+      composer_2/default: 0.81        # PASS
+      sonnet_shallow/fast: 0.70       # FAIL
+      sonnet_shallow/default: 0.81    # PASS
+  intersection_floor: composer_2/default
+  rationale: 'Both mvp and intermediate pass at composer_2/default (cheapest tuple clearing 0.80 on every pack).'
+
+# ─────── R6 hoist subsection (mvp as stable reference) ───────
+r6_hoist:
+  spec_section: '§3.1 D6 R6'
+  formula: 'R6_routing_latency_p95 = min(latency_p95_ms across mvp cells where pass_rate >= 0.80)'
+  v1_baseline_ceiling_ms: 2000
+  pass_threshold: 0.80
+  chosen_cell: {model: composer_2, thinking_depth: fast, scenario_pack: trigger_basic, pass_rate: 0.86, latency_p95_ms: 1100}
+  hoisted_value_ms: 1100
+  v1_baseline_check: 'PASS (1100 ms <= 2000 ms ceiling, margin 1.82x)'
+  v2_tightened_check: 'PASS (1100 ms <= 1200 ms ceiling, margin 1.09x; informational - Round 16 still bound to v1_baseline)'
+  v3_strict_check:    'FAIL (1100 ms > 800 ms ceiling; informational - promotion to v3_strict not currently in scope)'
+  note: 'R6 hoisted from mvp router-sweep cell latency for backward compat with Rounds 3-15. metrics_report.yaml hoists per-prompt routing-decision latency 0.16 ms (cjk_trigger_eval basis) as the canonical R6_routing_latency_p95 from Round 16 onwards; this router_floor_report retains the cell-level 1100 ms for router-test profile context.'
+
+constraints_acknowledged:
+  - 'no_model_training (spec §5.2)'
+  - 'no_online_weight_learning (spec §5.2)'
+  - 'no_marketplace_or_external_router_service (spec §5.2)'
+  - 'no_language_implying_si_chip_ships_a_routing_model (spec §5.2)'
+  - 'intermediate_profile_is_metadata_retrieval_widening (spec §5.1 surface 1+2 allowed)'
+  - 'intermediate_gate_binding_stays_at_relaxed (spec §5.4 unchanged; NOT binding escalation)'
+  - 'mvp_and_intermediate_profiles_structurally_unchanged (Round 16 is code_change but Stage 1-4 deliverables do NOT touch with_ability_runner.MVP_CELL_OUTCOMES; cells byte-identical to Round 15)'
+  - 'real_llm_runner.py landed Round 16 production code but is a DIFFERENT runner from with_ability_runner.py; the deterministic MVP_CELL_OUTCOMES path remains in effect for router_floor_report carry-forward; real_llm_runner.py exercise scheduled for Round 18 per next_action_plan.yaml (will populate honest router-sweep cells alongside the deterministic ones)'
+
+provenance:
+  generator: 'Round 16 dogfood - L3 Task Agent (v0.4.0-rc1 code_change Stage 6a finishing pass)'
+  deterministic: true
+  real_llm_swap_in_path: 'evals/si-chip/runners/real_llm_runner.py (NEW Round 16 production code; first invocation Round 18 per next_action_plan.yaml)'
+  matrix_template: 'templates/router_test_matrix.template.yaml#profiles.mvp + profiles.intermediate (schema 0.1.1)'
+  per_pack_dataset: '20 prompts per pack (10 should_trigger + 10 should_not_trigger); mvp uses 2 packs, intermediate uses 4'
+  spec_version: v0.4.0-rc1
+  template_schema_version: '0.1.1'
+  source_round: round_16
+  prior_round_id: round_15
+  basis_round_15_router_floor_report: .local/dogfood/2026-04-29/round_15/router_floor_report.yaml
+  basis_round_14_router_floor_report: .local/dogfood/2026-04-29/round_14/router_floor_report.yaml
+  basis_round_9_router_floor_report: .local/dogfood/2026-04-28/round_9/router_floor_report.yaml
+  raw_intermediate_sweep_json: .local/dogfood/2026-04-28/round_9/raw/router_sweep_intermediate.json
+  round_16_note: |
+    Round 16 router_floor_report.yaml is a BYTE-IDENTICAL CARRY-FORWARD of
+    Round 15 (which carried Round 14 byte-identical, etc.). Only metadata
+    fields (round_id, prior_round_id, generated_at, source_round, generator,
+    spec_version, last_verified_round_id) plus the v0.4.0-rc1 round_kind /
+    round_kind_promotion_eligibility / round_kind_iteration_delta_clause
+    documentation block are updated to reflect Round 16's code_change status.
+    The mvp 8-cell + intermediate 16-cell sweeps and the intersection
+    router_floor are unchanged because:
+
+    1. Round 16 code_change deliverables touch spec / templates / tools /
+       SKILL.md / runner=real_llm_runner.py NEW;
+    2. with_ability_runner.MVP_CELL_OUTCOMES (the deterministic dict that
+       drives the router-test sweeps) is NOT modified by Stage 1-4 work;
+    3. real_llm_runner.py is a DIFFERENT runner from with_ability_runner.py;
+       it is scheduled for first invocation in Round 18 per
+       next_action_plan.yaml (will populate honest router-sweep cells
+       alongside the deterministic ones).
+
+    Therefore re-running the deterministic sweeps would yield byte-identical
+    outputs to Round 15. Per §5.3 router-test matrix is deterministic; this
+    is the EXPECTED behavior. The honest swap-in path is documented under
+    real_llm_swap_in_path above.
+
+  target_branch: feat/v0.4.0-token-economy-real-data
+  target_commit_base: d90a670f8edc4a61207cbb329b6e371edd1d43fe

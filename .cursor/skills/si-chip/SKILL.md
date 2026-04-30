@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: Persistent BasicAbility optimization factory. Use when profiling, evaluating, diagnosing, improving, router-testing, half-retiring, OR validating core_goal no-regression per Si-Chip spec v0.3.0.
-when_to_use: Whenever a Skill needs eval evidence, router_floor, half-retire decision, OR a core_goal regression check.
-version: 0.3.0
+description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.0.
+when_to_use: When a Skill needs eval evidence, router_floor, half-retire, C0, token-tier, provenance, or health-smoke.
+version: 0.4.0
 license: Apache-2.0
 ---
 
@@ -76,6 +76,30 @@ spec §14.2). Every round computes the top-level invariant
 
 Details: `references/core-goal-invariant-r11-summary.md`.
 
+### Token-Tier Invariant — v0.4.0 Add-on (§18)
+
+Token usage decomposes into three top-level tiers `C7_eager_per_session / C8_oncall_per_trigger / C9_lazy_avg_per_load` (beside `metrics` and `core_goal`; NOT inside R6 D2). Adds OPTIONAL EAGER-weighted `iteration_delta` formula, `R3` split into `R3_eager_only` / `R3_post_trigger`, Informative `prose_class` taxonomy, `.lazy-manifest` packaging gate, and `tier_transitions` block on `iteration_delta_report.yaml`. Details: `references/token-tier-invariant-r12-summary.md`.
+
+### Real-Data Verification — v0.4.0 Add-on (§19)
+
+Normative sub-step of §8.1 step 2 `evaluate` (main list count unchanged). Three layers: msw fixture provenance, user-install verification, post-recovery live verification. `feedback_real_data_samples.yaml` holds redacted production samples. Hard rule 12 / BLOCKER 13 `REAL_DATA_FIXTURE_PROVENANCE` requires grep-able `// real-data sample provenance: <captured_at> / <observer>` citations. Details: `references/real-data-verification-r12-summary.md`.
+
+### Stage Transitions & Promotion History — v0.4.0 Add-on (§20)
+
+§2.2 stages gain a formal `stage_transition_table` (reverse transitions forbidden). `lifecycle.promotion_history` is append-only. `metrics_report.yaml.promotion_state` is a first-class top-level block. When `round_kind == 'ship_prep'` the round emits a **7th evidence file** `ship_decision.yaml`. Backward-compat: legacy rounds keep `promotion_history: null`. Details: `references/lifecycle-state-machine-r12-summary.md`.
+
+### Health Smoke Check — v0.4.0 Add-on (§21)
+
+`packaging.health_smoke_check` is OPTIONAL at schema level, REQUIRED when `current_surface.dependencies.live_backend: true` (hard rule 13 / BLOCKER 14). Each entry declares axes from the 4-axis taxonomy `{read, write, auth, dependency}`. §8.1 step 8 `package-register` runs every declared probe and gates ship-eligibility. Probes emit OTel spans `gen_ai.tool.name=si-chip.health_smoke` (spec-internal observability; does NOT reinvent Kubernetes liveness/readiness). Details: `references/health-smoke-check-r12-summary.md`.
+
+### Eval-Pack Curation Discipline — v0.4.0 Add-on (§22)
+
+Minimum pack size by gate: v1 20 prompts, v2 **40 prompts** (curated near-miss bucket), v3 60+ recommended. G1 `provenance ∈ {real_llm_sweep, deterministic_simulation, mixed}` is first-class REQUIRED. Informative `templates/eval_pack_qa_checklist.md` + Normative `templates/recovery_harness.template.yaml` (T4). §3.2 frozen constraint #5: deterministic seed `hash(round_id + ability_id)`. Real-LLM cache at `.local/dogfood/<DATE>/<round_id>/raw/real_llm_runner_cache/`. Details: `references/eval-pack-curation-r12-summary.md`.
+
+### Method-Tagged Metrics — v0.4.0 Add-on (§23)
+
+Every metric emits a `<metric>_method` companion — token metrics take `{tiktoken, char_heuristic, llm_actual}`; quality/routing take `{real_llm, deterministic_simulator, mixed}`; G1 takes `{real_llm_sweep, deterministic_simulation, mixed}`. `_method == char_heuristic` also requires `_ci_low` + `_ci_high` 95% CI bands. Adds `U1_language_breakdown` + `U4_time_to_first_success_state ∈ {warm, cold, semicold}`. `spec_validator::R6_KEYS` BLOCKER ignores companion suffixes. Details: `references/method-tagged-metrics-r12-summary.md`.
+
 ## When To Trigger
 
 Use Si-Chip whenever a Skill needs eval evidence, a `router_floor`, or a
@@ -103,6 +127,15 @@ half-retire decision.
 - User says: "this round only added measurement" → Set
   `round_kind: measurement_only` per §15.1 (iteration_delta clause
   RELAXED to monotonicity-only).
+- User says: "audit my token tier EAGER/ON-CALL/LAZY breakdown" → spec
+  §18 decomposition helpers; emit `token_tier {C7, C8, C9}` block and
+  EAGER-weighted `iteration_delta` per §18.2.
+- User says: "verify real-data fixtures trace to production payloads" →
+  spec §19 provenance audit; grep `// real-data sample provenance: ...`
+  citations and cross-check `feedback_real_data_samples.yaml`.
+- User says: "run health smoke probes before ship" → spec §21
+  packaging-gate; iterate `packaging.health_smoke_check` axes and write
+  `raw/health_smoke_results.yaml`.
 
 ## When NOT To Trigger
 
@@ -146,6 +179,14 @@ Each round must produce six evidence files (§8.2):
 requires ≥ 2 consecutive rounds; round 2 must pass every `v1_baseline`
 hard threshold (§8.3).
 
+**v0.4.0**: `round_kind=ship_prep` rounds emit 7 evidence files (adds
+`ship_decision.yaml` per §20.4); token-tier C7/C8/C9 decomposition is
+OPTIONAL but REQUIRED-when-reported per hard rule 11 (BLOCKER 12);
+real-data fixture provenance citations REQUIRED when
+`feedback_real_data_samples.yaml` declares samples (BLOCKER 13);
+`health_smoke_check` REQUIRED when
+`current_surface.dependencies.live_backend: true` (BLOCKER 14).
+
 ## References Index
 
 | Path | One-line summary |
@@ -158,6 +199,12 @@ hard threshold (§8.3).
 | `references/core-goal-invariant-r11-summary.md` | §14 core_goal field, C0 metric, strict no-regression rule, REVERT-only rollback. |
 | `references/round-kind-r11-summary.md` | §15 round_kind 4-value enum, per-kind iteration_delta clause, promotion-rule interaction. |
 | `references/multi-ability-layout-r11-summary.md` | §16 `.local/dogfood/<DATE>/abilities/<id>/round_<N>/` layout (Informative @ v0.3.0). |
+| `references/token-tier-invariant-r12-summary.md` | §18 C7/C8/C9 + EAGER-weighted iteration_delta + lazy_manifest + prose_class + tier_transitions. |
+| `references/real-data-verification-r12-summary.md` | §19 msw fixture provenance + user-install + post-recovery; BLOCKER 13. |
+| `references/lifecycle-state-machine-r12-summary.md` | §20 stage_transition_table + promotion_history + promotion_state + ship_decision.yaml (7th evidence). |
+| `references/health-smoke-check-r12-summary.md` | §21 4-axis (read/write/auth/dependency) + Optional-REQUIRED-when-live-backend; BLOCKER 14. |
+| `references/eval-pack-curation-r12-summary.md` | §22 40-prompt minimum for v2_tightened + G1 provenance + eval_pack_qa_checklist + deterministic seeding. |
+| `references/method-tagged-metrics-r12-summary.md` | §23 `<metric>_method` companions + `_ci_low`/`_ci_high` + U1/U4 language/state extensions. |
 
 Reference files are loaded on demand and are excluded from the §7.3
 SKILL.md body budget.
@@ -170,6 +217,8 @@ python .agents/skills/si-chip/scripts/count_tokens.py --file .agents/skills/si-c
 python tools/eval_skill.py --ability si-chip --skill-md .agents/skills/si-chip/SKILL.md --vocabulary <pack>/vocabulary.yaml --eval-pack <pack>/eval_pack.yaml --core-goal-test-pack <pack>/core_goal_test_pack.yaml --test-runner-cmd "pytest -q" --test-runner-cwd . --runs 3 --round-kind code_change --out .local/dogfood/$(date -u +%F)/round_14/metrics_report.yaml
 python tools/round_kind.py validate code_change
 python .agents/skills/si-chip/scripts/aggregate_eval.py --runs-dir .local/dogfood/$(date -u +%F)/round_1/raw/with --baseline-dir .local/dogfood/$(date -u +%F)/round_1/raw/without --skill-md .agents/skills/si-chip/SKILL.md --out .local/dogfood/$(date -u +%F)/round_1/metrics_report.yaml
+python evals/si-chip/runners/real_llm_runner.py --ability si-chip --eval-pack <pack> --matrix-mode mvp --out .local/dogfood/$(date -u +%F)/round_18/raw/real_llm_run.json
+python tools/health_smoke.py --profile .local/dogfood/$(date -u +%F)/round_16/basic_ability_profile.yaml --json
 python tools/spec_validator.py --json
 ```
 
@@ -191,6 +240,13 @@ runtime is §11.2 deferred — bridge only at v0.2.0.
 it does NOT introduce marketplace, router-model training, generic IDE
 compat, or markdown-to-CLI conversion (spec §14.6).
 
+**v0.4.0 reaffirms forever-out**: token-tier decomposition is
+observability; real-data verification is testing; health-smoke check is
+a pre-ship probe schema — NONE introduce marketplace, router-model
+training, generic IDE compat, or Markdown-to-CLI conversion (spec §11.1
+verbatim re-affirmed in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7
++ §23.7).
+
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.3.0.md` (frozen; promoted from v0.3.0-rc1; body byte-identical; additive — preserves v0.2.0 §3-§11 byte-identical; adds §14 core_goal + §15 round_kind + §16 multi-ability + §17 hard rules 9 & 10) ; Compiled into: `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.0.md` (frozen; promoted from `spec_v0.4.0-rc1.md` body byte-identical except metadata; preserves v0.3.0 §3-§17.2 byte-identical EXCEPT §6.1 value_vector axes 7→8 per Q4 user decision; adds §18 token-tier + §19 real-data-verification + §20 lifecycle + §21 health-smoke + §22 eval-pack-curation + §23 method-tagged-metrics + §17 hard rules 11/12/13) ; Compiled into: `AGENTS.md` via `.rules/si-chip-spec.mdc` (`compiled_into_rules: true` at v0.4.0 final).

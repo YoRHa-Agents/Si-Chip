@@ -1,0 +1,13 @@
+{
+  "cost_usd": 0.000495,
+  "depth": "default",
+  "elapsed_s": 1.5753,
+  "fetched_at": "2026-04-30T08:34:35Z",
+  "physical_model": "claude-sonnet-4-6",
+  "stop_reason": "end_turn",
+  "text": "NO",
+  "usage": {
+    "input_tokens": 145,
+    "output_tokens": 4
+  }
+}

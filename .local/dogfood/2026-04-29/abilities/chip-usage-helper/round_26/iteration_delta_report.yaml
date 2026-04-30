@@ -1,0 +1,145 @@
+round_id: round_26
+prior_round_id: round_25      # v1.1.0 release ship
+prior_release_round: round_25
+computed_at: '2026-04-29T16:35:00+00:00'
+spec_version: v0.3.0
+cycle: feature_v120_aibill_aggregate_migration
+round_kind: code_change       # per spec §15.2
+
+# Comparison: v1.1.0 (round 25 ship_decision baseline) → v1.2.0 (this round)
+# All numbers are MEASURED at the file-level + git-blame level for source/test deltas;
+# token/payload deltas are ESTIMATED and will be replaced with measured values in round 27.
+
+axis_status:
+  task_quality:
+    positive_axis: false
+    delta: 0.0
+    rationale: |
+      Refactor / API migration — same end-user task, same correctness floor (130/130 PASS).
+      T1 stayed at 1.00 (was 1.00 in round 25 — every release round in cycle 5 was 1.00).
+      T3 carried forward as 0.92 (no-ability baseline assessment unchanged this round; round 29
+      will re-baseline against a scenario pack that exercises the 4 new canvas sections).
+  context_economy:
+    positive_axis: true
+    delta: '~+0.05_estimated'
+    rationale: |
+      Client no longer paginates /cursor/events; the new /api/v1/cursor/usage/by-user and
+      /api/v1/cursor/spend/* aggregate endpoints return ONE document per dashboard window
+      (vs N event pages × per-event payload). Estimated -200KB SQLite session-disk-cache
+      (usage_events table dropped). Round 27 will measure C4 against the new payload shape.
+  latency_path:
+    positive_axis: true
+    delta: '~+0.05_estimated'
+    rationale: |
+      Pagination loop removed; client roundtrip count drops from "1 + N" to "1" per dashboard
+      window. Round 27 will wall-clock the actual aggregate endpoints; expected p95 ≤ round 19's
+      1.78s (the v0.9.0 baseline) and likely better.
+  generalizability:
+    positive_axis: true        # +8 tools = wider task surface; lifecycle promoted to productized
+    delta: 'qualitative_+8_tools'
+    rationale: |
+      8 NEW MCP tools cover LiteLLM (×4), cross-source me/team summary (×3), personal task
+      drill-down (×1). Plugin now serves a strictly larger task surface than v1.1.0 — including
+      questions that previously required the user to manually combine Cursor + LiteLLM bills.
+  usage_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: "Setup steps unchanged (3); env var surface narrowed (CHIP_USAGE_SYNC_* removed)"
+  routing_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: "Trigger vocab + SKILL.md When/Skip lists unchanged this round"
+  governance_risk:
+    positive_axis: true
+    delta: '~+0.05_estimated'
+    rationale: "usage_events SQLite table dropped → smaller blast radius if cache is exfiltrated; CHIP_USAGE_SYNC_* env vars no longer consumed → smaller config surface"
+
+# Structural deltas — file/LOC level (MEASURED via `git diff 8001e4e`)
+structural_deltas_v110_to_v120:
+  source_files_added:
+    - mcp/src/tools/get-litellm-spend-series.ts          # 38 LOC
+    - mcp/src/tools/get-litellm-spend-snapshot.ts        # 38 LOC
+    - mcp/src/tools/get-litellm-usage-by-model.ts        # 34 LOC
+    - mcp/src/tools/get-litellm-usage-by-user.ts         # 44 LOC
+    - mcp/src/tools/get-me-summary.ts                    # 45 LOC
+    - mcp/src/tools/get-my-tasks.ts                      # 59 LOC
+    - mcp/src/tools/get-team-summary-by-user.ts          # 38 LOC
+    - mcp/src/tools/get-team-summary-series.ts           # 37 LOC
+    # 8 files / 333 LOC total
+  source_files_removed:
+    - mcp/src/aggregate/agent-hours.ts                   # 458 LOC
+    - mcp/src/aggregate/month-totals.ts                  # 135 LOC
+    - mcp/src/aggregate/ranking.ts                       # 244 LOC
+    - mcp/src/aggregate/week-usage.ts                    # 125 LOC
+    - mcp/src/sync/events.ts                             # 86 LOC
+    - mcp/src/cli/sync-events.ts                         # 187 LOC
+    - mcp/src/ai-bill/ingest.ts                          # 61 LOC
+    - mcp/src/cache/repo-events.ts                       # 181 LOC
+    - mcp/src/util/effective-ai-bill-identity.ts         # 123 LOC
+    - mcp/src/tools/sync-usage-events.ts                 # 30 LOC
+    # 10 files / 1630 LOC total
+  test_files_added:
+    - mcp/tests/integration/ai-bill-new-endpoints.test.ts
+    - mcp/tests/integration/client-headers.test.ts
+    - mcp/tests/integration/new-tools.test.ts
+    - mcp/tests/unit/cache-schema.test.ts
+    - mcp/tests/unit/canvas-template-contract.test.ts
+    - mcp/tests/unit/repo-invoices.test.ts
+  test_files_removed:
+    - mcp/tests/integration/sync-usage-events.test.ts
+    - mcp/tests/unit/agent-hours.test.ts
+    - mcp/tests/unit/ai-bill-ingest.test.ts
+    - mcp/tests/unit/effective-ai-bill-identity.test.ts
+    - mcp/tests/unit/month-totals.test.ts
+    - mcp/tests/unit/ranking.test.ts
+    - mcp/tests/unit/sync-events-cli.test.ts
+    - mcp/tests/unit/week-usage.test.ts
+  loc_deltas:
+    mcp_src_added_loc: 3199
+    mcp_src_deleted_loc: 2447
+    mcp_src_net_loc: +752             # extended tools grew around new endpoints; -1297 from file boundary changes alone
+    mcp_tests_added_loc: 1080
+    mcp_tests_deleted_loc: 1794
+    mcp_tests_net_loc: -714
+    combined_net_loc: +38             # essentially flat overall; the migration is structural, not bulk
+    bundled_index_js_lines: { v110: 45733, v120: 46480, delta: +747, delta_pct: '+1.6%' }
+  tool_count_delta:
+    v110: 9
+    v120: 16
+    delta: +7                          # +8 new tools − 1 removed (sync_usage_events) = +7 net
+  test_count_delta:
+    v110: 116
+    v120: 130
+    delta: +14
+    rationale_breakdown: "Wave A added 27 tests; Wave B1 net +2; Wave B2 added 10; Wave C deleted 8 aggregator/sync tests + added 22 canvas-template-contract tests = +14 net (per CHANGELOG)"
+
+artifact_deltas:
+  tarball_size_bytes: { v110: 367287, v120: 377548, delta: +10261, delta_pct: '+2.8%' }
+  tarball_sha256:
+    v110: a4fac12ffb562db060f01768382dfa3a51e0a2a88393e04a1e77ed641d719096
+    v120: 836576e2648a9d3554935159b97c4b30fb83c353ee51ab23573b33f41dd2206a
+  client_disk_cache_delta: '~-200KB per session (usage_events SQLite table dropped from 0001_init.sql)'
+
+v1_baseline_threshold_check: { pass: provisional, blockers: [], note: "T1 + C1 cleared; C4/L2/R3/R6/R7 not re-measured this round; round 27 is dispatched specifically to baseline them" }
+
+promotion_state:
+  current_gate: v1_baseline           # provisional re-bind for the migration cycle
+  prior_gate_round_19: v3_strict      # the pre-cycle-4 strict-gate state
+  consecutive_v3_passes_streak_held_through: round_25_v110_release
+  re_baseline_in_progress: true
+  ship_eligible: true                 # FOR v1.2.0 release at v1_baseline gate; promotion to v2/v3 is round 27-28 work
+  cycle_5_complete: true              # v1.1.0 was Cycle 5
+  cycle_6_in_progress: true           # v1.2.0 is Cycle 6 (this round)
+
+headline:
+  cycle_6_status: "v1.2.0 SHIP_ELIGIBLE at v1_baseline (re-baseline in progress)"
+  cycle_6_ship_decision: round_26/ship_decision.yaml
+  meta_feedback_items_captured_this_cycle: 3   # R48-R50 in SUMMARY.md (this round)
+
+provenance:
+  target_commit_base: 8001e4e
+  feedback_source: "ChipPlugins/chips/chip_usage_helper/.local/info/api-reference.md"
+  measurement_method:
+    structural: "git diff 8001e4e (file-level + numstat)"
+    artifact: "stat -c %s on dist/*.tgz; sha256sum on tarball"
+    metric: "vitest run output (130/130); package smoke EXPECTED_TOOLS=16; carry-forward for unmeasured axes"

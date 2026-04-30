@@ -1,0 +1,222 @@
+# Si-Chip Next-Action Plan - round_16 -> round_17 (measurement_only) -> round_18+19 (code_change v2_push)
+# Conforms to templates/next_action_plan.template.yaml ($schema_version 0.3.0).
+# Spec sections: §8.1 step 4 + §15.1 (round_kind) + §15.2 (per-kind iteration_delta clause)
+# + §18.2 (token_tier_target) + §19.3 (real_data_verification action sub-field).
+
+ability_id: si-chip
+round_id: round_17_measurement_only_then_round_18_v2_push   # the round THIS plan targets (L0 picks: Round 17 measurement_only is the natural next step to validate Stage 1-4 reproducibility; Round 18 code_change with real_llm_runner.py invocation is the v2_tightened unblock; Round 19 second consecutive v2 pass)
+emitted_at: '2026-04-30T04:30:00+00:00'
+generated_at: '2026-04-30T04:30:00+00:00'
+targets_round: round_17_measurement_only_then_round_18_v2_push
+bound_gate: v1_baseline
+target_branch: feat/v0.4.0-token-economy-real-data
+target_gate: relaxed                                  # spec §5.4: relaxed -> v1_baseline; current
+spec_version: v0.4.0-rc1
+
+# ── §15.1 round_kind classification (THIS round = code_change) ──────────
+# Note: this `round_kind` field describes ROUND 16 (the round the plan was
+# emitted IN). The PLAN itself is for Round 17 (measurement_only) + Round 18
+# (code_change with real_llm_runner) + Round 19 (code_change second v2 pass).
+round_kind: code_change                               # NEW v0.3.0 §15.1; round 16 IS a code_change round
+
+# ── §18.2 token_tier_target (NEW v0.4.0) ──────────────────────────────────
+# Maps to §4 gate profile (relaxed -> v1_baseline EAGER bucket). Round 16 is
+# bound to v1_baseline gate; token_tier_target = relaxed mirrors that.
+token_tier_target: relaxed                            # NEW v0.4.0 §18.2 - controls EAGER-weighted iteration_delta interpretation
+
+round_kind_rationale: |
+  Round 16 introduces 6 new Normative sections (§18 Token-Tier Invariant,
+  §19 Real-Data Verification, §20 Stage Transitions, §21 Health Smoke Check,
+  §22 Eval-Pack Curation, §23 Method-Tagged Metrics). The §6.1 value_vector
+  axis count breaks 7 -> 8 (FIRST byte-identicality break since v0.1.0 -> v0.2.0).
+  spec_validator extended 11 -> 14 BLOCKERs (12 TOKEN_TIER_DECLARED_WHEN_REPORTED,
+  13 REAL_DATA_FIXTURE_PROVENANCE, 14 HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND).
+  4 new generic tools (token_tier_decomposition / health_smoke / method_tag_validator /
+  install_telemetry). real_llm_runner.py first-class production landing.
+  SKILL.md -> v0.4.0-rc1.
+
+  Per §15.1.2 decision tree: ability source files HEAVILY MODIFIED (Q1 = YES
+  for spec / templates / tools / SKILL.md / runner) -> round_kind = code_change.
+  Per §15.2 strict iteration_delta clause: >= 1 efficiency axis at v1_baseline
+  +0.05 bucket required. Round 16 has 4 axes at this bucket (task_quality +0.15
+  / generalizability +0.05 / usage_cost +0.05 / governance_risk +0.05).
+
+# ── Inputs basis ─────────────────────────────────────────────────────────
+basis_metrics_report: .local/dogfood/2026-04-30/round_16/metrics_report.yaml
+basis_router_floor_report: .local/dogfood/2026-04-30/round_16/router_floor_report.yaml
+prior_iteration_delta: .local/dogfood/2026-04-29/round_15/iteration_delta_report.yaml
+
+# ── Actions for Rounds 17 / 18 / 19 ─────────────────────────────────────
+actions:
+  - id: round_17_a1
+    action_id: round_17_a1
+    title: 'Round 17 (measurement_only) - re-run same harness; assert C0 1.0->1.0; v1_baseline carry-forward'
+    priority: P1
+    owner: Implement
+    primitive: verify
+    targets_metric: c0_monotonicity
+    applies_to_metric: c0_monotonicity
+    exit_criterion: |
+      Round 17 measurement_only round (per §15.1 - no source code changes):
+        - Re-run tools/eval_skill.py against current SKILL.md + core_goal_test_pack
+          -> 5/5 cases pass; C0 = 1.0 byte-identical to Round 16.
+        - Re-run tools/spec_validator.py --json + tools/spec_validator.py --spec
+          .local/research/spec_v0.4.0-rc1.md --json -> both exit 0; both 14/14
+          BLOCKERs PASS byte-identical to Round 16.
+        - Re-run tools/governance_scan.py -> V1=V2=0 / V3=0.0 / V4=1 (V4 advances
+          1 day per measurement_only round on next calendar day).
+        - Re-run pytest tools/ .agents/skills/si-chip/scripts/ evals/si-chip/runners/
+          -> 559 passed / 2 skipped byte-identical to Round 16.
+        - Author 6 evidence files for Round 17 (carry-forward style + monotonicity
+          witness Round 15 -> Round 16 -> Round 17 = 1.0 -> 1.0 -> 1.0).
+      All exit criteria deterministic (zero new tests; zero new code).
+    description: |
+      Round 17 (measurement_only) - re-run same harness; assert C0 1.0->1.0;
+      v1_baseline carry-forward. Per §15.4.1 measurement_only rounds count
+      toward §4.2 promotion-rule consecutive-rounds counter when (a) C0 == 1.0,
+      (b) C0 >= prior_round.C0, (c) no v1_baseline hard gate regressed; all
+      three trivially satisfied for byte-identical replay. Round 14 + 15 + 16 +
+      17 = 4 consecutive PASSes; v0.3.0 ship gate (= relaxed = v1_baseline)
+      remains eligible (was eligible from Round 15).
+    real_data_verification:
+      fixtures_count: 0
+      provenance: null                                # measurement_only round; no production-payload-derived fixtures
+      audit_trail_grep_pattern: null
+
+  - id: round_18_a1
+    action_id: round_18_a1
+    title: 'Round 18 (code_change) - invoke real_llm_runner.py with claude-haiku-4-5 on 40-prompt pack k=4; produce honest T2_pass_k>=0.55; first v2_tightened pass'
+    priority: P0
+    owner: Implement
+    primitive: implement
+    targets_metric: T2_pass_k_v2_tightened
+    applies_to_metric: T2_pass_k
+    exit_criterion: |
+      Round 18 code_change round invoking real_llm_runner.py:
+        - python evals/si-chip/runners/real_llm_runner.py
+            --model claude-haiku-4-5
+            --pack evals/si-chip/eval_packs/40_prompt.yaml
+            --k 4
+            --output .local/dogfood/<DATE>/round_18/raw/real_llm_runner_output.yaml
+          -> exit 0; emits honest T2_pass_k value.
+        - Honest T2_pass_k >= 0.55 (v2_tightened threshold per §4.1 row 2).
+          Expected value range 0.62-0.85 based on Round 14-16 trajectory of
+          T1=1.0 (deterministic) and v0.4.0 §22 eval-pack curation discipline.
+        - All 9 v2_tightened threshold rows PASS (8 currently pass; T2_pass_k
+          is the only blocker; 0.5478 -> >=0.55 unblocks v2 promotion eligibility).
+        - C0 = 1.0 maintained; pytest 559+ pass; no v1_baseline regression.
+        - Author 6 evidence files for Round 18; metrics_report.task_quality.T2_pass_k
+          method tag = real_llm (per §23.1 Quality Metrics row).
+        - First single v2_tightened pass; consecutive_passes counter resets to
+          1 (need 1 more for §4.2 promotion).
+    description: |
+      Round 18 (code_change) - invoke evals/si-chip/runners/real_llm_runner.py
+      with claude-haiku-4-5 on 40-prompt pack k=4; produce honest T2_pass_k.
+      This is the v2_tightened unblock for the pre-existing carry-forward
+      blocker since Round 1 (T2_pass_k = 0.5478 deterministic SHA-256 PROXY
+      misses v2 threshold by -0.0022). Real-LLM evaluation is now in scope per
+      §22 eval-pack curation discipline + Round 16 real_llm_runner.py
+      production landing.
+    real_data_verification:
+      fixtures_count: 1                                # 40-prompt eval_pack is itself the canonical real-data fixture for Si-Chip self
+      provenance: 'evals/si-chip/eval_packs/40_prompt.yaml - 20 should_trigger + 20 should_not_trigger; curated Round 14 from chip-usage-helper Cycle 1 production patterns + Anthropic skill-creator examples; provenance citation present'
+      audit_trail_grep_pattern: 'real-data sample provenance:'
+
+  - id: round_19_a1
+    action_id: round_19_a1
+    title: 'Round 19 (code_change) - second consecutive v2_tightened pass; satisfy §4.2 promotion rule'
+    priority: P0
+    owner: Implement
+    primitive: implement
+    targets_metric: v2_tightened_promotion
+    applies_to_metric: v2_tightened_promotion
+    exit_criterion: |
+      Round 19 code_change round - second consecutive v2_tightened PASS:
+        - Re-invoke real_llm_runner.py against same 40-prompt pack k=4 with
+          claude-haiku-4-5 (or upgrade to claude-sonnet-4-6 if available);
+          honest T2_pass_k >= 0.55.
+        - All 9 v2_tightened threshold rows PASS (second consecutive).
+        - C0 = 1.0 maintained; pytest 559+ pass; no regression.
+        - consecutive_v2_passes counter = 2; per §4.2 promotion rule, gate
+          promotes v1_baseline -> v2_tightened EFFECTIVE Round 20 onwards.
+        - Author 6 evidence files for Round 19; metrics_report.promotion_state.
+          last_promotion_round_id = round_19; current_gate = v1_baseline ->
+          v2_tightened on Round 20 next_action_plan.
+    description: |
+      Round 19 (code_change) - second consecutive v2_tightened pass to satisfy
+      §4.2 promotion rule. Per §4.2: "Must pass current gate consecutively for
+      2 rounds before promoting to N+1." Round 18 = first v2 pass; Round 19 =
+      second v2 pass. After Round 19 the v0.4.0 ship gate becomes ELIGIBLE
+      (= standard = v2_tightened per §5.4). Round 20 is the natural ship_prep
+      round if no further changes needed; otherwise Round 20+ continues at
+      v2_tightened.
+    real_data_verification:
+      fixtures_count: 1                                # same 40-prompt pack as Round 18
+      provenance: 'evals/si-chip/eval_packs/40_prompt.yaml - same as Round 18'
+      audit_trail_grep_pattern: 'real-data sample provenance:'
+
+# ── Expected iteration_delta axes ───────────────────────────────────────
+# Round 17 (measurement_only) per §15.2 has the `monotonicity_only` clause -
+# no axis improvement required. Round 18 + 19 (code_change) per §15.2 have
+# the `strict` clause requiring >= 1 axis at gate-bucket. Listed axes are
+# the EXPECTED-positive ones for Rounds 18-19.
+expected_iteration_delta_axes:
+  - task_quality                                       # T2_pass_k lift via real_llm_runner.py is the headline Round 18+19 movement
+  - routing_cost                                       # honest R3_eager_only / R3_post_trigger split via real_llm_runner may lift R3 above the deterministic 1.0
+  - generalizability                                   # G1 _provenance hoist from deterministic_simulation -> real_llm_sweep when real_llm_runner.py populates G1 cells
+
+# ── Forward-pointer: deferred items from Round 14/15 ────────────────────
+deferred_from_round_14:
+  - id: real_llm_runner
+    title: 'evals/si-chip/runners/real_llm_runner.py (real-LLM evaluation; v0.4.0 must-have)'
+    deferral_reason: 'PRODUCTION CODE LANDED Round 16 (Stage 4 deliverable); first invocation scheduled Round 18 per round_18_a1 above. No longer deferred to a future cycle.'
+    refer_to: 'evals/si-chip/runners/real_llm_runner.py + evals/si-chip/runners/test_real_llm_runner.py (26 unit tests)'
+    status: code_landed_invocation_scheduled
+  - id: g2_g3_g4_fill
+    title: 'G2_cross_domain_transfer_pass + G3_OOD_robustness + G4_model_version_stability fills'
+    deferral_reason: 'Tied to real_llm_runner.py invocation in Round 18; G2/G3/G4 require multi-domain + OOD eval packs not yet curated. Deferred to v0.4.x post-Round 19 ship.'
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[1] (a2)'
+    status: deferred_to_v0_4_x
+  - id: l5_l6_l7_fill
+    title: 'L5_detour_index + L6_replanning_rate + L7_think_act_split fills'
+    deferral_reason: 'Tied to real_llm_runner.py invocation in Round 18; L5/L6/L7 require step-trace + replan-trace data not yet emitted. Deferred to v0.4.x post-Round 19 ship.'
+    refer_to: '.local/dogfood/2026-04-28/round_13/next_action_plan.yaml#actions[2] (a3)'
+    status: deferred_to_v0_4_x
+  - id: t2_pass_k_real_llm_lift
+    title: 'Lift T2_pass_k from 0.5478 (deterministic SHA-256 PROXY) to >= 0.55 via real-LLM runner'
+    deferral_reason: 'NO LONGER DEFERRED - scheduled for Round 18 invocation per round_18_a1 above. Round 16 production-coded the runner; Round 18 invokes it.'
+    refer_to: 'round_18_a1 above'
+    status: scheduled_round_18
+
+# ── Round 16 -> v0.4.0 final ship roadmap (informational; not in actions) ─
+continuing_through_master_plan:
+  - 'Round 17 (measurement_only): re-run all measurements byte-identical; 4-round monotonicity witness Round 14 -> 15 -> 16 -> 17; v0.3.0 ship gate eligibility maintained.'
+  - 'Round 18 (code_change): invoke real_llm_runner.py; honest T2_pass_k >= 0.55; first v2_tightened single-row pass.'
+  - 'Round 19 (code_change): second consecutive v2_tightened pass; per §4.2 gate promotes v1_baseline -> v2_tightened EFFECTIVE Round 20.'
+  - 'Round 20+ (ship_prep): v0.4.0 final ship at standard (= v2_tightened) gate. Tarball regen: docs/skills/si-chip-0.4.0.tar.gz; CHANGELOG; AGENTS.md re-compile (now 13 hard rules: v0.2.0 8 + v0.3.0 §17 rules 9-10 + v0.4.0 §17.4-§17.6 rules 11-13).'
+  - 'Round 21+ (maintenance): post-ship 30/60/90-day cadence per §6 + §15.1 maintenance round_kind; first review at 2026-05-30.'
+  - 'v0.4.x candidate: §16 multi-ability layout Informative -> Normative promotion (deferred from Round 15 a3); §18.4 prose_class taxonomy Informative -> Normative promotion (per §18.4.2 trigger).'
+  - 'AGENTS.md §13: v0.2.0 8 hard rules + v0.3.0 §17 rules 9 + 10 + v0.4.0 §17.4 rule 11 (token_tier) + §17.5 rule 12 (real-data) + §17.6 rule 13 (health_smoke_check) = 13 hard rules total post-ship.'
+
+provenance:
+  generator: 'Round 16 dogfood - L3 Task Agent (v0.4.0-rc1 code_change Stage 6a finishing pass)'
+  spec_version: v0.4.0-rc1
+  basis_round: round_16
+  target_commit_base: d90a670f8edc4a61207cbb329b6e371edd1d43fe
+  basis_iteration_delta: .local/dogfood/2026-04-30/round_16/iteration_delta_report.yaml
+  cites:
+    - .local/dogfood/2026-04-30/round_16/metrics_report.yaml
+    - .local/dogfood/2026-04-30/round_16/iteration_delta_report.yaml
+    - .local/dogfood/2026-04-30/round_16/raw/spec_validator_v0_2_0.json
+    - .local/dogfood/2026-04-30/round_16/raw/spec_validator_v0_4_0_rc1.json
+    - .local/dogfood/2026-04-30/round_16/raw/eval_skill_output.yaml
+    - .local/dogfood/2026-04-30/round_16/raw/governance_scan.json
+    - .local/dogfood/2026-04-30/round_16/raw/pytest_full.txt
+    - .local/dogfood/2026-04-30/round_16/raw/token_tier_decomposition.json
+    - .local/dogfood/2026-04-30/round_16/raw/three_tree_sha256.txt
+    - .local/research/spec_v0.4.0-rc1.md
+    - evals/si-chip/runners/real_llm_runner.py
+    - tools/token_tier_decomposition.py
+    - tools/health_smoke.py
+    - tools/method_tag_validator.py
+    - tools/install_telemetry.py

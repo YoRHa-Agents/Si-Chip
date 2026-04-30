@@ -1,0 +1,3048 @@
+{
+  "schema_version": "0.1.0",
+  "script_version": "0.2.0",
+  "ability_id": "si-chip",
+  "matrix_mode": "mvp",
+  "k": 4,
+  "seed": 42,
+  "endpoint": "http://127.0.0.1:8086",
+  "cache_dir": ".local/dogfood/2026-04-30/round_18/raw/real_llm_runner_cache",
+  "eval_pack": ".local/dogfood/2026-04-29/abilities/chip-usage-helper/eval_pack.yaml",
+  "models_requested": [
+    "composer_2/fast",
+    "sonnet_shallow"
+  ],
+  "depths_requested": [
+    "fast",
+    "default"
+  ],
+  "packs_requested": [
+    "trigger_basic",
+    "near_miss"
+  ],
+  "generated_at": "2026-04-30T07:51:18Z",
+  "cells": [
+    {
+      "model": "composer_2/fast",
+      "physical_model": "claude-haiku-4-5",
+      "thinking_depth": "fast",
+      "scenario_pack": "trigger_basic",
+      "prompts_run": 40,
+      "passes": 38,
+      "pass_rate": 0.95,
+      "pass_at_k": 0.95,
+      "tokens_in": 21060,
+      "tokens_out": 640,
+      "duration_s": 191.0676,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "show me my cursor usage dashboard",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much did I spend on cursor this month",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "team ranking for cursor billing",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "which model cost me the most this week",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my spend breakdown by model",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report --window=30d",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我的 cursor 用量?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "本月花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这个月和上个月比多花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "agent 工时占比?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我在团队里排第几?",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "上个月 cursor 花了多少钱",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这周的模型分布",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "哪个模型花的最多",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show dashboard for last 14 days",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "看下本周的开销",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "列一下我的账单明细",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "my agent 工时占比",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "团队排名榜",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    },
+    {
+      "model": "composer_2/fast",
+      "physical_model": "claude-haiku-4-5",
+      "thinking_depth": "fast",
+      "scenario_pack": "near_miss",
+      "prompts_run": 20,
+      "passes": 20,
+      "pass_rate": 1.0,
+      "pass_at_k": 1.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "duration_s": 0.0005,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    },
+    {
+      "model": "composer_2/fast",
+      "physical_model": "claude-haiku-4-5",
+      "thinking_depth": "default",
+      "scenario_pack": "trigger_basic",
+      "prompts_run": 40,
+      "passes": 38,
+      "pass_rate": 0.95,
+      "pass_at_k": 0.95,
+      "tokens_in": 22020,
+      "tokens_out": 640,
+      "duration_s": 190.6525,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "show me my cursor usage dashboard",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much did I spend on cursor this month",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "team ranking for cursor billing",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "which model cost me the most this week",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my spend breakdown by model",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report --window=30d",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我的 cursor 用量?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "本月花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这个月和上个月比多花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "agent 工时占比?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我在团队里排第几?",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "上个月 cursor 花了多少钱",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这周的模型分布",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "哪个模型花的最多",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show dashboard for last 14 days",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "看下本周的开销",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "列一下我的账单明细",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "my agent 工时占比",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "团队排名榜",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    },
+    {
+      "model": "composer_2/fast",
+      "physical_model": "claude-haiku-4-5",
+      "thinking_depth": "default",
+      "scenario_pack": "near_miss",
+      "prompts_run": 20,
+      "passes": 20,
+      "pass_rate": 1.0,
+      "pass_at_k": 1.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "duration_s": 0.0005,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    },
+    {
+      "model": "sonnet_shallow",
+      "physical_model": "claude-sonnet-4-6",
+      "thinking_depth": "fast",
+      "scenario_pack": "trigger_basic",
+      "prompts_run": 40,
+      "passes": 37,
+      "pass_rate": 0.925,
+      "pass_at_k": 0.925,
+      "tokens_in": 21220,
+      "tokens_out": 640,
+      "duration_s": 333.5558,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "show me my cursor usage dashboard",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much did I spend on cursor this month",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "team ranking for cursor billing",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "which model cost me the most this week",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my spend breakdown by model",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report --window=30d",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我的 cursor 用量?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "本月花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这个月和上个月比多花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "agent 工时占比?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我在团队里排第几?",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "上个月 cursor 花了多少钱",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这周的模型分布",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "哪个模型花的最多",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show dashboard for last 14 days",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "看下本周的开销",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "列一下我的账单明细",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "my agent 工时占比",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "团队排名榜",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    },
+    {
+      "model": "sonnet_shallow",
+      "physical_model": "claude-sonnet-4-6",
+      "thinking_depth": "fast",
+      "scenario_pack": "near_miss",
+      "prompts_run": 20,
+      "passes": 20,
+      "pass_rate": 1.0,
+      "pass_at_k": 1.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "duration_s": 0.0005,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    },
+    {
+      "model": "sonnet_shallow",
+      "physical_model": "claude-sonnet-4-6",
+      "thinking_depth": "default",
+      "scenario_pack": "trigger_basic",
+      "prompts_run": 40,
+      "passes": 38,
+      "pass_rate": 0.95,
+      "pass_at_k": 0.95,
+      "tokens_in": 22180,
+      "tokens_out": 640,
+      "duration_s": 264.0959,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "show me my cursor usage dashboard",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much did I spend on cursor this month",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "team ranking for cursor billing",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "which model cost me the most this week",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my spend breakdown by model",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "/usage-report --window=30d",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我的 cursor 用量?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "本月花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这个月和上个月比多花了多少?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "agent 工时占比?",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "我在团队里排第几?",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "上个月 cursor 花了多少钱",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "这周的模型分布",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "哪个模型花的最多",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show dashboard for last 14 days",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "看下本周的开销",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "列一下我的账单明细",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "my agent 工时占比",
+          "expected_yes": true,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "团队排名榜",
+          "expected_yes": true,
+          "outcomes": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "passes": 0,
+          "pass_at_k": 0.0
+        },
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    },
+    {
+      "model": "sonnet_shallow",
+      "physical_model": "claude-sonnet-4-6",
+      "thinking_depth": "default",
+      "scenario_pack": "near_miss",
+      "prompts_run": 20,
+      "passes": 20,
+      "pass_rate": 1.0,
+      "pass_at_k": 1.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "duration_s": 0.0005,
+      "provenance": "real_llm",
+      "per_prompt": [
+        {
+          "prompt": "how do I install a plugin?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fix this typescript error in my file",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what's my current git branch?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "show me docker logs from the api container",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "help me write a regex for email validation",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "what is MCP?",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "explain how Cursor Composer works",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to open Cursor settings",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor keybinding for rename",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "update Cursor to latest version",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "Cursor extension marketplace",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "fetch the weather API response",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how to debug a segfault",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "send a feishu message",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "list running docker containers",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "generate a haiku about rust",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "how much time did we spend debugging last sprint",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "不要浪费时间在这个问题上",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "spend time reviewing the PR",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        },
+        {
+          "prompt": "花时间想一下需求",
+          "expected_yes": false,
+          "outcomes": [
+            true,
+            true,
+            true,
+            true
+          ],
+          "passes": 4,
+          "pass_at_k": 1.0
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_cells": 8,
+    "cells_emitted": 8,
+    "cells_passed": 8,
+    "cells_failed": 0,
+    "total_spend_usd": 0.19888,
+    "hard_spend_cap_usd": 1.0,
+    "total_tokens_input": 86480,
+    "total_tokens_output": 2560,
+    "cache_hits": 320,
+    "cache_misses": 640,
+    "calls_made": 640,
+    "wall_clock_s": 979.374
+  }
+}

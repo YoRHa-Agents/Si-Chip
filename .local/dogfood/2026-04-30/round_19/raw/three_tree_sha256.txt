@@ -1,0 +1,3 @@
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .agents/skills/si-chip/SKILL.md
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .cursor/skills/si-chip/SKILL.md
+9b20bb4dc2879b2ea092e8e3492099169040d554c565878fd65870b5ffc7b437  .claude/skills/si-chip/SKILL.md

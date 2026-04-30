@@ -1,0 +1,8 @@
+2026-04-30 04:27:40,835 si_chip.eval_skill INFO wrote metrics_report to .local/dogfood/2026-04-30/round_16/raw/eval_skill_output.yaml
+eval_skill v0.2.0 — ability=si-chip
+  round_kind : code_change
+  R3_trigger_F1=1.0 (R1=1.0 R2=1.0 R4=0.0)
+  C1=100 C2=4626 C4=4726
+  T1=1.0 L1=16.3841 L2=18.3852
+  C0=1.0 (pass_rate, 5/5 cases); rollback_required=False
+  wrote: .local/dogfood/2026-04-30/round_16/raw/eval_skill_output.yaml

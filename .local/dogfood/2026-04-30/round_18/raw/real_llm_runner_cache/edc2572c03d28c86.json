@@ -1,0 +1,13 @@
+{
+  "cost_usd": 0.00016,
+  "depth": "default",
+  "elapsed_s": 1.0039,
+  "fetched_at": "2026-04-30T07:39:12Z",
+  "physical_model": "claude-haiku-4-5",
+  "stop_reason": "end_turn",
+  "text": "NO",
+  "usage": {
+    "input_tokens": 140,
+    "output_tokens": 4
+  }
+}

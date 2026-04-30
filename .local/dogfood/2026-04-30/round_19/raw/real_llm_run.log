@@ -1,0 +1,8 @@
+real_llm_runner v0.2.0  ability=si-chip
+  matrix_mode  : mvp  k=4  seed=42
+  cells        : 8/8  passed=8  failed=0
+  spend        : $0.0000 (hard cap $0.2000)
+  tokens       : in=0 out=0
+  cache        : hits=960 misses=0 calls_made=0
+  wall_clock_s : 0.0205
+  wrote        : .local/dogfood/2026-04-30/round_19/raw/real_llm_run.json

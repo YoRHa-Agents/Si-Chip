@@ -1,0 +1,123 @@
+# chip-usage-helper v2.0.0-pre Ship Decision (Cycle 6 close: ai-bill REST migration arc finalised; major-bump pre-release marker)
+ability_id: chip-usage-helper
+spec_version: v0.3.0
+decided_at: '2026-04-30T01:35:00+08:00'
+cycle: feature_v120_aibill_aggregate_migration
+cycle_rounds: [26, 27, 28, 29, 30]     # full cycle 6 across 5 rounds: ship + trim + canvas + identity-doc + v2.0.0-pre release
+prior_cycle_ship_decision: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_26/ship_decision.yaml
+verdict: SHIP
+gate: v1_baseline                       # cycle stays at v1_baseline; v2_tightened pursuit deferred to Cycle 7+ (production validation + identity-refactor)
+gate_pass: true
+gate_pass_qualifier: "T1 (correctness) + C1 (metadata) cleared; cumulative cycle-6 token axis +0.077 clears v1_baseline +0.05 on token + context + governance axes; C4 still ESTIMATED, deferred to Cycle 7 production validation"
+target_repo: /home/agent/workspace/ChipPlugins/chips/chip_usage_helper
+target_branch_pre: feature/v1.2.0-api-migration
+target_branch_post: main (pending MR review)
+plugin_version_pre: 1.2.0               # v1.2.0 ship was round 26
+plugin_version_post: 2.0.0-pre          # major-bump pre-release marker shipped this round
+release_state: pre_release              # NOT v2.0.0 stable; production-validation pending
+mr_url: https://git.neodrive.neolix.net/nexis_ai/chip-plugins/chip-usage-helper/-/merge_requests/10
+mr_id: 10
+mr_status: open
+mr_title: "feat(v1.2.0): ai-bill REST aggregate API migration + cross-source tools"
+mr_target_branch: main
+mr_note: "MR #10 was opened with the v1.2.0 round-26 commit. Rounds 27/28/29/30 stack on the SAME branch (`feature/v1.2.0-api-migration`); the MR will pick up the new commits automatically (no need to push to a new branch). The MR title still reads 'feat(v1.2.0)'; the v2.0.0-pre marker lives in the round-30 commit message + CHANGELOG.md."
+commit_sha_round_29_doc: 7dd1a31
+commit_sha_round_30_v2_0_0_pre: aa975ba
+tarball_path: dist/chip-usage-helper-2.0.0-pre.tgz
+tarball_sha256: c74d6b0ea0c571c09532674516cdac5747fa58757a73a9278b7c036f88c16b8f
+tarball_size_bytes: 377207
+package_json_metadata: dist/chip-usage-helper-2.0.0-pre.package.json
+smoke_pass: true
+smoke_tools_detected: 16
+
+semver_rationale: |
+  MAJOR (2.0.0-pre) is the final marker for the v1.x ai-bill REST migration arc:
+  - The v1.2.0 ship (round 26) shipped the migration with INTERNAL breaking changes
+    (sync_usage_events removed, aggregator pipeline removed, usage_events SQLite
+    table dropped) classified as `BREAKING_INTERNAL_BACKWARD_COMPATIBLE_PUBLIC` —
+    SemVer-compliant as MINOR because the documented dashboard recipe in
+    README/user-guide.md kept working.
+  - However, the cumulative v1.0.0 → v1.2.0 surface change is large enough that
+    a major-bump marker is appropriate for the major-version audience: the wire
+    protocol changed, the on-disk SQLite schema lost a table, the internal client
+    aggregators are gone, env vars were dropped, and X-User-Name became a
+    primary identity signal with REQUIRED-on-some-endpoints semantics. A
+    consumer pinning to v1.x and upgrading blindly to v2.x SHOULD see a major
+    bump as a "review the integration" signal.
+  - The "-pre" suffix is the conservative finishing move: it ships the major-bump
+    marker WITHOUT yet committing to a v2.0.0 stable label. Cycle 7 production
+    validation will baseline the missing axes (C4 firmer, L2 against real ai-bill);
+    if green, v2.0.0 stable follows. If a regression surfaces, v2.0.1-pre with a
+    fix.
+  - npm did NOT reject `2.0.0-pre`. SemVer §9 allows pre-release identifiers
+    `[0-9A-Za-z-]+`; npm@10 honored it. We did NOT need the `2.0.0-pre.0`
+    fallback the dispatch instruction §30.2 prepared.
+
+rationale: "v2.0.0-pre — major bump finalising the ai-bill REST migration arc; 16 tools, 133/133 tests, −1211 net tokens, identity flow documented, BREAKING changes restated for major audience"
+
+migration_axis_tracking:                # carries forward + extends round 26's table; round 30 adds the `release_state` axis
+  data_layer:
+    classification: BREAKING_INTERNAL_BACKWARD_COMPATIBLE_PUBLIC
+    detail: "[round 26] Client no longer calls /cursor/events; all data sourced from /api/v1/cursor/*, /litellm/*, /me/*, /team/* aggregate endpoints. usage_events SQLite table dropped. Public dashboard recipe unchanged. v2.0.0-pre carries the same shape forward."
+  tool_surface:
+    classification: ADDITIVE
+    detail: "[round 26] +8 new tools, −1 internal tool (sync_usage_events). Net +7 public tools. v2.0.0-pre = same 16 tools."
+  payload_semantics:
+    classification: ANNOTATED_SHIFT
+    detail: "[round 26] agentHoursRankings.weekly = monthly-snapshot semantics; week.perModel = monthly-keyed (perModelScope='monthly_calendar'); get_agent_hours thresholds[]=server-side-fixed (serverThresholdSemantics='fixed_server_side'); agentHours.matrix = zero-filled placeholder; rankings.weekly = single-day-diff; get_month_totals = totalRequests not cents/dollars. v2.0.0-pre carries same annotations forward."
+  identity_layer:
+    classification: ADDITIVE_FAIL_LOUD
+    detail: "[round 26] X-User-Name header CRITICAL for get_me_summary + get_my_tasks; clear hard-fail with descriptive error if unresolvable. [round 29 doc] Multi-source resolveMe() retained (env > IDE > CLI > alias); explicit JSDoc + admin-doc + README cross-link added. [round 30] Same architecture; CHANGELOG restates this for major-version audience."
+  governance:
+    classification: ADDITIVE_NARROWING
+    detail: "[round 26] CHIP_USAGE_SYNC_* env vars no longer consumed; permission scope narrowed by removing events ingest path. v2.0.0-pre carries same scope forward."
+  release_state:
+    classification: PRE_RELEASE_MARKER
+    detail: "[round 30] '-pre' suffix indicates this is the FIRST major-version-bump tarball but NOT v2.0.0 stable. Production callers should pin to 1.2.0 until v2.0.0 stable is published; Cycle 7 production validation will decide promotion."
+
+multi_round_evidence:
+  round_26: { committed: pending_push, kind: feature_plus_release, commit_sha: 94ff3c3, change: 'Wave A/B/C ai-bill REST migration + 8 new tools + Si-Chip evidence + v1.2.0 tarball' }
+  round_27: { committed: pending_push, kind: token_econ_trim,       commit_sha: 0f96b56, change: '−1326 tokens (comments + tool descriptions); 130/130 tests still PASS' }
+  round_28: { committed: pending_push, kind: canvas_redesign,       commit_sha: abc3976, change: '+115 tokens for canvas typography hierarchy; 133/133 tests (+3 contract assertions)' }
+  round_29: { committed: pushed,        kind: identity_flow_doc,     commit_sha: 7dd1a31, change: 'me.ts JSDoc + admin-guide identity-flow section + README sub-section; 0 source LOC; 0 token cost' }
+  round_30: { committed: pushed,        kind: v2_0_0_pre_release,    commit_sha: aa975ba, change: '10 version anchors 1.2.0 → 2.0.0-pre; CHANGELOG entry; tarball + smoke PASS; final HEAD on feature/v1.2.0-api-migration' }
+
+v1_baseline_threshold_check_final:
+  pass_rate:                  { threshold: '>= 0.75',  observed: 1.00,  pass: true,  note: '133/133 vitest PASS post-bump (re-verified)' }
+  trigger_F1:                 { threshold: '>= 0.80',  observed: null,  pass: 'carried_forward_round_19=1.0',  note: 'router surface unchanged across cycle 6' }
+  near_miss_FP_rate:          { threshold: '<= 0.15',  observed: null,  pass: 'carried_forward_round_19=0.0' }
+  metadata_tokens:            { threshold: '<= 120',   observed: 70,    pass: true,  note: 'rules/usage-helper.mdc + SKILL frontmatter unchanged across cycle 6' }
+  per_invocation_footprint:   { threshold: '<= 9000',  observed: 7500,  pass: true,  note: 'estimated; carried from round 27 baseline; Cycle 7 will firm up' }
+  wall_clock_p95:             { threshold: '<= 45 s',  observed: null,  pass: 'NOT_MEASURED_cycle_7_will_baseline' }
+  routing_latency_p95_ms:     { threshold: '<= 2000',  observed: null,  pass: 'carried_forward_round_19=0.18ms' }
+  routing_token_overhead:     { threshold: '<= 0.20',  observed: null,  pass: 'carried_forward_round_19=0.034' }
+
+scope_compliance:
+  marketplace: absent
+  router_training: absent
+  md_to_cli: absent
+  ide_compat_layer: absent
+  spec_section_11_violations: none
+
+next_review_at: '2026-05-30'
+next_review_triggers:
+  - production_install_regression_surfaced  # NEW Cycle 7 trigger; if a v2.0.0-pre install regression surfaces, half-retire-review re-baselines and a v2.0.1-pre fix ships
+  - upstream_api_change_wrapper_stabilizes  # ai-bill aggregate API surface still maturing; new endpoints may evolve
+  - new_scenario_or_domain_match            # cross-source vocabulary uptake will drive R3 re-baseline
+  - efficiency_axis_becomes_significant     # round 32+ identity-refactor may push C4 / L4 above v2_tightened thresholds
+  - manual_invocation_rebound               # productized stage requires sustained user invocation
+
+provenance:
+  evaluator: "L3 dispatch — Task agent for chip-usage-helper Si-Chip dogfood Round 29 + 30 (v2.0.0-pre release)"
+  feedback_sources:
+    - ChipPlugins/chips/chip_usage_helper/.local/info/api-reference.md (the new ai-bill aggregate REST API surface — drove the v1.2.0 migration; v2.0.0-pre carries it forward)
+    - ChipPlugins/chips/chip_usage_helper/.local/feedbacks/feedback_for_v1.0.0.md (real-data verification process — Cycle 5 codified R45/R46/R47; cycle 6 honored throughout)
+    - "L0 dispatch instructions for round 29 (identity flow consolidation review) + round 30 (v2.0.0-pre release)"
+  round_directory: .local/dogfood/2026-04-29/abilities/chip-usage-helper/round_30/
+  feedback_summary: .local/feedbacks/feedbacks_while_using/chip-usage-helper/SUMMARY.md (Cycle 6 close + Cycle 7 placeholder + 2-3 final meta-feedback bullets added by this dispatch)
+  archive: dist/chip-usage-helper-2.0.0-pre.tgz
+  archive_sha256: c74d6b0ea0c571c09532674516cdac5747fa58757a73a9278b7c036f88c16b8f
+  l3_dispatch:
+    used_task_agent: true
+    parent: L0
+    rationale: "Per devola-flow Task agent dispatch — round 29 (identity-flow doc consolidation; light doc-only changes) + round 30 (v2.0.0-pre version bump + CHANGELOG + tarball + smoke + Si-Chip evidence + commit + push) combined dispatch. Two commits stacked: round 29 doc-only commit + round 30 v2.0.0-pre release commit."
