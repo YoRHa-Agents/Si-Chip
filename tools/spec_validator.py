@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Static structural validator for the Si-Chip spec.
 
-Implements the **fourteen** machine-checkable invariants declared across
+Implements the **fifteen** machine-checkable invariants declared across
 spec §13.4 (v0.2.0 — 9 BLOCKERs), §13.5.4 (v0.3.0-rc1 — 2 additive
-BLOCKERs) and §13.6.4 (v0.4.0-rc1 — 3 additive BLOCKERs). Round 12
-(Si-Chip v0.1.11) added the 9th BLOCKER ``REACTIVATION_DETECTOR_EXISTS``.
-Stage 4 Wave 2a (v0.3.0-rc1, 2026-04-29) added the 10th
-(``CORE_GOAL_FIELD_PRESENT``) and 11th (``ROUND_KIND_TEMPLATE_VALID``).
-Stage 4 Wave 1b (v0.4.0-rc1, 2026-04-30) adds the 12th, 13th and 14th:
+BLOCKERs), §13.6.4 (v0.4.0-rc1 — 3 additive BLOCKERs) and §24.1.1
+(v0.4.2-rc1 — 1 additive BLOCKER). Round 12 (Si-Chip v0.1.11) added
+the 9th BLOCKER ``REACTIVATION_DETECTOR_EXISTS``. Stage 4 Wave 2a
+(v0.3.0-rc1, 2026-04-29) added the 10th (``CORE_GOAL_FIELD_PRESENT``)
+and 11th (``ROUND_KIND_TEMPLATE_VALID``). Stage 4 Wave 1b (v0.4.0-rc1,
+2026-04-30) added the 12th, 13th and 14th. Stage 4 Wave 1d (v0.4.2-rc1,
+2026-05-05) adds the 15th:
 
 * ``CORE_GOAL_FIELD_PRESENT`` — asserts that the BasicAbilityProfile
   schema declares a REQUIRED ``core_goal`` block with the §14.1.1
@@ -36,6 +38,15 @@ Stage 4 Wave 1b (v0.4.0-rc1, 2026-04-30) adds the 12th, 13th and 14th:
   ``current_surface.dependencies.live_backend: true`` also carries a
   non-empty ``packaging.health_smoke_check`` array. Skipped when no
   profile declares live_backend.
+* ``DESCRIPTION_CAP_1024`` (v0.4.2 §24.1) — asserts that every
+  ``SKILL.md`` frontmatter ``description`` (across the
+  ``.agents/skills/``, ``.cursor/skills/`` and ``.claude/skills/``
+  trees) and every ``basic_ability_profile.yaml``'s
+  ``basic_ability.description`` (or fallback ``basic_ability.intent``)
+  satisfies ``min(len(s), len(s.encode('utf-8'))) <= 1024``. Skipped
+  as PASS when no SKILL.md / BAP files exist OR when the validated
+  spec lacks the §24 marker (pre-v0.4.2 backward compat per §13.6.4
+  grace period).
 
 Spec path defaults to ``.local/research/spec_v0.2.0.md`` (Si-Chip v0.2.0
 ship, 2026-04-28; promoted from v0.2.0-rc1 with no Normative semantic
@@ -132,7 +143,14 @@ LOGGER = logging.getLogger("si_chip.spec_validator")
 # method-tag companion suffixes; EVIDENCE_FILES is round_kind-aware
 # (7 files when round_kind == 'ship_prep', else 6); 0.3.0 schema key
 # bucket mirrors 0.2.0 (additive sub-fields don't change top-level set).
-SCRIPT_VERSION = "0.3.0"
+# 0.4.0 — Stage 4 Wave 1d (v0.4.2-rc1, 2026-05-05): accepts spec
+# v0.4.2-rc1 alongside earlier versions; adds 1 new BLOCKER
+# DESCRIPTION_CAP_1024 (§24.1; absorbed from addyosmani/agent-skills
+# v1.0.0 docs/skill-anatomy.md 1024-char description cap convention).
+# Skipped as PASS when the spec being validated lacks the §24 marker
+# (pre-v0.4.2 backward compat per §13.6.4 grace period). Top-level
+# spec / schema layout unchanged from 0.3.0; this is purely additive.
+SCRIPT_VERSION = "0.4.0"
 
 # §5 router_test_matrix template accepts BOTH schema versions as of
 # Round 9 (Si-Chip v0.1.8). 0.1.0 = initial (mvp:8 + full:96); 0.1.1 =
@@ -165,6 +183,7 @@ SUPPORTED_SPEC_VERSIONS = {
     "v0.3.0",
     "v0.4.0-rc1",
     "v0.4.0",
+    "v0.4.2-rc1",
 }
 
 # §2.1 frozen field set under basic_ability — version-keyed dict.
@@ -263,6 +282,7 @@ EXPECTED_R6_PROSE_BY_SPEC = {
     "v0.3.0": 37,
     "v0.4.0-rc1": 37,
     "v0.4.0": 37,
+    "v0.4.2-rc1": 37,
 }
 # Default fallback (when spec version cannot be detected): v0.2.0 (ship default).
 EXPECTED_R6_PROSE_DEFAULT = EXPECTED_R6_PROSE_BY_SPEC["v0.2.0"]
@@ -302,6 +322,7 @@ EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC = {
     "v0.3.0": 30,
     "v0.4.0-rc1": 30,
     "v0.4.0": 30,
+    "v0.4.2-rc1": 30,
 }
 EXPECTED_THRESHOLD_CELLS_PROSE_DEFAULT = EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC["v0.2.0"]
 
@@ -339,6 +360,7 @@ EXPECTED_VALUE_VECTOR_AXES_BY_SPEC: Dict[str, Set[str]] = {
     "v0.3.0": EXPECTED_VALUE_VECTOR_AXES_BASE,
     "v0.4.0-rc1": EXPECTED_VALUE_VECTOR_AXES_V0_4_0,
     "v0.4.0": EXPECTED_VALUE_VECTOR_AXES_V0_4_0,
+    "v0.4.2-rc1": EXPECTED_VALUE_VECTOR_AXES_V0_4_0,
 }
 
 # Default fallback: the legacy 7-axis set (v0.3.0 ship default). This
@@ -356,6 +378,7 @@ EXPECTED_VALUE_VECTOR_PROSE_BY_SPEC: Dict[str, int] = {
     "v0.3.0": 7,
     "v0.4.0-rc1": 8,
     "v0.4.0": 8,
+    "v0.4.2-rc1": 8,
 }
 
 # §8.1 8-step frozen order.
@@ -1235,9 +1258,11 @@ def check_value_vector_axes(
     all_axes = set(hrd_axes)
 
     # For v0.4.0+ specs we also consult iteration_delta_report, where
-    # the new ``eager_token_delta`` is declared additively.
+    # the new ``eager_token_delta`` is declared additively. v0.4.2-rc1
+    # is additive on top of v0.4.0 (no new axes; same 8) — same idr
+    # consultation applies.
     idr_axes: Set[str] = set()
-    if spec_version in {"v0.4.0-rc1", "v0.4.0"}:
+    if spec_version in {"v0.4.0-rc1", "v0.4.0", "v0.4.2-rc1"}:
         idr_axes = _collect_value_vector_axes_from_iteration_delta(
             templates_dir
         )
@@ -2469,6 +2494,364 @@ def check_health_smoke_declared_when_live_backend(
     )
 
 
+# §24.1 description-cap discovery + extraction helpers.
+# Search trees: source-of-truth + 2 platform mirrors.
+DESCRIPTION_CAP_CHARS: int = 1024
+SKILL_MD_TREES: Tuple[str, ...] = (
+    ".agents/skills",
+    ".cursor/skills",
+    ".claude/skills",
+)
+
+# Frontmatter detection: first ``---``-delimited block at the very top
+# of the file. Matches both LF and CRLF line endings.
+_FRONTMATTER_RE = re.compile(
+    r"\A---\s*\r?\n(.+?)\r?\n---\s*(?:\r?\n|\Z)",
+    re.DOTALL,
+)
+# In-frontmatter ``description: <value>`` line. Permissive on the value
+# side: takes everything up to a newline.  Block-scalar (``|`` / ``>``)
+# values yield empty string after this regex which we treat as "no
+# scalar description present"; multi-line block descriptions are not
+# the convention §24.1 enforces and would themselves indicate a
+# description-discipline violation (informational, not BLOCKER).
+_FRONTMATTER_DESC_RE = re.compile(
+    r"^description:\s*(.*?)\s*$",
+    re.MULTILINE,
+)
+
+
+def _iter_skill_md_files(repo_root: Path) -> List[Path]:
+    """Enumerate every ``SKILL.md`` under the 3 skill-tree roots.
+
+    Walks ``.agents/skills/<name>/SKILL.md``,
+    ``.cursor/skills/<name>/SKILL.md`` and
+    ``.claude/skills/<name>/SKILL.md``. Returns a sorted, de-duplicated
+    list. Empty when the trees do not exist (pre-bootstrap repo).
+    """
+
+    out: List[Path] = []
+    for tree in SKILL_MD_TREES:
+        root = repo_root / tree
+        if not root.exists():
+            continue
+        for p in root.rglob("SKILL.md"):
+            out.append(p)
+    return sorted(set(out))
+
+
+def _extract_skill_description(skill_md_path: Path) -> Optional[str]:
+    """Pull the YAML frontmatter ``description`` field from a SKILL.md.
+
+    Returns ``None`` when the file has no frontmatter, or when the
+    frontmatter has no ``description`` key, or when the value is a
+    block scalar (``|`` / ``>`` start) that we deliberately decline to
+    interpret as a single-line description (§24.1 expects a single-
+    line scalar). The caller treats ``None`` as "no description to
+    measure" — equivalent to a SKIP for this individual file (other
+    files may still trigger the BLOCKER).
+    """
+
+    try:
+        text = skill_md_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        LOGGER.warning(
+            "spec_validator: cannot read %s for description-cap check: %s",
+            skill_md_path,
+            exc,
+        )
+        return None
+    fm_match = _FRONTMATTER_RE.match(text)
+    if not fm_match:
+        return None
+    fm_body = fm_match.group(1)
+    desc_match = _FRONTMATTER_DESC_RE.search(fm_body)
+    if not desc_match:
+        return None
+    raw = desc_match.group(1)
+    # Block-scalar indicator → not a single-line scalar. Decline to
+    # measure (a multi-line block already violates §24.1's "what +
+    # when" single-paragraph shape; that violation is left to
+    # informational reporting in §24.1.2 rather than this BLOCKER).
+    if raw.startswith(("|", ">")):
+        return None
+    # Strip surrounding quotes if present (YAML allows both).
+    if (
+        len(raw) >= 2
+        and raw[0] == raw[-1]
+        and raw[0] in ('"', "'")
+    ):
+        raw = raw[1:-1]
+    return raw
+
+
+def _binding_description_length(s: str) -> Tuple[int, int, int]:
+    """Return (chars, bytes, binding_length) for the §24.1 cap measurement.
+
+    ``binding_length = min(chars, bytes)``. CJK fairness: 1 汉字 ≈ 3
+    UTF-8 bytes but 1 character; the binding length walks the *smaller*
+    of the two so multi-byte alphabets are not penalised by UTF-8 byte
+    expansion (per §24.1 invariant #1).
+    """
+
+    chars = len(s)
+    bytes_len = len(s.encode("utf-8"))
+    return chars, bytes_len, min(chars, bytes_len)
+
+
+def _spec_text_has_section_24(spec_text: str) -> bool:
+    """Return True iff ``spec_text`` carries a §24 / DESCRIPTION_CAP_1024 marker.
+
+    The marker must appear in one of:
+      * H2 header ``## 24. ...`` (canonical placement; spec §24)
+      * H3 header ``### 24.1 ...`` (canonical sub-section)
+      * Inline reference to ``DESCRIPTION_CAP_1024`` (rule layer
+        compatibility — appears in the §17.7 hard-rule prose).
+      * Inline reference to ``§24.1`` (cross-reference convention used
+        in §17.7 and the v0.4.2 lineage paragraph).
+
+    Used by ``check_description_cap_1024`` to SKIP-as-PASS against
+    pre-v0.4.2 specs (per §13.6.4 grace period).
+    """
+
+    return bool(
+        re.search(r"^##\s+24\.\s", spec_text, re.MULTILINE)
+        or re.search(r"^###\s+24\.1\s", spec_text, re.MULTILINE)
+        or "DESCRIPTION_CAP_1024" in spec_text
+        or "§24.1" in spec_text
+    )
+
+
+def check_description_cap_1024(
+    repo_root: Optional[Path] = None,
+    *,
+    spec_text: Optional[str] = None,
+) -> AssertionResult:
+    """BLOCKER 15 — DESCRIPTION_CAP_1024 (v0.4.2 §24.1).
+
+    For every ``SKILL.md`` under ``.agents/skills/``, ``.cursor/skills/``
+    and ``.claude/skills/``, plus every ``basic_ability_profile.yaml``
+    under ``.local/dogfood/**/round_*/``, assert that the
+    routing-time description satisfies
+    ``min(len(s), len(s.encode('utf-8'))) <= 1024`` per §24.1
+    (binding cap convention — CJK fairness via the lower of the two
+    measurements).
+
+    For SKILL.md, the value comes from the YAML frontmatter
+    ``description`` field. For BasicAbilityProfile, the value comes
+    from ``basic_ability.description`` if present, falling back to
+    ``basic_ability.intent`` (the schema does not currently declare a
+    top-level ``description``; the rule absorbs the field as OPTIONAL,
+    and ``intent`` is the closest existing semantic surface — §24.1.2
+    explicitly excludes ``core_goal.statement`` and reference docs).
+
+    Skipped as PASS in two cases (per §13.6.4 grace period):
+
+      1. The validated spec text does not declare §24 (i.e. the
+         ``--spec`` target is pre-v0.4.2). This keeps backward
+         compatibility with the v0.4.0, v0.3.0 and v0.2.0 spec runs
+         (all 14 historical BLOCKERs still PASS; the 15th SKIP-PASSes).
+      2. No SKILL.md files and no BAP files are found in the repo
+         (pre-bootstrap repository).
+    """
+
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+
+    # SKIP-as-PASS path 1: spec lacks the §24 marker (pre-v0.4.2).
+    if spec_text is not None and not _spec_text_has_section_24(spec_text):
+        return AssertionResult(
+            id="DESCRIPTION_CAP_1024",
+            name=(
+                "SKILL.md frontmatter description and BasicAbility "
+                "description ≤ 1024 chars (spec §24.1)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                "skipped: spec does not declare §24 / "
+                "DESCRIPTION_CAP_1024 (pre-v0.4.2 backward compat per "
+                "§13.6.4 grace period)"
+            ),
+            evidence={
+                "skipped_reason": "spec_lacks_section_24_marker",
+                "cap_chars": DESCRIPTION_CAP_CHARS,
+            },
+        )
+
+    skill_md_files = _iter_skill_md_files(repo_root)
+    bap_files = _iter_basic_ability_profiles(repo_root)
+
+    findings: List[str] = []
+    per_artifact: List[Dict[str, Any]] = []
+    measured_count = 0
+
+    # ── 1. SKILL.md frontmatter description ──
+    for path in skill_md_files:
+        desc = _extract_skill_description(path)
+        if desc is None:
+            per_artifact.append(
+                {
+                    "kind": "skill_md",
+                    "path": str(path.relative_to(repo_root)),
+                    "skipped_reason": "no_scalar_description_in_frontmatter",
+                }
+            )
+            continue
+        chars, bytes_len, binding = _binding_description_length(desc)
+        measured_count += 1
+        entry: Dict[str, Any] = {
+            "kind": "skill_md",
+            "path": str(path.relative_to(repo_root)),
+            "chars": chars,
+            "bytes": bytes_len,
+            "binding_length": binding,
+            "cap": DESCRIPTION_CAP_CHARS,
+        }
+        if binding > DESCRIPTION_CAP_CHARS:
+            cap_axis = "chars" if chars <= bytes_len else "bytes"
+            findings.append(
+                f"{path.relative_to(repo_root)}: SKILL.md frontmatter "
+                f"description binding length {binding} > "
+                f"{DESCRIPTION_CAP_CHARS} (chars={chars}, "
+                f"bytes={bytes_len}, binding-axis={cap_axis}; spec "
+                "§24.1 + hard rule 14)"
+            )
+            entry["pass"] = False
+        else:
+            entry["pass"] = True
+        per_artifact.append(entry)
+
+    # ── 2. BasicAbilityProfile.basic_ability.description (or .intent) ──
+    for path in bap_files:
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError) as exc:
+            findings.append(f"{path}: parse error: {exc}")
+            per_artifact.append(
+                {
+                    "kind": "bap",
+                    "path": str(path.relative_to(repo_root)),
+                    "parse_error": str(exc),
+                }
+            )
+            continue
+        if not isinstance(data, dict):
+            per_artifact.append(
+                {
+                    "kind": "bap",
+                    "path": str(path.relative_to(repo_root)),
+                    "shape": "non_mapping",
+                }
+            )
+            continue
+        bap = data.get("basic_ability")
+        if not isinstance(bap, dict):
+            per_artifact.append(
+                {
+                    "kind": "bap",
+                    "path": str(path.relative_to(repo_root)),
+                    "shape": "no_basic_ability",
+                }
+            )
+            continue
+        desc = bap.get("description")
+        source_field = "description"
+        if not isinstance(desc, str) or not desc:
+            # Fallback to intent (REQUIRED per §2.1 schema). §24.1.2
+            # explicitly notes this fallback is only for description-
+            # absence; when description is present, intent is left
+            # untouched (intent may legitimately be a longer narrative).
+            intent = bap.get("intent")
+            if isinstance(intent, str) and intent:
+                desc = intent
+                source_field = "intent_fallback"
+            else:
+                per_artifact.append(
+                    {
+                        "kind": "bap",
+                        "path": str(path.relative_to(repo_root)),
+                        "ability_id": bap.get("id"),
+                        "skipped_reason": "no_description_or_intent_string",
+                    }
+                )
+                continue
+        chars, bytes_len, binding = _binding_description_length(desc)
+        measured_count += 1
+        entry = {
+            "kind": "bap",
+            "path": str(path.relative_to(repo_root)),
+            "ability_id": bap.get("id"),
+            "source_field": source_field,
+            "chars": chars,
+            "bytes": bytes_len,
+            "binding_length": binding,
+            "cap": DESCRIPTION_CAP_CHARS,
+        }
+        if binding > DESCRIPTION_CAP_CHARS:
+            cap_axis = "chars" if chars <= bytes_len else "bytes"
+            findings.append(
+                f"{path.relative_to(repo_root)}: "
+                f"basic_ability.{source_field} (ability_id="
+                f"{bap.get('id')!r}) binding length {binding} > "
+                f"{DESCRIPTION_CAP_CHARS} (chars={chars}, "
+                f"bytes={bytes_len}, binding-axis={cap_axis}; spec "
+                "§24.1 + hard rule 14)"
+            )
+            entry["pass"] = False
+        else:
+            entry["pass"] = True
+        per_artifact.append(entry)
+
+    # SKIP-as-PASS path 2: nothing in scope.
+    if not skill_md_files and not bap_files:
+        return AssertionResult(
+            id="DESCRIPTION_CAP_1024",
+            name=(
+                "SKILL.md frontmatter description and BasicAbility "
+                "description ≤ 1024 chars (spec §24.1)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                "skipped: no SKILL.md files under .agents/skills/, "
+                ".cursor/skills/, .claude/skills/ AND no "
+                "basic_ability_profile.yaml under .local/dogfood/ "
+                "(pre-bootstrap repo)"
+            ),
+            evidence={
+                "skipped_reason": "no_skill_md_or_bap_files",
+                "cap_chars": DESCRIPTION_CAP_CHARS,
+                "skill_md_trees": list(SKILL_MD_TREES),
+            },
+        )
+
+    passed = not findings
+    return AssertionResult(
+        id="DESCRIPTION_CAP_1024",
+        name=(
+            "SKILL.md frontmatter description and BasicAbility "
+            "description ≤ 1024 chars (spec §24.1)"
+        ),
+        passed=passed,
+        severity="BLOCKER",
+        message=(
+            f"all {measured_count} measured description(s) ≤ "
+            f"{DESCRIPTION_CAP_CHARS} chars (binding=min(chars,bytes))"
+            if passed
+            else "; ".join(findings)
+        ),
+        evidence={
+            "skill_md_files_inspected": len(skill_md_files),
+            "bap_files_inspected": len(bap_files),
+            "descriptions_measured": measured_count,
+            "cap_chars": DESCRIPTION_CAP_CHARS,
+            "findings": findings,
+            "per_artifact": per_artifact,
+        },
+    )
+
+
 # ─────────────────────────── runner ───────────────────────────
 
 
@@ -2481,12 +2864,18 @@ def run_all(
 ) -> ValidationReport:
     """Execute every invariant in declared order.
 
-    Stage 4 Wave 1b (v0.4.0-rc1) widens the BLOCKER set to **fourteen**:
+    Stage 4 Wave 1b (v0.4.0-rc1) widened the BLOCKER set to fourteen:
     the 11 historical invariants plus ``TOKEN_TIER_DECLARED_WHEN_REPORTED``
     (§18.1), ``REAL_DATA_FIXTURE_PROVENANCE`` (§19.3), and
     ``HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`` (§21.2). Each of the 3
     new BLOCKERs PASSes as SKIP when no v0.4.0 artefacts exist in the
     repo (backward compat with pre-v0.4.0 round histories).
+
+    Stage 4 Wave 1d (v0.4.2-rc1) widens the set further to **fifteen**:
+    adds ``DESCRIPTION_CAP_1024`` (§24.1; absorbed from
+    addyosmani/agent-skills v1.0.0). Skipped as PASS when the validated
+    spec lacks the §24 marker (pre-v0.4.2 backward compat per §13.6.4
+    grace period) OR when no SKILL.md / BAP files exist.
 
     Total order:
 
@@ -2504,6 +2893,7 @@ def run_all(
     12. ``TOKEN_TIER_DECLARED_WHEN_REPORTED`` *(NEW @ Stage 4 Wave 1b)*
     13. ``REAL_DATA_FIXTURE_PROVENANCE`` *(NEW @ Stage 4 Wave 1b)*
     14. ``HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`` *(NEW @ Stage 4 Wave 1b)*
+    15. ``DESCRIPTION_CAP_1024`` *(NEW @ Stage 4 Wave 1d, v0.4.2-rc1)*
     """
 
     spec_text = _read_text(spec_path)
@@ -2536,6 +2926,9 @@ def run_all(
         check_token_tier_declared_when_reported(repo_root=repo_root),
         check_real_data_fixture_provenance(repo_root=repo_root),
         check_health_smoke_declared_when_live_backend(repo_root=repo_root),
+        check_description_cap_1024(
+            repo_root=repo_root, spec_text=spec_text
+        ),
     ]
     verdict = "PASS" if all(r.passed for r in results) else "FAIL"
     return ValidationReport(
@@ -2549,12 +2942,13 @@ def run_all(
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Static structural validator for the Si-Chip spec. Runs 14 "
+            "Static structural validator for the Si-Chip spec. Runs 15 "
             "BLOCKERs (9 historical + 2 v0.3.0 additive: "
             "CORE_GOAL_FIELD_PRESENT, ROUND_KIND_TEMPLATE_VALID; + 3 "
             "v0.4.0 additive: TOKEN_TIER_DECLARED_WHEN_REPORTED, "
             "REAL_DATA_FIXTURE_PROVENANCE, "
-            "HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND)."
+            "HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND; + 1 v0.4.2 "
+            "additive: DESCRIPTION_CAP_1024)."
         ),
     )
     parser.add_argument(
@@ -2562,10 +2956,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=DEFAULT_SPEC,
         help=(
             f"Path to spec markdown (default: {DEFAULT_SPEC}). "
-            "Latest accepted spec version is v0.4.0-rc1 "
-            "(`.local/research/spec_v0.4.0-rc1.md`); v0.3.0 / v0.3.0-rc1 / "
-            "v0.2.0 / v0.2.0-rc1 / v0.1.0 remain accepted for historical "
-            "artefact regression."
+            "Latest accepted spec version is v0.4.2-rc1 "
+            "(`.local/research/spec_v0.4.2-rc1.md`); v0.4.0 / v0.4.0-rc1 / "
+            "v0.3.0 / v0.3.0-rc1 / v0.2.0 / v0.2.0-rc1 / v0.1.0 remain "
+            "accepted for historical artefact regression."
         ),
     )
     parser.add_argument(

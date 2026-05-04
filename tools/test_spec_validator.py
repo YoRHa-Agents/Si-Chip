@@ -1038,6 +1038,8 @@ class BapSchemaVersionAwareTests(unittest.TestCase):
 
 
 SPEC_V0_4_0_RC1 = _REPO_ROOT / ".local/research/spec_v0.4.0-rc1.md"
+SPEC_V0_4_0 = _REPO_ROOT / ".local/research/spec_v0.4.0.md"
+SPEC_V0_4_2_RC1 = _REPO_ROOT / ".local/research/spec_v0.4.2-rc1.md"
 
 
 def _write_round(
@@ -1091,10 +1093,21 @@ def _write_round(
 
 
 class V040Rc1AcceptanceTests(unittest.TestCase):
-    """v0.4.0-rc1 spec acceptance: 14/14 BLOCKER PASS via subprocess."""
+    """v0.4.0-rc1 spec acceptance: 15/15 BLOCKER PASS via subprocess.
 
-    def test_v0_4_0_rc1_spec_loads_14_of_14_pass(self) -> None:
-        """``--spec spec_v0.4.0-rc1.md --json`` exits 0 with 14/14 PASS."""
+    Wave 1d (v0.4.2-rc1, 2026-05-05) extends the BLOCKER set to 15
+    by adding ``DESCRIPTION_CAP_1024``. The 15th SKIP-PASSes against
+    pre-v0.4.2 specs (v0.4.0-rc1 / v0.4.0 / v0.3.0 / v0.2.0) per
+    §13.6.4 grace period. All 14 historical BLOCKERs must continue
+    to PASS.
+    """
+
+    def test_v0_4_0_rc1_spec_loads_15_of_15_pass(self) -> None:
+        """``--spec spec_v0.4.0-rc1.md --json`` exits 0 with 15/15 PASS.
+
+        BLOCKER 15 ``DESCRIPTION_CAP_1024`` SKIP-PASSes here because the
+        v0.4.0-rc1 spec lacks the §24 marker (pre-v0.4.2 backward compat).
+        """
 
         proc = subprocess.run(
             [
@@ -1111,14 +1124,23 @@ class V040Rc1AcceptanceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        self.assertEqual(len(payload["results"]), 14)
+        self.assertEqual(len(payload["results"]), 15)
         passed_count = sum(1 for r in payload["results"] if r["passed"])
-        self.assertEqual(passed_count, 14)
+        self.assertEqual(passed_count, 15)
         ids = [r["id"] for r in payload["results"]]
-        # All 3 new v0.4.0 BLOCKERs must be present.
+        # All 3 v0.4.0 BLOCKERs must be present.
         self.assertIn("TOKEN_TIER_DECLARED_WHEN_REPORTED", ids)
         self.assertIn("REAL_DATA_FIXTURE_PROVENANCE", ids)
         self.assertIn("HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND", ids)
+        # v0.4.2 BLOCKER must also be present (skip-pass on pre-v0.4.2 spec).
+        self.assertIn("DESCRIPTION_CAP_1024", ids)
+        desc_cap = next(
+            r for r in payload["results"] if r["id"] == "DESCRIPTION_CAP_1024"
+        )
+        self.assertEqual(
+            desc_cap["evidence"]["skipped_reason"],
+            "spec_lacks_section_24_marker",
+        )
         # VALUE_VECTOR should report 8 expected axes under v0.4.0-rc1.
         value_vector = next(
             r for r in payload["results"] if r["id"] == "VALUE_VECTOR_AXES"
@@ -1162,7 +1184,8 @@ class V040Rc1AcceptanceTests(unittest.TestCase):
 
         Back-compat floor: 11 historical BLOCKERs (9 + Wave 2a's 2
         additive) still PASS; Wave 1b's 3 additive BLOCKERs PASS-as-SKIP
-        when no v0.4.0 artefacts exist → total 14/14.
+        when no v0.4.0 artefacts exist; Wave 1d's DESCRIPTION_CAP_1024
+        also PASS-as-SKIP when the spec lacks §24 marker → total 15/15.
         """
 
         proc = subprocess.run(
@@ -1178,8 +1201,8 @@ class V040Rc1AcceptanceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        # v0.4.0 Wave 1b widens to 14 but the 11 historical floor holds.
-        self.assertEqual(len(payload["results"]), 14)
+        # v0.4.2 Wave 1d widens to 15 but the 11 historical floor holds.
+        self.assertEqual(len(payload["results"]), 15)
         for r in payload["results"]:
             with self.subTest(invariant=r["id"]):
                 self.assertTrue(r["passed"], msg=r["message"])
@@ -1740,6 +1763,195 @@ class HealthSmokeDeclaredWhenLiveBackendTests(unittest.TestCase):
                 repo_root=root
             )
             self.assertTrue(result.passed, msg=result.message)
+
+
+class DescriptionCap1024Tests(unittest.TestCase):
+    """BLOCKER 15 DESCRIPTION_CAP_1024 (v0.4.2 §24.1).
+
+    Stage 4 Wave 1d: spec_validator binds §24.1's "description ≤ 1024
+    chars" (binding measurement = ``min(len(s), len(s.encode('utf-8')))``,
+    CJK fairness) as a hard BLOCKER. Tests cover the happy path
+    (in-bound), the FAIL path (over-bound), the CJK fairness path
+    (chars ≤ 1024 < bytes), the SKIP-as-PASS path (no artefacts), and
+    the run_all wiring (15/15 BLOCKERs against the v0.4.2-rc1 spec).
+    """
+
+    # Spec-text fixture used by the SKIP path. v0.4.2-rc1 carries a
+    # §24 H2 header; we synthesise a minimal stub so the unit tests can
+    # exercise the function without depending on the full spec file.
+    _SPEC_WITH_S24 = (
+        "# Si-Chip Spec v0.4.2-rc1\n\n## 24. Skill Hygiene Discipline\n\n"
+        "### 24.1 Description Discipline\n\n"
+        "BLOCKER 15: DESCRIPTION_CAP_1024.\n"
+    )
+    _SPEC_WITHOUT_S24 = (
+        "# Si-Chip Spec v0.4.0\n\n## 23. Method-Tagged Metrics\n"
+    )
+
+    def _write_skill_md(
+        self,
+        root: Path,
+        tree: str,
+        name: str,
+        description: str,
+    ) -> Path:
+        skill_dir = root / tree / name
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        skill_md = skill_dir / "SKILL.md"
+        skill_md.write_text(
+            f"---\n"
+            f"name: {name}\n"
+            f"description: {description}\n"
+            f"version: 0.0.1-test\n"
+            f"---\n\n"
+            f"# {name}\n\nbody.\n",
+            encoding="utf-8",
+        )
+        return skill_md
+
+    def test_description_cap_1024_passes_when_within_bound(self) -> None:
+        """1023-char description across all SKILL.md trees → PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            desc_1023 = "x" * 1023
+            self._write_skill_md(
+                root, ".agents/skills", "test-skill", desc_1023
+            )
+            self._write_skill_md(
+                root, ".cursor/skills", "test-skill", desc_1023
+            )
+            self._write_skill_md(
+                root, ".claude/skills", "test-skill", desc_1023
+            )
+            result = sv.check_description_cap_1024(
+                repo_root=root, spec_text=self._SPEC_WITH_S24
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertEqual(result.id, "DESCRIPTION_CAP_1024")
+            self.assertEqual(result.evidence["descriptions_measured"], 3)
+            self.assertEqual(result.evidence["cap_chars"], 1024)
+            for entry in result.evidence["per_artifact"]:
+                if entry.get("kind") == "skill_md":
+                    self.assertEqual(entry["binding_length"], 1023)
+                    self.assertTrue(entry["pass"])
+
+    def test_description_cap_1024_fails_at_1025_chars(self) -> None:
+        """1025-char ASCII description → FAIL with binding-axis chars."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            desc_1025 = "y" * 1025
+            self._write_skill_md(
+                root, ".agents/skills", "long-skill", desc_1025
+            )
+            result = sv.check_description_cap_1024(
+                repo_root=root, spec_text=self._SPEC_WITH_S24
+            )
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("long-skill", result.message)
+            self.assertIn("1025", result.message)
+            # Binding axis should be chars (chars == bytes for pure ASCII;
+            # the implementation reports whichever is smaller — for ASCII
+            # the two are tied so chars wins by the chars<=bytes test).
+            findings = result.evidence["findings"]
+            self.assertEqual(len(findings), 1)
+            self.assertIn("binding-axis=chars", findings[0])
+
+    def test_description_cap_1024_handles_cjk_correctly(self) -> None:
+        """600 CJK chars (~1800 bytes) → PASS via min(chars, bytes) = 600.
+
+        §24.1 invariant #1 CJK fairness: 1 汉字 ≈ 3 UTF-8 bytes but
+        1 character; binding length walks the SMALLER of the two so CJK
+        descriptions are not penalised by UTF-8 byte expansion. 600
+        chars × 3 bytes/char = 1800 bytes (over 1024 in raw bytes), but
+        chars=600 ≤ 1024, so PASS.
+        """
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cjk_600 = "汉" * 600
+            self._write_skill_md(
+                root, ".agents/skills", "cjk-skill", cjk_600
+            )
+            result = sv.check_description_cap_1024(
+                repo_root=root, spec_text=self._SPEC_WITH_S24
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            entry = next(
+                e for e in result.evidence["per_artifact"]
+                if e.get("kind") == "skill_md"
+            )
+            self.assertEqual(entry["chars"], 600)
+            self.assertEqual(entry["bytes"], 1800)
+            self.assertEqual(entry["binding_length"], 600)
+            self.assertTrue(entry["pass"])
+
+    def test_description_cap_1024_skips_when_no_artefacts(self) -> None:
+        """Empty repo (no SKILL.md, no BAP) → SKIP-as-PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            result = sv.check_description_cap_1024(
+                repo_root=root, spec_text=self._SPEC_WITH_S24
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertEqual(
+                result.evidence["skipped_reason"],
+                "no_skill_md_or_bap_files",
+            )
+            # SKIP-as-PASS path should also fire when spec lacks §24,
+            # regardless of whether artefacts exist.
+            result_pre_v042 = sv.check_description_cap_1024(
+                repo_root=root, spec_text=self._SPEC_WITHOUT_S24
+            )
+            self.assertTrue(result_pre_v042.passed)
+            self.assertEqual(
+                result_pre_v042.evidence["skipped_reason"],
+                "spec_lacks_section_24_marker",
+            )
+
+    def test_description_cap_1024_wired_into_run_all_total_15(self) -> None:
+        """run_all against v0.4.2-rc1 spec emits 15 results, last = BLOCKER 15."""
+
+        if not SPEC_V0_4_2_RC1.exists():
+            self.skipTest("spec_v0.4.2-rc1.md not present in this checkout")
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--spec",
+                str(SPEC_V0_4_2_RC1),
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        self.assertEqual(len(payload["results"]), 15)
+        ids = [r["id"] for r in payload["results"]]
+        self.assertEqual(ids[-1], "DESCRIPTION_CAP_1024")
+        # All 15 BLOCKERs PASS against v0.4.2-rc1 spec (the §24 marker
+        # is present so the cap actually runs against the real repo's
+        # SKILL.md frontmatters and BAP descriptions; all measured
+        # descriptions are ≤ 1024).
+        passed_count = sum(1 for r in payload["results"] if r["passed"])
+        self.assertEqual(passed_count, 15)
+        desc_cap = next(
+            r for r in payload["results"] if r["id"] == "DESCRIPTION_CAP_1024"
+        )
+        # Real repo path: at least the 3 si-chip SKILL.md mirrors are
+        # measured (and well under cap at ~165 chars each).
+        self.assertGreaterEqual(
+            desc_cap["evidence"]["descriptions_measured"], 3
+        )
+        self.assertEqual(desc_cap["evidence"]["cap_chars"], 1024)
 
 
 class EvidenceFilesPerRoundTests(unittest.TestCase):

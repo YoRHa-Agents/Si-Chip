@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.0.
+description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.2.
 when_to_use: When a Skill needs eval evidence, router_floor, half-retire, C0, token-tier, provenance, or health-smoke.
-version: 0.4.0
+version: 0.4.2
 license: Apache-2.0
 ---
 
@@ -100,6 +100,10 @@ Minimum pack size by gate: v1 20 prompts, v2 **40 prompts** (curated near-miss b
 
 Every metric emits a `<metric>_method` companion — token metrics take `{tiktoken, char_heuristic, llm_actual}`; quality/routing take `{real_llm, deterministic_simulator, mixed}`; G1 takes `{real_llm_sweep, deterministic_simulation, mixed}`. `_method == char_heuristic` also requires `_ci_low` + `_ci_high` 95% CI bands. Adds `U1_language_breakdown` + `U4_time_to_first_success_state ∈ {warm, cold, semicold}`. `spec_validator::R6_KEYS` BLOCKER ignores companion suffixes. Details: `references/method-tagged-metrics-r12-summary.md`.
 
+### Skill Hygiene Discipline — v0.4.2 Add-on (§24)
+
+Description ≤ 1024 chars (binding `min(chars,bytes)`; CJK fair); "what + when", not workflow. Hard rule 14 / BLOCKER 15 `DESCRIPTION_CAP_1024`. Absorbed from addyosmani/agent-skills v1.0.0. Details: `references/description-discipline-r13-summary.md`.
+
 ## When To Trigger
 
 Use Si-Chip whenever a Skill needs eval evidence, a `router_floor`, or a
@@ -136,6 +140,9 @@ half-retire decision.
 - User says: "run health smoke probes before ship" → spec §21
   packaging-gate; iterate `packaging.health_smoke_check` axes and write
   `raw/health_smoke_results.yaml`.
+- User says: "audit my skill description length" → §24.1 cap; run
+  `tools/spec_validator.py` and inspect the `DESCRIPTION_CAP_1024`
+  BLOCKER's `per_artifact` chars / bytes / binding length entries.
 
 ## When NOT To Trigger
 
@@ -187,6 +194,8 @@ real-data fixture provenance citations REQUIRED when
 `health_smoke_check` REQUIRED when
 `current_surface.dependencies.live_backend: true` (BLOCKER 14).
 
+**v0.4.2**: see §24 add-on (description ≤ 1024; BLOCKER 15).
+
 ## References Index
 
 | Path | One-line summary |
@@ -205,6 +214,7 @@ real-data fixture provenance citations REQUIRED when
 | `references/health-smoke-check-r12-summary.md` | §21 4-axis (read/write/auth/dependency) + Optional-REQUIRED-when-live-backend; BLOCKER 14. |
 | `references/eval-pack-curation-r12-summary.md` | §22 40-prompt minimum for v2_tightened + G1 provenance + eval_pack_qa_checklist + deterministic seeding. |
 | `references/method-tagged-metrics-r12-summary.md` | §23 `<metric>_method` companions + `_ci_low`/`_ci_high` + U1/U4 language/state extensions. |
+| `references/description-discipline-r13-summary.md` | §24.1 description cap 1024 + "what+when" + CJK fairness; BLOCKER 15. |
 
 Reference files are loaded on demand and are excluded from the §7.3
 SKILL.md body budget.
@@ -247,6 +257,10 @@ training, generic IDE compat, or Markdown-to-CLI conversion (spec §11.1
 verbatim re-affirmed in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7
 + §23.7).
 
+**v0.4.2 reaffirms forever-out**: §24 absorbs ONLY 1024-char cap +
+"what+when" from agent-skills; NOT marketplace / plugin distribution
+/ Markdown-to-CLI (spec §24.1.3 re-affirms §11.1).
+
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.0.md` (frozen; promoted from `spec_v0.4.0-rc1.md` body byte-identical except metadata; preserves v0.3.0 §3-§17.2 byte-identical EXCEPT §6.1 value_vector axes 7→8 per Q4 user decision; adds §18 token-tier + §19 real-data-verification + §20 lifecycle + §21 health-smoke + §22 eval-pack-curation + §23 method-tagged-metrics + §17 hard rules 11/12/13) ; Compiled into: `AGENTS.md` via `.rules/si-chip-spec.mdc` (`compiled_into_rules: true` at v0.4.0 final).
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.2-rc1.md` (rc; +§24 + BLOCKER 15 absorbed from addyosmani/agent-skills v1.0.0; v0.4.0 baseline byte-identical) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.
