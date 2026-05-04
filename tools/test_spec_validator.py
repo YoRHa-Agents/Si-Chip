@@ -1040,6 +1040,8 @@ class BapSchemaVersionAwareTests(unittest.TestCase):
 SPEC_V0_4_0_RC1 = _REPO_ROOT / ".local/research/spec_v0.4.0-rc1.md"
 SPEC_V0_4_0 = _REPO_ROOT / ".local/research/spec_v0.4.0.md"
 SPEC_V0_4_2_RC1 = _REPO_ROOT / ".local/research/spec_v0.4.2-rc1.md"
+SPEC_V0_4_3_RC1 = _REPO_ROOT / ".local/research/spec_v0.4.3-rc1.md"
+SPEC_V0_4_4_RC1 = _REPO_ROOT / ".local/research/spec_v0.4.4-rc1.md"
 
 
 def _write_round(
@@ -1095,18 +1097,22 @@ def _write_round(
 class V040Rc1AcceptanceTests(unittest.TestCase):
     """v0.4.0-rc1 spec acceptance: 15/15 BLOCKER PASS via subprocess.
 
-    Wave 1d (v0.4.2-rc1, 2026-05-05) extends the BLOCKER set to 15
-    by adding ``DESCRIPTION_CAP_1024``. The 15th SKIP-PASSes against
-    pre-v0.4.2 specs (v0.4.0-rc1 / v0.4.0 / v0.3.0 / v0.2.0) per
-    §13.6.4 grace period. All 14 historical BLOCKERs must continue
-    to PASS.
+    Wave 1d (v0.4.2-rc1, 2026-05-05) extended the BLOCKER set to 15
+    by adding ``DESCRIPTION_CAP_1024``. Wave 1e (v0.4.4-rc1,
+    2026-05-05) extends further to 16 by adding
+    ``BODY_BUDGET_REQUIRES_REFERENCES_SPLIT``. The 15th and 16th
+    SKIP-PASS against pre-v0.4.2 / pre-v0.4.4 specs (v0.4.0-rc1 /
+    v0.4.0 / v0.3.0 / v0.2.0) per §13.6.4 grace period. All 14
+    historical BLOCKERs must continue to PASS.
     """
 
     def test_v0_4_0_rc1_spec_loads_15_of_15_pass(self) -> None:
-        """``--spec spec_v0.4.0-rc1.md --json`` exits 0 with 15/15 PASS.
+        """``--spec spec_v0.4.0-rc1.md --json`` exits 0 with 16/16 PASS.
 
-        BLOCKER 15 ``DESCRIPTION_CAP_1024`` SKIP-PASSes here because the
-        v0.4.0-rc1 spec lacks the §24 marker (pre-v0.4.2 backward compat).
+        BLOCKER 15 ``DESCRIPTION_CAP_1024`` and BLOCKER 16
+        ``BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`` both SKIP-PASS here
+        because the v0.4.0-rc1 spec lacks the §24 / §24.3 markers
+        (pre-v0.4.2 / pre-v0.4.4 backward compat).
         """
 
         proc = subprocess.run(
@@ -1124,9 +1130,9 @@ class V040Rc1AcceptanceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        self.assertEqual(len(payload["results"]), 15)
+        self.assertEqual(len(payload["results"]), 16)
         passed_count = sum(1 for r in payload["results"] if r["passed"])
-        self.assertEqual(passed_count, 15)
+        self.assertEqual(passed_count, 16)
         ids = [r["id"] for r in payload["results"]]
         # All 3 v0.4.0 BLOCKERs must be present.
         self.assertIn("TOKEN_TIER_DECLARED_WHEN_REPORTED", ids)
@@ -1134,12 +1140,23 @@ class V040Rc1AcceptanceTests(unittest.TestCase):
         self.assertIn("HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND", ids)
         # v0.4.2 BLOCKER must also be present (skip-pass on pre-v0.4.2 spec).
         self.assertIn("DESCRIPTION_CAP_1024", ids)
+        # v0.4.4 BLOCKER must also be present (skip-pass on pre-v0.4.4 spec).
+        self.assertIn("BODY_BUDGET_REQUIRES_REFERENCES_SPLIT", ids)
         desc_cap = next(
             r for r in payload["results"] if r["id"] == "DESCRIPTION_CAP_1024"
         )
         self.assertEqual(
             desc_cap["evidence"]["skipped_reason"],
             "spec_lacks_section_24_marker",
+        )
+        body_blocker = next(
+            r
+            for r in payload["results"]
+            if r["id"] == "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT"
+        )
+        self.assertEqual(
+            body_blocker["evidence"]["skipped_reason"],
+            "spec_lacks_section_24_3_marker",
         )
         # VALUE_VECTOR should report 8 expected axes under v0.4.0-rc1.
         value_vector = next(
@@ -1185,7 +1202,9 @@ class V040Rc1AcceptanceTests(unittest.TestCase):
         Back-compat floor: 11 historical BLOCKERs (9 + Wave 2a's 2
         additive) still PASS; Wave 1b's 3 additive BLOCKERs PASS-as-SKIP
         when no v0.4.0 artefacts exist; Wave 1d's DESCRIPTION_CAP_1024
-        also PASS-as-SKIP when the spec lacks §24 marker → total 15/15.
+        PASS-as-SKIP when the spec lacks §24 marker; Wave 1e's
+        BODY_BUDGET_REQUIRES_REFERENCES_SPLIT PASS-as-SKIP when the
+        spec lacks §24.3 marker → total 16/16.
         """
 
         proc = subprocess.run(
@@ -1201,8 +1220,8 @@ class V040Rc1AcceptanceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        # v0.4.2 Wave 1d widens to 15 but the 11 historical floor holds.
-        self.assertEqual(len(payload["results"]), 15)
+        # v0.4.4 Wave 1e widens to 16 but the 11 historical floor holds.
+        self.assertEqual(len(payload["results"]), 16)
         for r in payload["results"]:
             with self.subTest(invariant=r["id"]):
                 self.assertTrue(r["passed"], msg=r["message"])
@@ -1915,7 +1934,10 @@ class DescriptionCap1024Tests(unittest.TestCase):
             )
 
     def test_description_cap_1024_wired_into_run_all_total_15(self) -> None:
-        """run_all against v0.4.2-rc1 spec emits 15 results, last = BLOCKER 15."""
+        """run_all against v0.4.2-rc1 spec emits 16 results (Wave 1e widened
+        from 15 to 16); BLOCKER 15 = DESCRIPTION_CAP_1024 PASS, BLOCKER 16 =
+        BODY_BUDGET_REQUIRES_REFERENCES_SPLIT SKIP-PASS (pre-v0.4.4 spec).
+        """
 
         if not SPEC_V0_4_2_RC1.exists():
             self.skipTest("spec_v0.4.2-rc1.md not present in this checkout")
@@ -1934,15 +1956,18 @@ class DescriptionCap1024Tests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, msg=proc.stderr)
         payload = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(payload["verdict"], "PASS")
-        self.assertEqual(len(payload["results"]), 15)
+        self.assertEqual(len(payload["results"]), 16)
         ids = [r["id"] for r in payload["results"]]
-        self.assertEqual(ids[-1], "DESCRIPTION_CAP_1024")
-        # All 15 BLOCKERs PASS against v0.4.2-rc1 spec (the §24 marker
+        # BLOCKER 15 sits at index -2; BLOCKER 16 is the new tail.
+        self.assertEqual(ids[-2], "DESCRIPTION_CAP_1024")
+        self.assertEqual(ids[-1], "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT")
+        # All 16 BLOCKERs PASS against v0.4.2-rc1 spec (the §24 marker
         # is present so the cap actually runs against the real repo's
         # SKILL.md frontmatters and BAP descriptions; all measured
-        # descriptions are ≤ 1024).
+        # descriptions are ≤ 1024). BLOCKER 16 SKIP-PASSes because
+        # v0.4.2-rc1 lacks the §24.3 marker (pre-v0.4.4 grace period).
         passed_count = sum(1 for r in payload["results"] if r["passed"])
-        self.assertEqual(passed_count, 15)
+        self.assertEqual(passed_count, 16)
         desc_cap = next(
             r for r in payload["results"] if r["id"] == "DESCRIPTION_CAP_1024"
         )
@@ -1952,6 +1977,320 @@ class DescriptionCap1024Tests(unittest.TestCase):
             desc_cap["evidence"]["descriptions_measured"], 3
         )
         self.assertEqual(desc_cap["evidence"]["cap_chars"], 1024)
+        body_blocker = next(
+            r
+            for r in payload["results"]
+            if r["id"] == "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT"
+        )
+        self.assertEqual(
+            body_blocker["evidence"]["skipped_reason"],
+            "spec_lacks_section_24_3_marker",
+        )
+
+
+class BodyBudgetRequiresReferencesSplitTests(unittest.TestCase):
+    """BLOCKER 16 BODY_BUDGET_REQUIRES_REFERENCES_SPLIT (v0.4.4 §24.3).
+
+    Stage 4 Wave 1e: spec_validator binds §24.3.1's body-budget
+    progressive-disclosure rule (when ``body_tokens > 5000`` the
+    SKILL.md MUST cite ≥1 existing ``references/<file>.md``) as a
+    hard BLOCKER. Tests cover the under-threshold PASS path (body
+    ≤ 5000 with no cite required), the FAIL path (body > 5000 with
+    no cite), the over-threshold PASS path (body > 5000 + valid
+    existing cite), the FAIL path (cited reference file missing),
+    the SKIP-as-PASS paths (no SKILL.md / pre-v0.4.4 spec), and the
+    run_all wiring (16/16 BLOCKERs against the v0.4.4-rc1 spec).
+    """
+
+    # Spec-text fixture used by SKIP path 1. v0.4.4-rc1 carries a
+    # §24.3 H3 header. Synthesise minimal stubs for both directions.
+    _SPEC_WITH_S24_3 = (
+        "# Si-Chip Spec v0.4.4-rc1\n\n## 24. Skill Hygiene Discipline\n\n"
+        "### 24.1 Description Discipline\n\n"
+        "### 24.3 Progressive Disclosure Discipline\n\n"
+        "BLOCKER 16: BODY_BUDGET_REQUIRES_REFERENCES_SPLIT.\n"
+    )
+    _SPEC_WITHOUT_S24_3 = (
+        "# Si-Chip Spec v0.4.3-rc1\n\n## 24. Skill Hygiene Discipline\n"
+        "\n### 24.1 Description Discipline\n\n"
+        "### 24.2 Standardized SKILL.md Sections\n"
+    )
+
+    def _write_skill_md(
+        self,
+        root: Path,
+        tree: str,
+        name: str,
+        body_word_count: int,
+        cited_reference_filename: Optional[str] = None,
+        create_referenced_file: bool = False,
+    ) -> Path:
+        """Build a synthetic SKILL.md whose body has approx ``body_word_count`` words.
+
+        The body is filler (``word ``-style sequence) so the
+        word-split heuristic in ``count_tokens.py`` produces a count
+        very close to ``body_word_count``. Optionally appends a
+        ``references/<filename>.md`` cite line and (if
+        ``create_referenced_file=True``) creates that file under the
+        SKILL.md's sibling references/ directory.
+        """
+
+        skill_dir = root / tree / name
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        skill_md = skill_dir / "SKILL.md"
+        # Build deterministic prose: ``word001 word002 ...`` keeps the
+        # tiktoken / fallback counts stable + grep-friendly.
+        body_words = [f"word{i:05d}" for i in range(body_word_count)]
+        body_text = " ".join(body_words)
+        cite_line = ""
+        if cited_reference_filename:
+            cite_line = (
+                f"\n\nSee also: `references/{cited_reference_filename}` "
+                "for the long material.\n"
+            )
+        contents = (
+            "---\n"
+            f"name: {name}\n"
+            "description: Synthetic test skill for BLOCKER 16.\n"
+            "version: 0.0.1-test\n"
+            "---\n\n"
+            f"# {name}\n\n"
+            f"{body_text}\n"
+            f"{cite_line}"
+        )
+        skill_md.write_text(contents, encoding="utf-8")
+
+        if cited_reference_filename and create_referenced_file:
+            refs_dir = skill_dir / "references"
+            refs_dir.mkdir(parents=True, exist_ok=True)
+            (refs_dir / cited_reference_filename).write_text(
+                f"# {cited_reference_filename}\n\nLong material here.\n",
+                encoding="utf-8",
+            )
+        return skill_md
+
+    def test_body_budget_requires_references_split_passes_when_under_threshold(
+        self,
+    ) -> None:
+        """4900-word body, no reference cited → SKIP-as-PASS (under threshold)."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_skill_md(
+                root, ".agents/skills", "small-skill",
+                body_word_count=4900,
+                cited_reference_filename=None,
+            )
+            result = sv.check_body_budget_requires_references_split(
+                repo_root=root, spec_text=self._SPEC_WITH_S24_3
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertEqual(
+                result.id, "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT"
+            )
+            # Either SKIP-as-PASS path 3 ("all under threshold") or a
+            # generic empty-findings PASS — both are acceptable; what
+            # matters is no FAIL.
+            evidence = result.evidence
+            self.assertIn(
+                "body_budget_threshold", evidence
+            )
+            self.assertEqual(evidence["body_budget_threshold"], 5000)
+
+    def test_body_budget_requires_references_split_fails_when_over_threshold_no_reference(
+        self,
+    ) -> None:
+        """5500-word body, no reference cited → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_skill_md(
+                root, ".agents/skills", "big-skill-no-refs",
+                body_word_count=5500,
+                cited_reference_filename=None,
+            )
+            result = sv.check_body_budget_requires_references_split(
+                repo_root=root, spec_text=self._SPEC_WITH_S24_3
+            )
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("big-skill-no-refs", result.message)
+            self.assertIn("no references", result.message)
+            findings = result.evidence["findings"]
+            self.assertEqual(len(findings), 1)
+
+    def test_body_budget_requires_references_split_passes_when_over_threshold_with_valid_reference(
+        self,
+    ) -> None:
+        """5500-word body + cites real reference file → PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_skill_md(
+                root, ".agents/skills", "big-skill-with-ref",
+                body_word_count=5500,
+                cited_reference_filename="long-material-r1-summary.md",
+                create_referenced_file=True,
+            )
+            result = sv.check_body_budget_requires_references_split(
+                repo_root=root, spec_text=self._SPEC_WITH_S24_3
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            # over-threshold count should be 1
+            self.assertEqual(
+                result.evidence["files_over_threshold"], 1
+            )
+            entry = next(
+                e for e in result.evidence["per_artifact"]
+                if e.get("over_threshold") is True
+            )
+            self.assertIn(
+                "long-material-r1-summary.md",
+                entry["references_existing"],
+            )
+            self.assertEqual(entry["references_missing"], [])
+            self.assertTrue(entry["pass"])
+
+    def test_body_budget_requires_references_split_fails_when_cited_reference_missing(
+        self,
+    ) -> None:
+        """5500-word body + cites references/missing.md (file absent) → FAIL."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_skill_md(
+                root, ".agents/skills", "big-skill-broken-cite",
+                body_word_count=5500,
+                cited_reference_filename="missing.md",
+                create_referenced_file=False,
+            )
+            result = sv.check_body_budget_requires_references_split(
+                repo_root=root, spec_text=self._SPEC_WITH_S24_3
+            )
+            self.assertFalse(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertIn("big-skill-broken-cite", result.message)
+            self.assertIn("missing.md", result.message)
+            findings = result.evidence["findings"]
+            self.assertEqual(len(findings), 1)
+            self.assertIn("none of those files exist", findings[0])
+
+    def test_body_budget_requires_references_split_skips_when_no_skill_md_found(
+        self,
+    ) -> None:
+        """Empty repo (no SKILL.md anywhere) → SKIP-as-PASS."""
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            result = sv.check_body_budget_requires_references_split(
+                repo_root=root, spec_text=self._SPEC_WITH_S24_3
+            )
+            self.assertTrue(result.passed, msg=result.message)
+            self.assertEqual(result.severity, "BLOCKER")
+            self.assertEqual(
+                result.evidence["skipped_reason"], "no_skill_md_files"
+            )
+            # Pre-v0.4.4 spec path also SKIPs as PASS regardless of artefacts.
+            result_pre_v044 = sv.check_body_budget_requires_references_split(
+                repo_root=root, spec_text=self._SPEC_WITHOUT_S24_3
+            )
+            self.assertTrue(result_pre_v044.passed)
+            self.assertEqual(
+                result_pre_v044.evidence["skipped_reason"],
+                "spec_lacks_section_24_3_marker",
+            )
+
+    def test_body_budget_requires_references_split_wired_into_run_all_total_16(
+        self,
+    ) -> None:
+        """run_all against v0.4.4-rc1 spec emits 16 results, last = BLOCKER 16."""
+
+        if not SPEC_V0_4_4_RC1.exists():
+            self.skipTest("spec_v0.4.4-rc1.md not present in this checkout")
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(_REPO_ROOT / "tools/spec_validator.py"),
+                "--spec",
+                str(SPEC_V0_4_4_RC1),
+                "--json",
+            ],
+            cwd=str(_REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stderr)
+        payload = json.loads(proc.stdout.strip().splitlines()[-1])
+        self.assertEqual(payload["verdict"], "PASS")
+        self.assertEqual(len(payload["results"]), 16)
+        ids = [r["id"] for r in payload["results"]]
+        self.assertEqual(
+            ids[-1], "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT"
+        )
+        passed_count = sum(1 for r in payload["results"] if r["passed"])
+        self.assertEqual(passed_count, 16)
+        body_blocker = next(
+            r
+            for r in payload["results"]
+            if r["id"] == "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT"
+        )
+        # Real repo path: SKIP-as-PASS path 3 (Si-Chip's own SKILL.md
+        # body is ~4929 tokens — under the 5000 threshold so no
+        # SKILL.md crosses the graduated trigger).
+        self.assertEqual(
+            body_blocker["evidence"]["body_budget_threshold"], 5000
+        )
+        self.assertEqual(
+            body_blocker["evidence"]["skipped_reason"],
+            "all_skill_md_under_body_budget",
+        )
+
+    def test_body_budget_requires_references_split_backward_compat_legacy_specs_pass_15_blockers(
+        self,
+    ) -> None:
+        """Legacy specs (v0.4.3, v0.4.2, v0.4.0) still PASS 15 historical BLOCKERs (BLOCKER 16 SKIP-PASSes)."""
+
+        for spec_path in (
+            SPEC_V0_4_3_RC1, SPEC_V0_4_2_RC1, SPEC_V0_4_0,
+        ):
+            if not spec_path.exists():
+                continue
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(_REPO_ROOT / "tools/spec_validator.py"),
+                    "--spec",
+                    str(spec_path),
+                    "--json",
+                ],
+                cwd=str(_REPO_ROOT),
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(
+                proc.returncode, 0,
+                msg=f"spec={spec_path.name} stderr={proc.stderr}",
+            )
+            payload = json.loads(proc.stdout.strip().splitlines()[-1])
+            self.assertEqual(
+                payload["verdict"], "PASS",
+                msg=f"spec={spec_path.name}",
+            )
+            self.assertEqual(len(payload["results"]), 16)
+            # BLOCKER 16 must be SKIP-as-PASS for pre-v0.4.4 specs.
+            body_blocker = next(
+                r
+                for r in payload["results"]
+                if r["id"] == "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT"
+            )
+            self.assertTrue(body_blocker["passed"])
+            self.assertEqual(
+                body_blocker["evidence"]["skipped_reason"],
+                "spec_lacks_section_24_3_marker",
+                msg=f"spec={spec_path.name}",
+            )
 
 
 class EvidenceFilesPerRoundTests(unittest.TestCase):

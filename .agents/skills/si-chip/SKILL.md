@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.3.
+description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.4.
 when_to_use: When a Skill needs eval evidence, router_floor, half-retire, C0, token-tier, provenance, or health-smoke.
-version: 0.4.3
+version: 0.4.4
 license: Apache-2.0
 ---
 
@@ -76,35 +76,22 @@ spec §14.2). Every round computes the top-level invariant
 
 Details: `references/core-goal-invariant-r11-summary.md`.
 
-### Token-Tier Invariant — v0.4.0 Add-on (§18)
+### v0.4.0 Add-ons (§18 / §19 / §20 / §21 / §22 / §23)
 
-Token usage decomposes into three top-level tiers `C7_eager_per_session / C8_oncall_per_trigger / C9_lazy_avg_per_load` (beside `metrics` and `core_goal`; NOT inside R6 D2). Adds OPTIONAL EAGER-weighted `iteration_delta` formula, `R3` split into `R3_eager_only` / `R3_post_trigger`, Informative `prose_class` taxonomy, `.lazy-manifest` packaging gate, and `tier_transitions` block on `iteration_delta_report.yaml`. Details: `references/token-tier-invariant-r12-summary.md`.
+- **§18 Token-Tier**: `token_tier {C7_eager_per_session, C8_oncall_per_trigger, C9_lazy_avg_per_load}` (top-level, NOT R6 D2) + EAGER-weighted iteration_delta + R3 split + `.lazy-manifest` gate + `tier_transitions`. Ref: `references/token-tier-invariant-r12-summary.md`.
+- **§19 Real-Data Verification**: 3-layer sub-step of §8.1 step 2 (msw fixture / user-install / post-recovery). Hard rule 12 / BLOCKER 13 requires grep-able `// real-data sample provenance: <captured_at> / <observer>`. Ref: `references/real-data-verification-r12-summary.md`.
+- **§20 Stage Transitions & Promotion History**: `stage_transition_table` (reverse forbidden) + append-only `lifecycle.promotion_history` + `metrics_report.yaml.promotion_state`; `round_kind=ship_prep` → 7th evidence `ship_decision.yaml`. Ref: `references/lifecycle-state-machine-r12-summary.md`.
+- **§21 Health Smoke Check**: `packaging.health_smoke_check` REQUIRED when `live_backend: true` (hard rule 13 / BLOCKER 14); 4-axis `{read, write, auth, dependency}`; OTel `gen_ai.tool.name=si-chip.health_smoke`. Ref: `references/health-smoke-check-r12-summary.md`.
+- **§22 Eval-Pack Curation**: v1 20 / v2 **40** / v3 60+ prompts; G1 `provenance` REQUIRED; deterministic seed `hash(round_id + ability_id)`; real-LLM cache at `raw/real_llm_runner_cache/`. Ref: `references/eval-pack-curation-r12-summary.md`.
+- **§23 Method-Tagged Metrics**: `<metric>_method` companions + `_ci_low/_ci_high` for `char_heuristic`; `U1_language_breakdown` + `U4_*_state`. Ref: `references/method-tagged-metrics-r12-summary.md`.
 
-### Real-Data Verification — v0.4.0 Add-on (§19)
+### Skill Hygiene Discipline — v0.4.2 / v0.4.3 / v0.4.4 Add-ons (§24)
 
-Normative sub-step of §8.1 step 2 `evaluate` (main list count unchanged). Three layers: msw fixture provenance, user-install verification, post-recovery live verification. `feedback_real_data_samples.yaml` holds redacted production samples. Hard rule 12 / BLOCKER 13 `REAL_DATA_FIXTURE_PROVENANCE` requires grep-able `// real-data sample provenance: <captured_at> / <observer>` citations. Details: `references/real-data-verification-r12-summary.md`.
+§24.1 Normative (v0.4.2): description ≤ 1024 chars; binding `min(chars,bytes)` (CJK fair); "what + when" only. Hard rule 14 / BLOCKER 15. Ref: `references/description-discipline-r13-summary.md`.
 
-### Stage Transitions & Promotion History — v0.4.0 Add-on (§20)
+§24.2 Informative (v0.4.3): Rationalizations / Red Flags / Verification — recommended end-of-body sections (applied below). Template `templates/skill_md_sections.template.md`. Ref: `references/standardized-sections-r13-summary.md`.
 
-§2.2 stages gain a formal `stage_transition_table` (reverse transitions forbidden). `lifecycle.promotion_history` is append-only. `metrics_report.yaml.promotion_state` is a first-class top-level block. When `round_kind == 'ship_prep'` the round emits a **7th evidence file** `ship_decision.yaml`. Backward-compat: legacy rounds keep `promotion_history: null`. Details: `references/lifecycle-state-machine-r12-summary.md`.
-
-### Health Smoke Check — v0.4.0 Add-on (§21)
-
-`packaging.health_smoke_check` is OPTIONAL at schema level, REQUIRED when `current_surface.dependencies.live_backend: true` (hard rule 13 / BLOCKER 14). Each entry declares axes from the 4-axis taxonomy `{read, write, auth, dependency}`. §8.1 step 8 `package-register` runs every declared probe and gates ship-eligibility. Probes emit OTel spans `gen_ai.tool.name=si-chip.health_smoke` (spec-internal observability; does NOT reinvent Kubernetes liveness/readiness). Details: `references/health-smoke-check-r12-summary.md`.
-
-### Eval-Pack Curation Discipline — v0.4.0 Add-on (§22)
-
-Minimum pack size by gate: v1 20 prompts, v2 **40 prompts** (curated near-miss bucket), v3 60+ recommended. G1 `provenance ∈ {real_llm_sweep, deterministic_simulation, mixed}` is first-class REQUIRED. Informative `templates/eval_pack_qa_checklist.md` + Normative `templates/recovery_harness.template.yaml` (T4). §3.2 frozen constraint #5: deterministic seed `hash(round_id + ability_id)`. Real-LLM cache at `.local/dogfood/<DATE>/<round_id>/raw/real_llm_runner_cache/`. Details: `references/eval-pack-curation-r12-summary.md`.
-
-### Method-Tagged Metrics — v0.4.0 Add-on (§23)
-
-Every metric emits a `<metric>_method` companion — token metrics take `{tiktoken, char_heuristic, llm_actual}`; quality/routing take `{real_llm, deterministic_simulator, mixed}`; G1 takes `{real_llm_sweep, deterministic_simulation, mixed}`. `_method == char_heuristic` also requires `_ci_low` + `_ci_high` 95% CI bands. Adds `U1_language_breakdown` + `U4_time_to_first_success_state ∈ {warm, cold, semicold}`. `spec_validator::R6_KEYS` BLOCKER ignores companion suffixes. Details: `references/method-tagged-metrics-r12-summary.md`.
-
-### Skill Hygiene Discipline — v0.4.2 + v0.4.3 Add-ons (§24)
-
-§24.1 (Normative): description ≤ 1024 chars (binding `min(chars,bytes)`; CJK fair); "what + when", not workflow. Hard rule 14 / BLOCKER 15. Details: `references/description-discipline-r13-summary.md`.
-
-§24.2 (Informative; v0.4.3): Rationalizations + Red Flags + Verification — recommended end-of-body SKILL.md sections (sample applied below). Template `templates/skill_md_sections.template.md`; details `references/standardized-sections-r13-summary.md`. Absorbed from addyosmani/agent-skills v1.0.0.
+§24.3 Normative (v0.4.4): when `body_tokens > 5000` (v3_strict budget) → MUST cite ≥1 existing `references/<file>.md` (graduated: encouraged at v1 if body > 4000, MUST at v3). Hard rule 15 / BLOCKER 16 `BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`. `templates/lazy_manifest.template.yaml` promoted to Normative-conditional. Ref: `references/progressive-disclosure-r13-summary.md`. All §24 add-ons absorbed from addyosmani/agent-skills v1.0.0.
 
 ## When To Trigger
 
@@ -122,6 +109,7 @@ Every metric emits a `<metric>_method` companion — token metrics take `{tiktok
 - "verify real-data fixtures" → §19 provenance audit; grep `// real-data sample provenance: ...`.
 - "run health smoke probes before ship" → §21 packaging-gate; iterate `packaging.health_smoke_check`.
 - "audit description length" → §24.1 cap; run `spec_validator.py` and inspect `DESCRIPTION_CAP_1024` entries.
+- "SKILL body grew past 5000 tokens" → §24.3.1 graduated trigger; split long sections to `references/<topic>.md` and cite verbatim from body; BLOCKER 16 verifies cite + file existence.
 
 ## When NOT To Trigger
 
@@ -138,8 +126,9 @@ Every metric emits a `<metric>_method` companion — token metrics take `{tiktok
 |---|---|
 | "Skip dogfood this round" | §8.1 step 8 + §8.3 multi-round rule = ship-blocker. |
 | "C0 regression is just measurement noise" | §14.3.2: any C0 < prior = round FAIL → §14.4 REVERT-only. |
-| "spec_validator BLOCKER too strict" | BLOCKERs ↔ AGENTS.md hard rules 9-14; bypass = workspace policy violation. |
+| "spec_validator BLOCKER too strict" | BLOCKERs ↔ AGENTS.md hard rules 9-15; bypass = workspace policy violation. |
 | "Ship without iteration_delta proof" | §15.2 strict for code_change requires ≥1 axis at gate bucket. |
+| "Just stuff the long material into SKILL.md body" | §24.3.1 + BLOCKER 16: body > 5000 MUST cite existing `references/<file>.md`; split first, don't cram. |
 
 ## Red Flags
 
@@ -148,6 +137,7 @@ Every metric emits a `<metric>_method` companion — token metrics take `{tiktok
 - `description_length > 1024` bypassed (BLOCKER 15 / hard rule 14).
 - `iteration_delta_report.verdict.pass = true` set without an axis at the gate bucket (§15.2).
 - `T2_pass_k _method=real_llm` claimed while `raw/real_llm_runner_cache/` is missing (§22.6 + §23.1).
+- `body_tokens > 5000` without a `references/<file>.md` cite + existing file (BLOCKER 16 / hard rule 15; §24.3.1 graduated v3_strict trigger).
 
 ## Verification
 
@@ -185,7 +175,7 @@ Each round produces 6 evidence files (§8.2): `basic_ability_profile.yaml` / `me
 
 **v0.4.0**: `round_kind=ship_prep` emits 7 files (+`ship_decision.yaml` §20.4); token-tier C7/C8/C9 OPTIONAL-but-REQUIRED-when-reported (BLOCKER 12); real-data provenance REQUIRED when declared (BLOCKER 13); `health_smoke_check` REQUIRED when `live_backend: true` (BLOCKER 14).
 
-**v0.4.2 / v0.4.3**: see §24 add-ons (§24.1 description cap BLOCKER 15; §24.2 Informative Rationalizations + Red Flags + Verification applied above).
+**v0.4.2 / v0.4.3 / v0.4.4**: see §24 add-ons (§24.1 description cap BLOCKER 15; §24.2 Informative Rationalizations + Red Flags + Verification applied above; §24.3 progressive-disclosure body-budget BLOCKER 16).
 
 ## References Index
 
@@ -207,6 +197,8 @@ Each round produces 6 evidence files (§8.2): `basic_ability_profile.yaml` / `me
 | `references/method-tagged-metrics-r12-summary.md` | §23 `<metric>_method` companions + `_ci_low`/`_ci_high` + U1/U4 language/state extensions. |
 | `references/description-discipline-r13-summary.md` | §24.1 description cap 1024 + "what+when" + CJK fairness; BLOCKER 15. |
 | `references/standardized-sections-r13-summary.md` | §24.2 Informative Common Rationalizations + Red Flags + Verification template (no BLOCKER); reference impl in own SKILL.md above. |
+| `references/progressive-disclosure-r13-summary.md` | §24.3 Normative body-budget triggers references/ split (graduated v1 best-practice → v3 MUST); hard rule 15 / BLOCKER 16. |
+| `templates/lazy_manifest.template.yaml` | §18.5 v0.4.0 + §24.3.3 v0.4.4 (Normative-conditional when SKILL body crosses v3_strict threshold; cross-linked from progressive-disclosure ref). |
 
 Reference files are loaded on demand and are excluded from the §7.3
 SKILL.md body budget.
@@ -230,8 +222,8 @@ Steps 4–7 instantiate `templates/{next_action_plan,router_test_matrix,half_ret
 
 Forever-out per §11.1: marketplace / router-model training / generic IDE compat / Markdown-to-CLI. Reject any such request. Codex native SKILL.md runtime is §11.2 deferred (bridge-only at v0.2.0).
 
-**v0.3.0 / v0.4.0 / v0.4.2 / v0.4.3 reaffirm forever-out**: core_goal, token-tier, real-data verification, health-smoke, §24.1 description cap, and §24.2 standardized sections introduce NONE of the four §11.1 items (re-affirmed verbatim in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7 + §23.7 + §24.1.3 + §24.2.6).
+**v0.3.0 / v0.4.0 / v0.4.2 / v0.4.3 / v0.4.4 reaffirm forever-out**: core_goal, token-tier, real-data verification, health-smoke, §24.1 description cap, §24.2 standardized sections, and §24.3 progressive-disclosure introduce NONE of the four §11.1 items (re-affirmed verbatim in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7 + §23.7 + §24.1.3 + §24.2.6 + §24.3.6).
 
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.3-rc1.md` (rc; +§24.2 Informative absorbed from addyosmani/agent-skills v1.0.0; §1–§24.1 byte-identical to v0.4.2-rc1) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.4-rc1.md` (rc; +§24.3 Normative absorbed from addyosmani/agent-skills v1.0.0 progressive-disclosure pattern; §1–§24.2 byte-identical to v0.4.3-rc1) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.

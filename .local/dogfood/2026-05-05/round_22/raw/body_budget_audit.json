@@ -1,0 +1,135 @@
+{
+  "audit_artifact": "body_budget_audit.json",
+  "audit_round_id": "round_22",
+  "audit_at": "2026-05-05T01:30:00+00:00",
+  "spec_version": "v0.4.4-rc1",
+  "spec_section": "§24.3.1 + §24.3.4",
+  "blocker_id": "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT",
+  "blocker_severity": "BLOCKER",
+  "body_budget_threshold": 5000,
+  "graduated_trigger_recommendation_at_v1": 4000,
+  "graduated_trigger_must_at_v3_strict": 5000,
+  "skill_md_files_inspected": 3,
+  "files_over_threshold": 0,
+  "verdict_overall": "SKIP_AS_PASS",
+  "verdict_reason": "all_skill_md_under_body_budget",
+  "measurement_consistency_constraint": "BLOCKER 16 body-token measurement MUST match scripts/count_tokens.py::count_tokens (drift < 5% binding per §24.3.4)",
+  "measurement_consistency_drift_pct": 0.0,
+  "measurement_consistency_verdict": "PASS",
+  "per_skill_md": [
+    {
+      "path": ".agents/skills/si-chip/SKILL.md",
+      "body_tokens": 4969,
+      "body_tokens_backend": "tiktoken",
+      "body_tokens_via_count_tokens_py": 4969,
+      "body_tokens_via_blocker_16": 4969,
+      "drift_pct_vs_count_tokens": 0.0,
+      "over_threshold": false,
+      "blocker_16_verdict_for_this_file": "SKIP_AS_PASS_under_threshold",
+      "v3_strict_margin": 31,
+      "references_cited_count": 16,
+      "references_cited_examples": [
+        "references/basic-ability-profile.md",
+        "references/self-dogfood-protocol.md",
+        "references/metrics-r6-summary.md",
+        "references/router-test-r8-summary.md",
+        "references/half-retirement-r9-summary.md",
+        "references/core-goal-invariant-r11-summary.md",
+        "references/round-kind-r11-summary.md",
+        "references/multi-ability-layout-r11-summary.md",
+        "references/token-tier-invariant-r12-summary.md",
+        "references/real-data-verification-r12-summary.md",
+        "references/lifecycle-state-machine-r12-summary.md",
+        "references/health-smoke-check-r12-summary.md",
+        "references/eval-pack-curation-r12-summary.md",
+        "references/method-tagged-metrics-r12-summary.md",
+        "references/description-discipline-r13-summary.md",
+        "references/standardized-sections-r13-summary.md",
+        "references/progressive-disclosure-r13-summary.md"
+      ],
+      "references_existing_count": 16
+    },
+    {
+      "path": ".cursor/skills/si-chip/SKILL.md",
+      "body_tokens": 4969,
+      "body_tokens_backend": "tiktoken",
+      "body_tokens_via_count_tokens_py": 4969,
+      "body_tokens_via_blocker_16": 4969,
+      "drift_pct_vs_count_tokens": 0.0,
+      "over_threshold": false,
+      "blocker_16_verdict_for_this_file": "SKIP_AS_PASS_under_threshold",
+      "v3_strict_margin": 31,
+      "references_cited_count": 16,
+      "references_existing_count": 16,
+      "byte_identical_to_source_of_truth": true
+    },
+    {
+      "path": ".claude/skills/si-chip/SKILL.md",
+      "body_tokens": 4969,
+      "body_tokens_backend": "tiktoken",
+      "body_tokens_via_count_tokens_py": 4969,
+      "body_tokens_via_blocker_16": 4969,
+      "drift_pct_vs_count_tokens": 0.0,
+      "over_threshold": false,
+      "blocker_16_verdict_for_this_file": "SKIP_AS_PASS_under_threshold",
+      "v3_strict_margin": 31,
+      "references_cited_count": 16,
+      "references_existing_count": 16,
+      "byte_identical_to_source_of_truth": true
+    }
+  ],
+  "tree_byte_equality_check": {
+    "agents_skills_si_chip_skill_md_sha256": "a23875fec03ab83d60f8961a14cc156758785ae2ad8751f768631702917c5ab2",
+    "cursor_skills_si_chip_skill_md_sha256": "a23875fec03ab83d60f8961a14cc156758785ae2ad8751f768631702917c5ab2",
+    "claude_skills_si_chip_skill_md_sha256": "a23875fec03ab83d60f8961a14cc156758785ae2ad8751f768631702917c5ab2",
+    "all_three_byte_identical": true,
+    "drift_pct": 0.0
+  },
+  "graduated_v3_trigger_assessment": {
+    "rule_summary": "BLOCKER 16 fires only when body > 5000 (v3_strict body budget); spec encourages references-split at body > 4000 (v1 best practice). Graduated nature is intentional — same numeric threshold across v1/v2/v3, but at v3 it MUST be enforceable via spec_validator.",
+    "current_si_chip_position_relative_to_v3_must": "31 tokens under threshold (4969/5000)",
+    "current_si_chip_position_relative_to_v1_recommendation": "969 tokens over recommendation (4969/4000) — Si-Chip is past the v1 'consider splitting' line; the existing 17 reference docs already represent the references-split practice in action; the SKILL.md body is held at 4969 because long material has already been split out. This is the canonical reference-implementation pattern §24.3 encodes.",
+    "future_round_advisory": "If future SKILL.md edits push body past 5000, BLOCKER 16 will FAIL unless author adds at least one valid references/<file>.md cite (and creates the corresponding file). The 17 existing references/* docs already provide ample cite candidates."
+  },
+  "spec_validator_blocker_16_function": "tools/spec_validator.py::check_body_budget_requires_references_split",
+  "test_coverage": {
+    "test_class": "BodyBudgetRequiresReferencesSplitTests",
+    "test_methods_count": 7,
+    "test_methods": [
+      "test_body_budget_requires_references_split_passes_when_under_threshold",
+      "test_body_budget_requires_references_split_fails_when_over_threshold_no_reference",
+      "test_body_budget_requires_references_split_passes_when_over_threshold_with_valid_reference",
+      "test_body_budget_requires_references_split_fails_when_cited_reference_missing",
+      "test_body_budget_requires_references_split_skips_when_no_skill_md_found",
+      "test_body_budget_requires_references_split_wired_into_run_all_total_16",
+      "test_body_budget_requires_references_split_backward_compat_legacy_specs_pass_15_blockers"
+    ],
+    "all_passing": true
+  },
+  "absorbed_external_source": {
+    "repo": "addyosmani/agent-skills",
+    "version": "v1.0.0",
+    "upstream_pushed_at": "2026-05-03",
+    "upstream_doc": "docs/skill-anatomy.md (progressive disclosure pattern: SKILL.md body kept ≤ ~5KB; long material in references/<topic>.md files loaded only when explicitly cited)",
+    "absorbed_into": [
+      "Si-Chip spec §24.3 (Normative)",
+      "Si-Chip spec §17.8 (hard rule 15)",
+      "tools/spec_validator.py BLOCKER 16 BODY_BUDGET_REQUIRES_REFERENCES_SPLIT",
+      ".agents/skills/si-chip/references/progressive-disclosure-r13-summary.md"
+    ],
+    "absorbed_at": "2026-05-05",
+    "exclusions": [
+      "marketplace direction (§11.1 forever-out)",
+      "plugin distribution surface (§11.1 forever-out)",
+      "per-skill installer architecture (§11.1 forever-out)",
+      "Markdown-to-CLI tooling (§11.1 forever-out)"
+    ]
+  },
+  "spec_11_forever_out_compliance": {
+    "marketplace": "PASS — body-budget rule is local-file workmanship, not distribution surface",
+    "router_model_training": "PASS — deterministic length + grep + filesystem check, not weight learning",
+    "generic_ide_compat": "PASS — schema is ability-local Markdown body + sibling references/, behaves identically across all 3 platform mirrors; §7.2 priority unchanged",
+    "markdown_to_cli": "PASS — BLOCKER 16 is a validator, not a code generator",
+    "verdict": "ALL 4 §11.1 ITEMS REMAIN FOREVER-OUT — ROUND 22 COMPLIANT"
+  }
+}
