@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.2.
+description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.3.
 when_to_use: When a Skill needs eval evidence, router_floor, half-retire, C0, token-tier, provenance, or health-smoke.
-version: 0.4.2
+version: 0.4.3
 license: Apache-2.0
 ---
 
@@ -100,65 +100,67 @@ Minimum pack size by gate: v1 20 prompts, v2 **40 prompts** (curated near-miss b
 
 Every metric emits a `<metric>_method` companion — token metrics take `{tiktoken, char_heuristic, llm_actual}`; quality/routing take `{real_llm, deterministic_simulator, mixed}`; G1 takes `{real_llm_sweep, deterministic_simulation, mixed}`. `_method == char_heuristic` also requires `_ci_low` + `_ci_high` 95% CI bands. Adds `U1_language_breakdown` + `U4_time_to_first_success_state ∈ {warm, cold, semicold}`. `spec_validator::R6_KEYS` BLOCKER ignores companion suffixes. Details: `references/method-tagged-metrics-r12-summary.md`.
 
-### Skill Hygiene Discipline — v0.4.2 Add-on (§24)
+### Skill Hygiene Discipline — v0.4.2 + v0.4.3 Add-ons (§24)
 
-Description ≤ 1024 chars (binding `min(chars,bytes)`; CJK fair); "what + when", not workflow. Hard rule 14 / BLOCKER 15 `DESCRIPTION_CAP_1024`. Absorbed from addyosmani/agent-skills v1.0.0. Details: `references/description-discipline-r13-summary.md`.
+§24.1 (Normative): description ≤ 1024 chars (binding `min(chars,bytes)`; CJK fair); "what + when", not workflow. Hard rule 14 / BLOCKER 15. Details: `references/description-discipline-r13-summary.md`.
+
+§24.2 (Informative; v0.4.3): Rationalizations + Red Flags + Verification — recommended end-of-body SKILL.md sections (sample applied below). Template `templates/skill_md_sections.template.md`; details `references/standardized-sections-r13-summary.md`. Absorbed from addyosmani/agent-skills v1.0.0.
 
 ## When To Trigger
 
-Use Si-Chip whenever a Skill needs eval evidence, a `router_floor`, or a
-half-retire decision.
-
-- User says: "evaluate this skill" or "is this skill worth keeping" →
-  Trigger Si-Chip to run profile + evaluate + diagnose.
-- User says: "what router floor does this ability need" → Trigger Si-Chip's
-  router-test step (§5.3 8-cell MVP, or 96-cell Full at v2_tightened+).
-- User says: "should we retire skill X" → Trigger Si-Chip's
-  half-retire-review (§6) and emit a `half_retire_decision.yaml`.
-- User says: "compare this round to last round" → Trigger Si-Chip's iterate
-  step and emit an `iteration_delta_report.yaml`.
-- User says: "package this skill for Cursor / Claude Code" → Trigger
-  Si-Chip's package-register step (§7 priority order).
-- User says: "generate a `BasicAbilityProfile` for ..." → Trigger Si-Chip
-  step 1 (`scripts/profile_static.py`).
-- User says: "diagnose why this skill is slow / costly / off-trigger" →
-  Trigger Si-Chip's diagnose step against R6's 7 dim / 37 sub-metrics.
-- User says: "draft next round's plan" → Trigger Si-Chip step 4 and emit a
-  `next_action_plan.yaml`.
-- User says: "verify core_goal hasn't regressed" → Trigger Si-Chip's eval
-  step with the C0 check (§14.3); run `tools/eval_skill.py` with
-  `--core-goal-test-pack`.
-- User says: "this round only added measurement" → Set
-  `round_kind: measurement_only` per §15.1 (iteration_delta clause
-  RELAXED to monotonicity-only).
-- User says: "audit my token tier EAGER/ON-CALL/LAZY breakdown" → spec
-  §18 decomposition helpers; emit `token_tier {C7, C8, C9}` block and
-  EAGER-weighted `iteration_delta` per §18.2.
-- User says: "verify real-data fixtures trace to production payloads" →
-  spec §19 provenance audit; grep `// real-data sample provenance: ...`
-  citations and cross-check `feedback_real_data_samples.yaml`.
-- User says: "run health smoke probes before ship" → spec §21
-  packaging-gate; iterate `packaging.health_smoke_check` axes and write
-  `raw/health_smoke_results.yaml`.
-- User says: "audit my skill description length" → §24.1 cap; run
-  `tools/spec_validator.py` and inspect the `DESCRIPTION_CAP_1024`
-  BLOCKER's `per_artifact` chars / bytes / binding length entries.
+- "evaluate this skill" / "is this skill worth keeping" → profile + evaluate + diagnose.
+- "what router floor does this ability need" → router-test (§5.3 8-cell MVP / 96-cell Full at v2+).
+- "should we retire skill X" → half-retire-review (§6) → emit `half_retire_decision.yaml`.
+- "compare this round to last round" → iterate → emit `iteration_delta_report.yaml`.
+- "package this skill for Cursor / Claude Code" → package-register (§7 priority order).
+- "generate a `BasicAbilityProfile` for ..." → step 1 (`scripts/profile_static.py`).
+- "diagnose why this skill is slow / costly / off-trigger" → diagnose against R6's 7 dim / 37 sub-metrics.
+- "draft next round's plan" → step 4 → emit `next_action_plan.yaml`.
+- "verify core_goal hasn't regressed" → eval with C0 check (§14.3); `tools/eval_skill.py --core-goal-test-pack`.
+- "this round only added measurement" → set `round_kind: measurement_only` (§15.1; iteration_delta RELAXED to monotonicity).
+- "audit token tier EAGER/ON-CALL/LAZY" → §18 decomposition; emit `token_tier {C7,C8,C9}` + EAGER-weighted `iteration_delta` (§18.2).
+- "verify real-data fixtures" → §19 provenance audit; grep `// real-data sample provenance: ...`.
+- "run health smoke probes before ship" → §21 packaging-gate; iterate `packaging.health_smoke_check`.
+- "audit description length" → §24.1 cap; run `spec_validator.py` and inspect `DESCRIPTION_CAP_1024` entries.
 
 ## When NOT To Trigger
 
-- User says: "publish this skill on a marketplace" → reject (spec §11.1
-  forever-out: marketplace).
-- User says: "train a router model on these traces" → reject (spec §11.1
-  forever-out: Router model training).
-- User says: "auto-convert this Markdown into a CLI" → reject (spec §11.1
-  forever-out: Markdown-to-CLI converter).
-- User says: "make Si-Chip support OpenCode / Copilot CLI / Gemini CLI" →
-  reject (spec §11.1 forever-out: generic IDE compatibility layer; native
-  Codex SKILL.md runtime is §11.2 deferred — bridge only at v0.2.0).
-- User says: "just write this Python file" → not Si-Chip; no BasicAbility
-  loop is needed. Use a direct edit instead.
-- User says: "explain what BPE tokens are" → not Si-Chip; informational
-  query only.
+- "publish on marketplace" → reject (§11.1 forever-out).
+- "train a router model on these traces" → reject (§11.1 forever-out).
+- "auto-convert Markdown into CLI" → reject (§11.1 forever-out).
+- "make Si-Chip support OpenCode / Copilot CLI / Gemini CLI" → reject (§11.1; Codex bridge-only per §11.2 deferred).
+- "just write this Python file" → not Si-Chip; use direct edit (no BasicAbility loop needed).
+- "explain what BPE tokens are" → not Si-Chip; informational only.
+
+## Common Rationalizations
+
+| Rationalization | Reality |
+|---|---|
+| "Skip dogfood this round" | §8.1 step 8 + §8.3 multi-round rule = ship-blocker. |
+| "C0 regression is just measurement noise" | §14.3.2: any C0 < prior = round FAIL → §14.4 REVERT-only. |
+| "spec_validator BLOCKER too strict" | BLOCKERs ↔ AGENTS.md hard rules 9-14; bypass = workspace policy violation. |
+| "Ship without iteration_delta proof" | §15.2 strict for code_change requires ≥1 axis at gate bucket. |
+
+## Red Flags
+
+- `C0_core_goal_pass_rate < 1.0` silently overlooked.
+- `round_kind` not declared in `next_action_plan.yaml` (hard rule 10 / spec_validator v0.4.0+ catches).
+- `description_length > 1024` bypassed (BLOCKER 15 / hard rule 14).
+- `iteration_delta_report.verdict.pass = true` set without an axis at the gate bucket (§15.2).
+- `T2_pass_k _method=real_llm` claimed while `raw/real_llm_runner_cache/` is missing (§22.6 + §23.1).
+
+## Verification
+
+- [ ] All 6 (or 7 ship_prep) evidence files written under round dir.
+  - Evidence path: `.local/dogfood/<DATE>/round_<N>/`
+- [ ] `python tools/spec_validator.py --json` exits 0; verdict PASS.
+  - Evidence path: `raw/spec_validator.json`
+- [ ] `pytest tools/test_spec_validator.py -q` all green.
+  - Evidence path: `raw/pytest_full.txt`
+- [ ] `count_tokens.py` reports metadata ≤ 100, body ≤ 5000.
+  - Evidence path: `raw/count_tokens.json`
+- [ ] `C0 = 1.0` and `c0_no_regression: true` in `iteration_delta_report.yaml.core_goal_check`.
+  - Evidence path: `iteration_delta_report.yaml`
 
 ## How To Use
 
@@ -177,24 +179,13 @@ scripts, templates, and references are in
 7. **iterate** → `iteration_delta_report.yaml` (≥ 1 efficiency axis at gate bucket: v1 ≥ +0.05, v2 ≥ +0.10, v3 ≥ +0.15).
 8. **package-register** → sync `.agents/skills/si-chip/` to platforms in §7.2 priority order: Cursor → Claude Code → Codex (bridge only).
 
-**v0.3.0 add-on**: at the start of every round, run `python tools/eval_skill.py --core-goal-test-pack <path> ...` to verify `C0_core_goal_pass_rate = 1.0` per §14.3. If C0 < 1.0, the round is REVERT-only per §14.4 — no `iteration_delta_report.verdict.pass = true`, no promotion counter tick, revert the offending source change before starting the next round.
+**v0.3.0**: every round MUST verify `C0_core_goal_pass_rate = 1.0` (§14.3); C0 < 1.0 → REVERT-only round (§14.4) — no `verdict.pass`, no promotion tick, revert source before next round.
 
-Each round must produce six evidence files (§8.2):
-`basic_ability_profile.yaml`, `metrics_report.yaml`,
-`router_floor_report.yaml`, `half_retire_decision.yaml`,
-`next_action_plan.yaml`, `iteration_delta_report.yaml`. v0.1.0 ship
-requires ≥ 2 consecutive rounds; round 2 must pass every `v1_baseline`
-hard threshold (§8.3).
+Each round produces 6 evidence files (§8.2): `basic_ability_profile.yaml` / `metrics_report.yaml` / `router_floor_report.yaml` / `half_retire_decision.yaml` / `next_action_plan.yaml` / `iteration_delta_report.yaml`. Ship requires ≥ 2 consecutive rounds; round 2 must pass every `v1_baseline` threshold (§8.3).
 
-**v0.4.0**: `round_kind=ship_prep` rounds emit 7 evidence files (adds
-`ship_decision.yaml` per §20.4); token-tier C7/C8/C9 decomposition is
-OPTIONAL but REQUIRED-when-reported per hard rule 11 (BLOCKER 12);
-real-data fixture provenance citations REQUIRED when
-`feedback_real_data_samples.yaml` declares samples (BLOCKER 13);
-`health_smoke_check` REQUIRED when
-`current_surface.dependencies.live_backend: true` (BLOCKER 14).
+**v0.4.0**: `round_kind=ship_prep` emits 7 files (+`ship_decision.yaml` §20.4); token-tier C7/C8/C9 OPTIONAL-but-REQUIRED-when-reported (BLOCKER 12); real-data provenance REQUIRED when declared (BLOCKER 13); `health_smoke_check` REQUIRED when `live_backend: true` (BLOCKER 14).
 
-**v0.4.2**: see §24 add-on (description ≤ 1024; BLOCKER 15).
+**v0.4.2 / v0.4.3**: see §24 add-ons (§24.1 description cap BLOCKER 15; §24.2 Informative Rationalizations + Red Flags + Verification applied above).
 
 ## References Index
 
@@ -215,6 +206,7 @@ real-data fixture provenance citations REQUIRED when
 | `references/eval-pack-curation-r12-summary.md` | §22 40-prompt minimum for v2_tightened + G1 provenance + eval_pack_qa_checklist + deterministic seeding. |
 | `references/method-tagged-metrics-r12-summary.md` | §23 `<metric>_method` companions + `_ci_low`/`_ci_high` + U1/U4 language/state extensions. |
 | `references/description-discipline-r13-summary.md` | §24.1 description cap 1024 + "what+when" + CJK fairness; BLOCKER 15. |
+| `references/standardized-sections-r13-summary.md` | §24.2 Informative Common Rationalizations + Red Flags + Verification template (no BLOCKER); reference impl in own SKILL.md above. |
 
 Reference files are loaded on demand and are excluded from the §7.3
 SKILL.md body budget.
@@ -236,31 +228,10 @@ Steps 4–7 instantiate `templates/{next_action_plan,router_test_matrix,half_ret
 
 ## Out of Scope
 
-Forever-out per spec §11.1:
+Forever-out per §11.1: marketplace / router-model training / generic IDE compat / Markdown-to-CLI. Reject any such request. Codex native SKILL.md runtime is §11.2 deferred (bridge-only at v0.2.0).
 
-- Skill / Plugin marketplace and any distribution surface.
-- Router model training or online weight learning.
-- Generic IDE / Agent-runtime compatibility layer.
-- Markdown-to-CLI auto-converter.
-
-Reject any request that pushes Si-Chip into these. Codex native SKILL.md
-runtime is §11.2 deferred — bridge only at v0.2.0.
-
-**v0.3.0 reaffirms forever-out**: `core_goal` is an observability invariant;
-it does NOT introduce marketplace, router-model training, generic IDE
-compat, or markdown-to-CLI conversion (spec §14.6).
-
-**v0.4.0 reaffirms forever-out**: token-tier decomposition is
-observability; real-data verification is testing; health-smoke check is
-a pre-ship probe schema — NONE introduce marketplace, router-model
-training, generic IDE compat, or Markdown-to-CLI conversion (spec §11.1
-verbatim re-affirmed in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7
-+ §23.7).
-
-**v0.4.2 reaffirms forever-out**: §24 absorbs ONLY 1024-char cap +
-"what+when" from agent-skills; NOT marketplace / plugin distribution
-/ Markdown-to-CLI (spec §24.1.3 re-affirms §11.1).
+**v0.3.0 / v0.4.0 / v0.4.2 / v0.4.3 reaffirm forever-out**: core_goal, token-tier, real-data verification, health-smoke, §24.1 description cap, and §24.2 standardized sections introduce NONE of the four §11.1 items (re-affirmed verbatim in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7 + §23.7 + §24.1.3 + §24.2.6).
 
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.2-rc1.md` (rc; +§24 + BLOCKER 15 absorbed from addyosmani/agent-skills v1.0.0; v0.4.0 baseline byte-identical) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.3-rc1.md` (rc; +§24.2 Informative absorbed from addyosmani/agent-skills v1.0.0; §1–§24.1 byte-identical to v0.4.2-rc1) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.

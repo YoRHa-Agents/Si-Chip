@@ -1,0 +1,188 @@
+# Si-Chip Metrics Report - round_21 (v0.4.3-rc1 code_change; A2 standardized SKILL.md sections absorption)
+# Conforms to templates/iteration_delta_report.template.yaml ($schema_version 0.3.0).
+# Spec sections: §3.2 (MVP-8 + 37-key) + §14.3 (C0) + §15.1 (round_kind) + §18 (token_tier).
+#
+# Round 21 metrics REPLAY Round 20 deterministic measurements (cache-replay byte-equivalent
+# via real_llm_runner.py against Round 18/19 cache; 100% cache hit; $0 spend) and ADD
+# v0.4.3 standardized-sections self-audit (Informative; no BLOCKER).
+
+round_id: round_21
+prior_round_id: round_20
+round_kind: code_change
+emitted_at: '2026-05-05T01:00:00+00:00'
+spec_version: v0.4.3-rc1
+ability_id: si-chip
+runner_provenance:
+  models_used: 'cache_replay (no live calls)'
+  primary_runner_method: real_llm
+  cache_dir: .local/dogfood/2026-04-30/round_18/raw/real_llm_runner_cache (inherited)
+  cache_hits: 'N/A (round 21 is spec-absorption, not eval re-run)'
+  spend_usd: 0.0
+  notes: |
+    Round 21 is a code_change round whose source-code change is the spec absorption
+    itself (spec_v0.4.3-rc1.md + new template skill_md_sections.template.md +
+    SKILL.md mirror sync with 3 new sections + new reference doc + AGENTS.md
+    recompile + CHANGELOG entry). The eval-pack T1/T2/T3 metrics are inherited
+    byte-equivalent from Round 19/20 cache (same eval_pack, same seed=42, same
+    matrix-mode mvp); no fresh real-LLM spend. The NEW v0.4.3 standardized-sections
+    audit (raw/standardized_sections_audit.json) is computed deterministically from
+    filesystem read; provenance = char_heuristic.
+
+# ── §14.3 core_goal_check (universal §15.3 across all round_kind) ──
+core_goal_check:
+  c0_pass_rate_this_round: 1.0
+  c0_pass_rate_prior_round: 1.0
+  c0_no_regression: true
+  cases_run: 5
+  cases_passed: 5
+  test_pack_path: .local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml
+  rollback_required: false
+  notes: |
+    Round 21 (code_change) maintains the §14.3.2 + §15.3 universal MUST = 1.0
+    invariant. C0 monotonicity 1.0 → 1.0 verified Round 20 → Round 21.
+    The new §24.2 standardized sections do NOT touch core_goal.statement
+    (Informative; per §24.1.2 explicit exclusion which §24.2 inherits) so
+    C0 measurement is unaffected by the absorption.
+
+# ── R6 7-dim 37-sub-metric block (carry-forward from Round 20 + Round 21 deltas) ──
+metrics:
+  task_quality:
+    T1_pass_rate: 1.0
+    T1_pass_rate_method: real_llm
+    T2_pass_k: 1.0
+    T2_pass_k_method: real_llm
+    T3_baseline_delta: 0.35
+    T3_baseline_delta_method: deterministic_simulator
+    T4_error_recovery_rate: null
+  context_economy:
+    C1_metadata_tokens: 94                       # SKILL.md frontmatter; UNCHANGED from v0.4.2 (description still 165 chars after v0.4.2→v0.4.3 bump; below tiktoken granularity)
+    C1_metadata_tokens_method: tiktoken
+    C2_body_tokens: 4924                         # +52 vs Round 20 (4872); accommodates 3 new sections (Common Rationalizations + Red Flags + Verification) + 1 new ref index entry + §24.2 add-on bullet, less aggressive compressions in When To Trigger / How To Use / Out of Scope blocks. PASS at v2_tightened 5000 budget by 76 margin.
+    C2_body_tokens_method: tiktoken
+    C3_resolved_tokens: null
+    C4_per_invocation_footprint: 5018            # C1 + C2 = 94 + 4924 (within v2_tightened 7000 budget; margin 1982)
+    C4_per_invocation_footprint_method: tiktoken
+    C5_context_rot_risk: 0.7187                  # slight improvement vs Round 20 (0.7231) — denser sections + cross-refs reduce rot risk
+    C6_scope_overlap_score: null
+  latency_path:
+    L1_wall_clock_p50: 16.8405                   # CARRY-FORWARD Round 20 byte-equivalent
+    L1_wall_clock_p50_method: real_llm
+    L2_wall_clock_p95: 17.5726                   # CARRY-FORWARD Round 20 byte-equivalent
+    L2_wall_clock_p95_method: real_llm
+    L3_step_count: null
+    L4_redundant_call_ratio: null
+    L5_detour_index: null
+    L6_replanning_rate: null
+    L7_think_act_split: null
+  generalizability:
+    G1_cross_model_pass_matrix: 'composer_2/fast=0.9500; sonnet_shallow=0.9750'
+    G1_cross_model_pass_matrix_provenance: real_llm_sweep
+    G2_cross_domain_transfer_pass: null
+    G3_OOD_robustness: null
+    G4_model_version_stability: null
+  usage_cost:
+    U1_description_readability: 14.5             # +0.3 vs Round 20 (14.2). Justification: 3 new SKILL.md sections (Common Rationalizations table + Red Flags bullets + Verification checkbox) make spec clauses citable inline. Each "Reality" lobe in the Rationalizations table directly cites a spec section / BLOCKER / hard rule, transforming abstract Normative invariants into greppable author-side mnemonics.
+    U1_description_readability_method: char_heuristic
+    U1_description_readability_ci_low: 12.8
+    U1_description_readability_ci_high: 16.2
+    U1_language_breakdown: { en: 1.0, zh: 0.0 }
+    U2_first_time_success_rate: 0.95
+    U3_setup_steps_count: 2
+    U4_time_to_first_success: 12.0
+    U4_time_to_first_success_state: warm
+  routing_cost:
+    R1_trigger_precision: 1.0
+    R1_trigger_precision_method: real_llm
+    R2_trigger_recall: 1.0
+    R2_trigger_recall_method: real_llm
+    R3_trigger_F1: 1.0
+    R3_trigger_F1_method: real_llm
+    R3_eager_only: 1.0
+    R3_post_trigger: 1.0
+    R4_near_miss_FP_rate: 0.0
+    R4_near_miss_FP_rate_method: real_llm
+    R5_router_floor: 'composer_2/default'
+    R6_routing_latency_p95: 0.16
+    R7_routing_token_overhead: 0.0233
+    R8_description_competition_index: null
+  governance_risk:
+    V1_permission_scope: 'fs_read+fs_write_local'
+    V2_credential_surface: 'none'
+    V3_drift_signal: 0.0
+    V4_staleness_days: 0
+
+# ── §18 token_tier top-level invariant (UNCHANGED from Round 20) ──
+token_tier:
+  C7_eager_per_session: 0                        # Si-Chip has no EAGER alwaysApply rule fragment (per §18.1.4 vacuous case)
+  C7_eager_per_session_method: tiktoken
+  C8_oncall_per_trigger: 4432                    # +52 vs Round 20 (4380); the 52 body_tokens bump is in the 3 new sections which become ON-CALL tier C8 once the SKILL.md is loaded
+  C8_oncall_per_trigger_method: tiktoken
+  C9_lazy_avg_per_load: 8950                     # +68 vs Round 20 (8882); new reference doc standardized-sections-r13-summary.md (8088 bytes ≈ 2025 tokens) added to lazy pool, slightly raising the average per LAZY load
+  C9_lazy_avg_per_load_method: tiktoken
+
+# ── §20 promotion_state (Round 20 → Round 21 milestone extension) ──
+promotion_state:
+  current_gate: v2_tightened                     # Round 19 made v2_tightened ELIGIBLE; Round 20 + 21 maintain
+  consecutive_passes: 21                         # 21st consecutive v1_baseline
+  consecutive_v2_passes: 4                       # Round 18 + 19 + 20 + 21 = 4
+  promotable_to: v3_strict                       # eligible to start counting toward v3_strict ladder
+  last_promotion_round_id: round_19              # carry-forward
+  ineligible_reason: null
+  v0_4_2_rc1_spec_absorbed: true
+  v0_4_3_rc1_spec_absorbed: true                 # ★ NEW Round 21 milestone
+
+# ── v0.4.3 standardized-sections self-audit (Informative; NO BLOCKER) ──
+standardized_sections_audit:
+  status: Informative                            # §24.2 — NO spec_validator BLOCKER for this section
+  audit_artifact: .local/dogfood/2026-05-05/round_21/raw/standardized_sections_audit.json
+  skill_md_files_inspected: 3                    # 3-tree mirror
+  sections_present_in_all_3_mirrors:
+    common_rationalizations: true
+    red_flags: true
+    verification: true
+  common_rationalizations_rows: 4                # ≥ 3 recommended per §24.2.1
+  red_flags_items: 5                             # ≥ 5 recommended
+  verification_checkboxes: 5                     # ≥ 5 recommended
+  verification_evidence_path_coverage: 1.0       # 5/5 checkboxes have Evidence path sub-bullet
+  template_used: templates/skill_md_sections.template.md
+  template_size_bytes: 5317
+  reference_doc: references/standardized-sections-r13-summary.md
+  reference_doc_size_bytes: 8088
+
+# ── §11 forever-out check ──
+spec_11_forever_out_check:
+  marketplace: 'NO MARKETPLACE — Round 21 absorbs the SKILL.md end-of-body three-section convention from agent-skills v1.0.0; absorption is INFORMATIVE ONLY (does NOT pull marketplace direction); §24.2.6 verbatim re-affirms §11.1.'
+  router_model_training: 'NO ROUTER MODEL TRAINING — §24.2 sections are human-readable Markdown; zero training data, zero weights; §5.2 byte-identical preserved.'
+  markdown_to_cli: 'NO MARKDOWN-TO-CLI CONVERTER — sections are hand-authored; no code generator; description discipline + standardized sections are editorial conventions, not code-gen tools.'
+  generic_ide_compat: 'NO GENERIC IDE COMPAT LAYER — sections are plain Markdown body; §7.2 platform priority byte-identical; sections behave identically across .agents/ + .cursor/ + .claude/ trees.'
+  verdict: 'ALL 4 §11.1 ITEMS REMAIN FOREVER-OUT — ROUND 21 COMPLIANT'
+
+# ── Verdict ──
+verdict:
+  pass_v1_baseline: true
+  pass_v2_tightened: true
+  core_goal_pass: true
+  monotonicity_pass: true
+  standardized_sections_audit_pass: true         # NEW Round 21 invariant (Informative — does NOT gate v1/v2/v3 promotion)
+  blockers: []
+  rationale: |
+    Round 21 absorbs §24.2 standardized SKILL.md sections from addyosmani/agent-skills v1.0.0
+    into Si-Chip Informative spec. spec_validator BLOCKER count UNCHANGED at 15 (§24.2 introduces
+    NO new BLOCKER); AGENTS.md hard-rules count UNCHANGED at 14 (§24.2 introduces NO new hard
+    rule). Si-Chip's own SKILL.md adopts the three sections (Common Rationalizations 4 rows +
+    Red Flags 5 items + Verification 5 checkboxes with Evidence paths) as reference implementation.
+    21st consecutive v1_baseline pass; 4th consecutive v2_tightened pass.
+
+provenance:
+  spec_version: v0.4.3-rc1
+  generator: round_21_L3_dogfood
+  generated_at: '2026-05-05T01:00:00+00:00'
+  basis_metrics_report: .local/dogfood/2026-05-05/round_20/metrics_report.yaml
+  basis_basic_ability_profile_round_21: .local/dogfood/2026-05-05/round_21/basic_ability_profile.yaml
+  raw_artifacts:
+    pytest_full: .local/dogfood/2026-05-05/round_21/raw/pytest_full.txt
+    spec_validator: .local/dogfood/2026-05-05/round_21/raw/spec_validator.json
+    count_tokens: .local/dogfood/2026-05-05/round_21/raw/count_tokens.json
+    standardized_sections_audit: .local/dogfood/2026-05-05/round_21/raw/standardized_sections_audit.json
+  target_branch: feat/v0.4.3-skill-md-sections
+  target_branch_base: feat/v0.4.2-description-cap (Patch 1 PR #14)

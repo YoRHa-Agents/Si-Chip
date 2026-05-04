@@ -1,0 +1,97 @@
+# Si-Chip Half-Retire Decision - round_21 (v0.4.3-rc1 code_change; A2 standardized SKILL.md sections absorption)
+# Spec §6 + §14.7 (core_goal_invariant block) + §15 round_kind + §17.1 hard rule 9.
+# Structurally byte-identical to round_20's decision (action: keep) plus:
+#   * round_id / prior_round_id / spec_version / decided_at bumped
+#   * v0.4.3 standardized-sections absorption note in rationale
+#   * monotonicity_check chain extended to round_21
+
+round_id: round_21
+prior_round_id: round_20
+ability_id: si-chip
+ability_version: v0.4.3-rc1
+spec_version: v0.4.3-rc1
+decided_at: '2026-05-05T01:06:00+00:00'
+
+action: keep
+rationale: |
+  v0.4.3 Informative sections absorbed; §24.2 documented in own SKILL.md.
+
+  Round 21 absorbs §24.2 standardized SKILL.md sections (Common Rationalizations +
+  Red Flags + Verification) from addyosmani/agent-skills v1.0.0 into Si-Chip
+  Informative spec. **No new BLOCKER, no new hard rule** — count stays at 15 + 14
+  respectively. Si-Chip's own SKILL.md adopts the three sections as reference impl;
+  body still 4924/5000 PASS at v2_tightened. 21st consecutive v1_baseline pass;
+  4th consecutive v2_tightened pass (Round 18 + 19 + 20 + 21). C0 = 1.0 (5/5);
+  monotonicity 1.0 → 1.0 → 1.0 → 1.0 → 1.0 chain extended (Round 17 → 18 → 19 →
+  20 → 21).
+
+  governance_risk axis +0.05 this round from §24.2 amplifying the audit-trail
+  surface for existing Normative invariants (C0 / round_kind / BLOCKERs 9-15 are
+  now greppable from author-side mnemonics in `## Common Rationalizations` table
+  + `## Red Flags` bullets + `## Verification` checkboxes). This is structurally
+  similar to Round 20's +0.05 governance lift but at a different surface area —
+  Round 20 added a Normative validator (BLOCKER 15); Round 21 adds Informative
+  audit mnemonics. Both pattern under §11.1 forever-out (no marketplace, no
+  router-training, no Markdown-to-CLI, no generic IDE compat).
+
+risk_flags: []
+
+value_vector:                                       # 8 axes (v0.4.0 §6.1 7→8 break preserved)
+  task_delta: 0.0                                   # carry-forward Round 18's +0.4522 lift via byte-equivalent cache replay
+  token_delta: 0.0                                  # SKILL.md body 4872 → 4924 (+52); within budget; measurement-stable
+  latency_delta: 0.0                                # cache replay; same wall-clock
+  context_delta: 0.0
+  path_efficiency_delta: 0.0
+  routing_delta: 0.0                                # router_floor unchanged (composer_2/default carry-forward)
+  governance_risk_delta: 0.05                       # ★ NEW §24.2 standardized sections amplify audit-trail surface for existing Normative invariants; structural addition at v1 bucket
+  eager_token_delta: 0.0                            # Si-Chip has no EAGER alwaysApply rule
+
+core_goal_invariant:                                # §14.7 (mandatory under §17.1 hard rule 9)
+  c0_pass_rate: 1.0
+  no_regression: true
+  monotonicity_check:
+    round_17: 1.0
+    round_18: 1.0
+    round_19: 1.0
+    round_20: 1.0
+    round_21: 1.0
+    pass: true
+  test_pack_path: ".local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml"
+  test_pack_version: "1.0.0"
+  cases_passed: 5
+  cases_total: 5
+
+reactivation_triggers_check:                        # §6.4 (none triggered; ability is keep)
+  trigger_1_new_model_no_ability_baseline_gap: not_evaluated
+  trigger_2_new_scenario_or_domain_match: not_evaluated
+  trigger_3_router_test_requires_ability_for_cheap_model: not_evaluated
+  trigger_4_efficiency_axis_becomes_significant: not_evaluated
+  trigger_5_upstream_api_change_wrapper_stabilizes: not_evaluated
+  trigger_6_manual_invocation_rebound: not_evaluated
+  status_overall: not_applicable_action_is_keep
+
+standardized_sections_audit:                        # v0.4.3 §24.2 self-audit (Informative; no BLOCKER for this section)
+  status: Informative
+  sections_present_in_3_mirrors:
+    common_rationalizations: true
+    red_flags: true
+    verification: true
+  common_rationalizations_rows: 4
+  red_flags_items: 5
+  verification_checkboxes: 5
+  verification_evidence_path_coverage: 1.0
+  reference_doc: references/standardized-sections-r13-summary.md
+
+provenance:
+  generator: 'Round 21 dogfood - L3 Task Agent (v0.4.3-rc1 code_change Patch 2 of v0.5.0 absorption plan; A2 standardized SKILL.md sections)'
+  spec_version: v0.4.3-rc1
+  basis_round_20_half_retire_decision: .local/dogfood/2026-05-05/round_20/half_retire_decision.yaml
+  basis_metrics_report: .local/dogfood/2026-05-05/round_21/metrics_report.yaml
+  absorbed_external_source:
+    repo: addyosmani/agent-skills
+    version: v1.0.0
+    upstream_pushed_at: '2026-05-03'
+    upstream_doc: 'skills/test-driven-development/SKILL.md + skills/code-review-and-quality/SKILL.md (Common Rationalizations / Red Flags / Verification end-of-body convention)'
+    absorbed_into: 'Si-Chip spec §24.2 (Informative) + templates/skill_md_sections.template.md + references/standardized-sections-r13-summary.md'
+  target_branch: feat/v0.4.3-skill-md-sections
+  target_branch_base: feat/v0.4.2-description-cap (Patch 1 PR #14)
