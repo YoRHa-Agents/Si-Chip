@@ -6,8 +6,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-- (empty; post-v0.5.0 items land here)
+### Documentation
+- Stage S3: post-v0.5.0 self-iteration round 27 (measurement_only) — demonstrates §15.2 monotonicity-only verdict; C0 = 1.0 maintained 11 rounds.
+- Stage S4: v1.0.0-rc1 design paper at `.local/research/spec_v1.0.0-rc1.md` — articulates 6 promotion gates for v1.0.0 stable; archived as design reference; NOT shipped.
 
 ## [0.5.0] - 2026-05-05
 
