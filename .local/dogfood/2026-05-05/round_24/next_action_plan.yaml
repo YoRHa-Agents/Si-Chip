@@ -1,0 +1,119 @@
+# Si-Chip Next Action Plan - round_24 vs round_23 (v0.4.6-rc1 code_change; A5 meta-routing-pattern absorption)
+# Targets the Patch 5 ship of v0.4.6 (rc1 → frozen) once review approves Patches 1-5; then Patch 6.
+# Spec: §15.1 round_kind = code_change; §24.5 (Informative; +0 hard rules, +0 BLOCKERs, NO schema change).
+
+ability_id: si-chip
+emitted_at: '2026-05-05T03:42:00+00:00'
+targets_round: round_25_patch_6_anti_pattern_documentation_or_v0_4_6_ship
+bound_gate: v2_tightened                            # carried forward from Round 19; this round MAINTAINS the gate
+target_branch: feat/v0.4.6-meta-routing-pattern
+target_branch_base: feat/v0.4.5-lifecycle-category   # ★ STACKED on Patch 4 PR #17
+spec_version: v0.4.6-rc1
+
+round_kind: code_change                             # §15.1; Round 24 is code_change (added §24.5 Informative spec section + new reference doc + AGENTS.md recompile + CHANGELOG entry; NO schema change)
+round_kind_rationale: |
+  Round 24 is code_change per §15.1.2 decision tree: this round modifies ability source
+  (.agents/skills/si-chip/SKILL.md frontmatter version 0.4.5 → 0.4.6 + body net -3 tokens
+  for §24.5 References Index anchor add + minor compaction;
+  .agents/skills/si-chip/references/meta-routing-pattern-r13-summary.md NEW + mirrored
+  across 3 trees; .rules/si-chip-spec.mdc bumped v0.4.5-rc1 → v0.4.6-rc1 with §24.5
+  lineage paragraph appended; AGENTS.md recompiled with §24.5 add-on note; NO schema
+  change relative to v0.4.5; CHANGELOG [0.4.6] section added).
+
+  Per §15.4.1 the code_change round counts toward the §4.2 promotion-rule
+  consecutive-rounds counter (C0 = 1.0 + no v1_baseline regression both
+  satisfied — 24th consecutive v1 pass; 7th consecutive v2 pass).
+
+  Per §15.2 the iteration_delta clause is `strict` (≥1 axis at gate bucket);
+  satisfied by routing_delta = +0.05 v1 bucket fresh round-over-round (§24.5
+  meta-routing-pattern documents the description-driven discovery shape that Si-Chip
+  already implements, providing reviewer / router / dogfood agent a formalized
+  pattern reference — without any router-model training, learned classifier, or
+  online learning, all of which remain §11.1 / §5.2 forever-out per §24.5.6).
+
+token_tier_target: relaxed                          # Si-Chip has no EAGER surface; relaxed pressure adequate
+
+# ★ Action target — required by task spec
+action_target: 'Patch 6 of v0.5.0: A6/B1+B2 anti-pattern documentation + agent-skills repository pinning at .local/research/r13_agent_skills_comparison.md'
+
+actions:
+  - action_id: a1_v0_4_6_ship_decision_review
+    priority: P0
+    targets_metric: v0_4_6_promotion_decision
+    description: |
+      L0 review of feat/v0.4.6-meta-routing-pattern PR (stacked on PR #17 base
+      feat/v0.4.5-lifecycle-category, which itself stacks on PR #16 / #15 / #14).
+      Decision criteria:
+      (a) all 16/16 BLOCKERs PASS against new spec_v0.4.6-rc1.md (Patch 5 introduces
+          ZERO new BLOCKERs; total remains at 16 — §24.5 is Informative);
+      (b) all 16/16 BLOCKERs PASS against spec_v0.4.5-rc1.md (Patch 4 spec
+          backward-compat verified; ZERO regressions);
+      (c) all 16/16 BLOCKERs PASS against spec_v0.4.4-rc1.md (Patch 3 spec
+          backward-compat verified; ZERO regressions);
+      (d) all 16/16 BLOCKERs PASS against spec_v0.4.3-rc1.md (Patch 2 spec
+          backward-compat verified; BLOCKER 16 SKIP-as-PASS via missing §24.3 marker
+          per §13.6.4 grace period — UNCHANGED);
+      (e) all 16/16 BLOCKERs PASS against spec_v0.4.2-rc1.md (Patch 1 spec
+          backward-compat verified; BLOCKER 15 PASS + BLOCKER 16 SKIP-as-PASS — UNCHANGED);
+      (f) all 16/16 BLOCKERs PASS against legacy spec_v0.4.0.md / v0.3.0 / v0.2.0
+          (legacy backward-compat verified via SKIP-as-PASS path keying on absent
+          §24 / §24.3 markers per §13.6.4 grace period — UNCHANGED);
+      (g) pytest tools/test_spec_validator.py 100% green; ZERO new tests required
+          (Patch 5 introduces NO new BLOCKER); 70 tests + 62 subtests all PASS;
+      (h) count_tokens.py against updated SKILL.md: metadata=94/100, body=4995/5000
+          PASS (margin 5; under v3_strict trigger so BLOCKER 16 SKIP-as-PASSes);
+      (i) C0 = 1.0 (5/5) maintained; v1_baseline 9-row check PASS (24th consecutive);
+          v2_tightened 10-row check PASS (7th consecutive);
+      (j) §11 forever-out re-affirmation §24.5.6 explicitly contrasts the absorption
+          from agent-skills v1.0.0 with that project's marketplace direction AND with
+          any router-model training / learned classifier / online weight updates /
+          fine-tuning; §24.5.2 implementation constraint enumerate 4 forbidden
+          practices verbatim.
+      If review approves: promote spec_v0.4.6-rc1.md → spec_v0.4.6.md (frozen)
+      bundled with v0.4.2 + v0.4.3 + v0.4.4 + v0.4.5 promotion (Patches 1 + 2 + 3 +
+      4 + 5 ship together since stacked).
+
+  - action_id: a2_chip_usage_helper_round_29_under_v0_4_6
+    priority: P1
+    targets_metric: cross_ability_witness_v0_4_6
+    description: |
+      Cross-ability witness: chip-usage-helper Round 29 under v0.4.6-rc1 spec
+      verifies that §24.5 meta-routing-pattern documentation does NOT regress any
+      existing BAP fields (since §24.5 introduces NO schema change, this is
+      automatically backward-compat). chip-usage-helper is NOT a meta ability
+      (its lifecycle.category, if set, would be `build` or `verify`, not `meta`),
+      so it does NOT self-recognise as §24.5 reference impl — but its BAP must
+      continue to load and validate cleanly under spec_v0.4.6-rc1.md. NO migration
+      required.
+
+  - action_id: a3_next_absorption_patch_6
+    priority: P2
+    targets_metric: v0_5_0_absorption_plan_progress
+    description: |
+      Round 24 is Patch 5 of 6 in the Si-Chip v0.5.0 absorption plan. Patch 6
+      target (per the plan): A6/B1+B2 anti-pattern documentation + agent-skills
+      repository pinning at .local/research/r13_agent_skills_comparison.md.
+      A6 = anti-pattern catalogue (what NOT to do when authoring abilities, drawn
+      from observable failure patterns in agent-skills v1.0.0 + Si-Chip's own
+      Round 1-24 history). B1 = repository version pin documentation. B2 =
+      cross-ability comparison framework documenting what Si-Chip absorbed from
+      agent-skills (Patches 1-5) and what it explicitly did NOT absorb (the
+      complete §11.1 forever-out exclusion list). Land Patch 6 only after
+      v0.4.2 + v0.4.3 + v0.4.4 + v0.4.5 + v0.4.6 ship together as a bundled
+      v0.4.x ship event (Patches 1-5 stack).
+
+      Mid-checkpoint: this is Patch 5 of 6. The L0 orchestrator pauses here for
+      user review before continuing with Patch 6 + the v0.5.0 aggregate.
+
+provenance:
+  spec_version: v0.4.6-rc1
+  target_commit_base: HEAD-of-feat/v0.4.6-meta-routing-pattern (stacked on feat/v0.4.5-lifecycle-category @ HEAD)
+  basis_iteration_delta: .local/dogfood/2026-05-05/round_24/iteration_delta_report.yaml
+  basis_round_23_next_action_plan: .local/dogfood/2026-05-05/round_23/next_action_plan.yaml
+  basis_round_23_iteration_delta: .local/dogfood/2026-05-05/round_23/iteration_delta_report.yaml
+  absorbed_external_source:
+    repo: addyosmani/agent-skills
+    version: v1.0.0
+    upstream_pushed_at: '2026-05-03'
+    upstream_doc: 'using-agent-skills/SKILL.md (the meta-skill itself: a description-driven discovery / routing meta-ability that lists and points agents to other skills)'
+    absorbed_into: 'Si-Chip spec §24.5 Meta-Routing Pattern (Informative) + references/meta-routing-pattern-r13-summary.md (NO schema change, NO new BLOCKER, NO router-model training)'
