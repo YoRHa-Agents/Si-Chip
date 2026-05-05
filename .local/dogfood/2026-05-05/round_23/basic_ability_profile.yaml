@@ -1,0 +1,280 @@
+# Si-Chip BasicAbilityProfile - round_23 (v0.4.5-rc1 code_change; A4 lifecycle-category absorption)
+# Conforms to templates/basic_ability_profile.schema.yaml ($schema_version 0.3.0;
+# v0.4.5 lifecycle.category add-on is OPTIONAL field — schema $schema_version unchanged
+# per §24.4.3 backward-compat guarantee; new field default null preserves all v0.4.0–v0.4.4
+# profiles without modification).
+#
+# Round 23 = Patch 4 of v0.5.0 absorption plan (A4 Lifecycle Category Taxonomy).
+# round_kind: code_change per §15.1; absorbs the addyosmani/agent-skills v1.0.0
+# using-agent-skills/SKILL.md 6-stage lifecycle taxonomy + meta category convention into
+# Si-Chip Informative §24.4 + 1 OPTIONAL schema field `lifecycle.category` on the
+# BasicAbilityProfile schema. NO new spec_validator BLOCKER, NO new AGENTS.md hard rule —
+# §24.4 is Informative (sibling pattern to §24.2; contrast with §24.1 / §24.3 Normative).
+#
+# What this round CHANGED:
+#   * Spec promoted v0.4.4-rc1 → v0.4.5-rc1 (additive Informative; §1–§24.3 byte-identical).
+#   * AGENTS.md §13 hard-rules count UNCHANGED at 15 (§24.4 introduces NO new hard rule).
+#   * spec_validator.py BLOCKER count UNCHANGED at 16 (§24.4 introduces NO new BLOCKER).
+#   * SKILL.md frontmatter version 0.4.4 → 0.4.5 (mirrored across 3 trees,
+#     byte-identical sha256=e25f7e75e19b7daa…).
+#   * SKILL.md body grew 4969 → 4998 tokens (+29 net of §24.4 add-on bullet + new
+#     References Index entry, with several existing lines compacted to stay under
+#     v3_strict 5000 budget by 2 tokens). Both packaging-gate (count_tokens.py) and
+#     BLOCKER 16 still PASS (SKIP-as-PASS via "all under threshold" path).
+#   * Schema additively extends `lifecycle` block with OPTIONAL field `category` (enum
+#     {define, plan, build, verify, review, ship, meta} or null; default null).
+#   * 1 new reference doc lifecycle-category-r13-summary.md (mirrored).
+#   * NO changes to spec_validator.py (§24.4 is Informative); NO changes to existing
+#     pytest tests (existing 70 tests continue PASS with the new OPTIONAL schema field
+#     because BLOCKER 1 BAP_SCHEMA validates required-key presence, not enumeration of
+#     all OPTIONAL properties).
+#   * count_tokens: metadata=94/100, body=4998/5000 PASS at v2_tightened body budget
+#     (margin 2 tokens; under v3_strict graduated trigger so BLOCKER 16 SKIP-as-PASSes
+#     for Si-Chip's own SKILL.md).
+#   * NEW: Si-Chip self-classifies as `lifecycle.category: meta` — the canonical first
+#     use-case of the new field (Si-Chip optimises other abilities and is therefore
+#     a self-referential / orchestration-tier ability).
+#
+# v1_baseline status: 23rd consecutive v1 pass.
+# v2_tightened status: 6th consecutive v2 pass (Round 18 + 19 + 20 + 21 + 22 + 23).
+# spec_validator: 16/16 PASS on v0.4.5-rc1 spec; 16/16 PASS on v0.4.4-rc1 spec
+#   (BLOCKER 16 SKIP-as-PASS already established in round_22; v0.4.5-rc1 inherits cleanly);
+#   16/16 PASS on v0.4.3-rc1 spec; 16/16 PASS on v0.4.2-rc1 spec; 16/16 PASS on default
+#   v0.2.0 spec (per §13.6.4 grace-period workmanship; all SKIP-as-PASS paths byte-identical
+#   to round_22).
+# pytest: tools/test_spec_validator.py 100% green; ZERO new tests required (§24.4 introduces
+#   NO new BLOCKER; existing 70 tests + 62 subtests all PASS).
+# core_goal: C0 = 1.0 (5/5); monotonicity 1.0 → 1.0 verified (Round 22 → 23).
+
+basic_ability:
+  id: si-chip
+  intent: 'Persistent BasicAbility optimization factory: capture, profile, evaluate, diagnose, improve, router-test, half-retire-review, iterate, package/register the Si-Chip skill against itself. v0.4.5-rc1 absorbs lifecycle.category 7-value enum from addyosmani/agent-skills v1.0.0 using-agent-skills/SKILL.md.'
+  description: 'BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.5.'
+
+  core_goal:
+    statement: |
+      Given a BasicAbility input, Si-Chip MUST emit the 6 evidence files (spec §8.2 - basic_ability_profile / metrics_report / router_floor_report / half_retire_decision / next_action_plan / iteration_delta_report) under .local/dogfood/<DATE>/[abilities/<id>/]round_<N>/ and produce a deterministic 16-BLOCKER spec_validator PASS on the v0.4.5-rc1 spec while preserving 16-BLOCKER PASS on the v0.4.4-rc1 / v0.4.3-rc1 / v0.4.2-rc1 specs and 16-BLOCKER PASS on legacy v0.4.0 / v0.3.0 / v0.2.0 specs (with BLOCKER 15 + 16 SKIP-as-PASS paths preserved).
+    test_pack_path: .local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml
+    minimum_pass_rate: 1.0
+    test_pack_version: '1.0.0'
+    last_passed_round: round_23
+
+  current_surface:
+    type: mixed
+    path: .agents/skills/si-chip/
+    shape_hint: markdown_first
+    dependencies:
+      live_backend: false
+
+  packaging:
+    install_targets:
+      cursor: true
+      claude_code: true
+      codex: true
+    source_of_truth: .agents/skills/si-chip/
+    generated_targets:
+      - .cursor/skills/si-chip/
+      - .claude/skills/si-chip/
+      - 'AGENTS.md (via .rules/si-chip-spec.mdc compiler)'
+    health_smoke_check: []
+
+  lifecycle:
+    stage: routed
+    last_reviewed_at: '2026-05-05'
+    next_review_at: '2026-06-04'
+    # ★ NEW v0.4.5-rc1 §24.4 OPTIONAL field — Si-Chip self-classifies as `meta` (canonical
+    # first-use case). Si-Chip optimises other abilities and is therefore self-referential;
+    # it does not directly deliver user-end output, instead it improves the workflow by
+    # which other abilities are profiled, evaluated, routed, and half-retired. The
+    # categorisation is round-stable: future rounds continue at `meta` unless Si-Chip's
+    # scope changes fundamentally (which §11 forever-out also prevents).
+    category: meta
+    promotion_history:
+      - from: v1_baseline
+        to: v2_tightened
+        triggered_by_round_id: round_19
+        triggered_by_metric_value: 'consecutive_v2_passes = 2 (Round 18 + Round 19 satisfies §4.2 promotion rule)'
+        observer: round_19_L3_dogfood
+        archived_artifact_path: .local/dogfood/2026-04-30/round_19/iteration_delta_report.yaml
+        decision_rationale: 'FIRST v2_tightened gate-promotion event for Si-Chip (carry-forward from Round 19).'
+      - from: v0.4.0
+        to: v0.4.2-rc1
+        triggered_by_round_id: round_20
+        triggered_by_metric_value: 'spec absorption A1 description-cap from addyosmani/agent-skills v1.0.0; +1 Normative section §24.1, +1 hard rule 14, +1 BLOCKER 15 DESCRIPTION_CAP_1024.'
+        observer: round_20_L3_dogfood
+        archived_artifact_path: .local/research/spec_v0.4.2-rc1.md
+        decision_rationale: |
+          v0.4.2-rc1 is the FIRST external-source absorption since the project began.
+          Convention absorbed: 1024-char description cap. Source: addyosmani/agent-skills
+          v1.0.0 docs/skill-anatomy.md.
+      - from: v0.4.2-rc1
+        to: v0.4.3-rc1
+        triggered_by_round_id: round_21
+        triggered_by_metric_value: 'spec absorption A2 standardized SKILL.md sections from addyosmani/agent-skills v1.0.0; +1 Informative sub-section §24.2; ZERO new hard rules; ZERO new BLOCKERs (Informative not Normative).'
+        observer: round_21_L3_dogfood
+        archived_artifact_path: .local/research/spec_v0.4.3-rc1.md
+        decision_rationale: |
+          v0.4.3-rc1 is the SECOND external-source absorption (Patch 2 of v0.5.0 plan).
+          Convention absorbed: SKILL.md end-of-body three-section trio (Common
+          Rationalizations + Red Flags + Verification). Informative-only.
+      - from: v0.4.3-rc1
+        to: v0.4.4-rc1
+        triggered_by_round_id: round_22
+        triggered_by_metric_value: 'spec absorption A3 progressive-disclosure from addyosmani/agent-skills v1.0.0 docs/skill-anatomy.md; +1 Normative sub-section §24.3, +1 hard rule 15 (§17.8), +1 BLOCKER 16 BODY_BUDGET_REQUIRES_REFERENCES_SPLIT.'
+        observer: round_22_L3_dogfood
+        archived_artifact_path: .local/research/spec_v0.4.4-rc1.md
+        decision_rationale: |
+          v0.4.4-rc1 is the THIRD external-source absorption (Patch 3 of v0.5.0 plan).
+          Convention absorbed: SKILL.md body / references/ split workmanship. Source:
+          addyosmani/agent-skills v1.0.0 docs/skill-anatomy.md.
+      - from: v0.4.4-rc1
+        to: v0.4.5-rc1
+        triggered_by_round_id: round_23
+        triggered_by_metric_value: 'spec absorption A4 lifecycle-category from addyosmani/agent-skills v1.0.0 using-agent-skills/SKILL.md; +1 Informative sub-section §24.4; +1 OPTIONAL schema field lifecycle.category; ZERO new hard rules (count remains 15); ZERO new BLOCKERs (count remains 16).'
+        observer: round_23_L3_dogfood
+        archived_artifact_path: .local/research/spec_v0.4.5-rc1.md
+        decision_rationale: |
+          v0.4.5-rc1 is the FOURTH external-source absorption (Patch 4 of v0.5.0 plan).
+          Convention absorbed: 6-stage lifecycle taxonomy (define / plan / build /
+          verify / review / ship) + meta category for self-referential abilities.
+          Source: addyosmani/agent-skills v1.0.0 (push @ 2026-05-03)
+          using-agent-skills/SKILL.md. Absorption is INFORMATIVE — adds 1 OPTIONAL
+          schema field on the lifecycle block; default null preserves all v0.4.0–v0.4.4
+          profiles without modification (verified against Round 1-22 Si-Chip + Round
+          1-27 chip-usage-helper). The marketplace direction, plugin distribution
+          surface, per-skill installer, and any Markdown-to-CLI conversion in
+          agent-skills are explicitly NOT absorbed and remain §11.1 forever-out
+          (verbatim re-affirmed in §24.4.6). Si-Chip self-classifies as
+          `lifecycle.category: meta` — the canonical first-use case of the new field
+          since Si-Chip optimises other abilities and is therefore self-referential
+          / orchestration-tier (not directly delivering user-end output).
+
+  eval_state:
+    has_eval_set: true
+    has_no_ability_baseline: true
+    has_self_eval: true
+    has_router_test: true
+    has_iteration_delta: true
+
+  metrics:
+    task_quality:
+      T1_pass_rate: 1.0
+      T1_pass_rate_method: real_llm
+      T2_pass_k: 1.0
+      T2_pass_k_method: real_llm
+      T3_baseline_delta: 0.35
+      T3_baseline_delta_method: deterministic_simulator
+      T4_error_recovery_rate: null
+
+    context_economy:
+      C1_metadata_tokens: 94
+      C1_metadata_tokens_method: tiktoken
+      C2_body_tokens: 4998                              # +29 vs Round 22 (4969); accommodates §24.4 add-on bullet + new References Index entry, with existing lines compacted to stay under v3_strict 5000 budget by 2 tokens
+      C2_body_tokens_method: tiktoken
+      C3_resolved_tokens: null
+      C4_per_invocation_footprint: 5092                 # C1 + C2 = 94 + 4998 = 5092 (within v2_tightened 7000 budget by 1908 margin)
+      C4_per_invocation_footprint_method: tiktoken
+      C5_context_rot_risk: 0.7218                       # +0.0015 vs Round 22 (0.7203); 1 new reference doc adds slight fanout depth
+      C6_scope_overlap_score: null
+
+    latency_path:
+      L1_wall_clock_p50: 16.8405
+      L1_wall_clock_p50_method: real_llm
+      L2_wall_clock_p95: 17.5726
+      L2_wall_clock_p95_method: real_llm
+      L3_step_count: null
+      L4_redundant_call_ratio: null
+      L5_detour_index: null
+      L6_replanning_rate: null
+      L7_think_act_split: null
+
+    generalizability:
+      G1_cross_model_pass_matrix: 'composer_2/fast=0.9500; sonnet_shallow=0.9750 (real_llm cache replay)'
+      G1_cross_model_pass_matrix_provenance: real_llm_sweep
+      G2_cross_domain_transfer_pass: null
+      G3_OOD_robustness: null
+      G4_model_version_stability: null
+
+    usage_cost:
+      U1_description_readability: 14.5                  # Carry-forward Round 22 (description string structure unchanged at byte level except for "v0.4.4" → "v0.4.5"); _ci bands unchanged
+      U1_description_readability_method: char_heuristic
+      U1_description_readability_ci_low: 12.8
+      U1_description_readability_ci_high: 16.2
+      U1_language_breakdown: { en: 1.0, zh: 0.0 }
+      U2_first_time_success_rate: 0.95
+      U3_setup_steps_count: 2
+      U4_time_to_first_success: 12.0
+      U4_time_to_first_success_state: warm
+
+    routing_cost:
+      R1_trigger_precision: 1.0
+      R1_trigger_precision_method: real_llm
+      R2_trigger_recall: 1.0
+      R2_trigger_recall_method: real_llm
+      R3_trigger_F1: 1.0
+      R3_trigger_F1_method: real_llm
+      R3_eager_only: 1.0
+      R3_post_trigger: 1.0
+      R4_near_miss_FP_rate: 0.0
+      R4_near_miss_FP_rate_method: real_llm
+      R5_router_floor: 'composer_2/default'
+      R6_routing_latency_p95: 0.16
+      R7_routing_token_overhead: 0.0234                 # +0.0001 vs Round 22 — slight bump from new lifecycle-category cite in body
+      R8_description_competition_index: null
+
+    governance_risk:
+      V1_permission_scope: 'fs_read+fs_write_local'
+      V2_credential_surface: 'none (no live backends)'
+      V3_drift_signal: 0.0                              # 3-tree mirror sha256 byte-equality preserved (sha256=e25f7e75e19b7daa…)
+      V4_staleness_days: 0
+
+  value_vector:
+    task_delta: 0.95
+    token_delta: 0.0
+    latency_delta: 0.0
+    context_delta: 0.0
+    path_efficiency_delta: 0.0
+    routing_delta: 1.0
+    governance_risk_delta: 0.05                         # ★ Round 23 PRIMARY axis: §24.4 lifecycle.category enriches BAP schema with normalized vocabulary for ability classification; reviewer / router / dogfood agent can grep `lifecycle.category` to filter ability sets — discoverability + audit-trail surface area expands at v1 bucket
+    eager_token_delta: 0.0
+
+  router_floor: 'composer_2/default'
+
+  decision:
+    action: keep
+    rationale: '23rd consecutive v1_baseline pass; 6th consecutive v2_tightened pass; v0.4.5-rc1 spec absorbed; SKILL.md body=4998 tokens (under 5000 v3_strict trigger so BLOCKER 16 SKIP-as-PASS); 0 new BLOCKERs + 0 new hard rules wired into spec_validator + AGENTS.md (count remains 16/15 — §24.4 is Informative); 1 new OPTIONAL schema field lifecycle.category added (default null preserves all pre-v0.4.5 profiles).'
+    risk_flags: []
+
+  lifecycle_category_audit:                              # v0.4.5 §24.4 self-audit (Informative; NO BLOCKER)
+    status: Informative
+    schema_field_added: lifecycle.category
+    enum_values: [define, plan, build, verify, review, ship, meta, null]
+    default_value: null
+    si_chip_self_classification: meta
+    self_classification_rationale: |
+      Si-Chip optimises other abilities (the §1 "persistent BasicAbility optimization
+      factory" identity) and does not directly deliver user-end output. It is
+      self-referential / orchestration-tier — fits the `meta` category exactly
+      (mirroring the upstream agent-skills using-agent-skills SKILL which is also `meta`).
+    backward_compat_verified:
+      pre_v0_4_5_profiles_inspected: 47                 # all BAP files in repo
+      pre_v0_4_5_profiles_passing_with_no_edit: 47      # 100% backward-compat
+      schema_validation_drift_pct: 0.0                  # binding §24.4.3 constraint: must be 0%
+    audit_artifact: .local/dogfood/2026-05-05/round_23/raw/schema_validate.json
+
+provenance:
+  spec_version: v0.4.5-rc1
+  generator: round_23_L3_dogfood (Patch 4 of v0.5.0 absorption plan; A4 lifecycle-category)
+  basis_round_22_basic_ability_profile: .local/dogfood/2026-05-05/round_22/basic_ability_profile.yaml
+  absorbed_external_sources:
+    - { repo: 'addyosmani/agent-skills', version: 'v1.0.0', upstream_doc: 'docs/skill-anatomy.md', absorbed_into: '§24.1 Description Discipline (Patch 1; Normative + BLOCKER 15)', absorbed_at: '2026-05-05' }
+    - { repo: 'addyosmani/agent-skills', version: 'v1.0.0', upstream_doc: 'skills/test-driven-development/SKILL.md + skills/code-review-and-quality/SKILL.md (Common Rationalizations / Red Flags / Verification convention)', absorbed_into: '§24.2 Standardized SKILL.md Sections (Patch 2; Informative; NO new BLOCKER)', absorbed_at: '2026-05-05' }
+    - { repo: 'addyosmani/agent-skills', version: 'v1.0.0', upstream_doc: 'docs/skill-anatomy.md (progressive disclosure: SKILL.md body ≤ ~5KB; long material in references/) + per-skill references/ subfolders pattern', absorbed_into: '§24.3 Progressive Disclosure Discipline (Patch 3; Normative + BLOCKER 16)', absorbed_at: '2026-05-05' }
+    - { repo: 'addyosmani/agent-skills', version: 'v1.0.0', upstream_doc: 'using-agent-skills/SKILL.md (lifecycle taxonomy: define/plan/build/verify/review/ship organising 21 skills + meta category for self-referential)', absorbed_into: '§24.4 Lifecycle Category Taxonomy (Patch 4; Informative; NO new BLOCKER + 1 OPTIONAL schema field)', absorbed_at: '2026-05-05' }
+  raw_artifacts:
+    pytest_full: .local/dogfood/2026-05-05/round_23/raw/pytest_full.txt
+    spec_validator: .local/dogfood/2026-05-05/round_23/raw/spec_validator.json
+    count_tokens: .local/dogfood/2026-05-05/round_23/raw/count_tokens.json
+    schema_validate: .local/dogfood/2026-05-05/round_23/raw/schema_validate.json
+  target_branch: feat/v0.4.5-lifecycle-category
+  target_branch_base: feat/v0.4.4-progressive-disclosure (Patch 3 PR #16)

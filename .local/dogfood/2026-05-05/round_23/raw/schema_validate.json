@@ -1,0 +1,82 @@
+{
+  "schema_path": "templates/basic_ability_profile.schema.yaml",
+  "schema_loaded": true,
+  "schema_version": "0.3.0",
+  "schema_lifecycle_required_keys": [
+    "stage",
+    "last_reviewed_at",
+    "next_review_at"
+  ],
+  "schema_lifecycle_property_keys": [
+    "stage",
+    "last_reviewed_at",
+    "next_review_at",
+    "category",
+    "promotion_history",
+    "usage_signals"
+  ],
+  "schema_category_field": {
+    "type": [
+      "string",
+      "null"
+    ],
+    "enum": [
+      "define",
+      "plan",
+      "build",
+      "verify",
+      "review",
+      "ship",
+      "meta",
+      null
+    ],
+    "description": "Lifecycle category (Informative \u00a724.4). OPTIONAL; default null. Absorbed from addyosmani/agent-skills lifecycle taxonomy.",
+    "default": null
+  },
+  "category_field_optional": true,
+  "category_field_default_null": true,
+  "category_enum_values": [
+    "define",
+    "plan",
+    "build",
+    "verify",
+    "review",
+    "ship",
+    "meta",
+    null
+  ],
+  "bap_files_inspected": 48,
+  "bap_files_passing_backward_compat": 48,
+  "backward_compat_drift_pct": 0.0,
+  "consistency_verdict": "PASS",
+  "sample_with_category": [
+    {
+      "file": ".local/dogfood/2026-05-05/round_23/basic_ability_profile.yaml",
+      "has_category": true,
+      "category_value": "meta",
+      "valid": true
+    }
+  ],
+  "sample_without_category": [
+    {
+      "file": ".local/dogfood/2026-04-28/round_1/basic_ability_profile.yaml",
+      "valid": true
+    },
+    {
+      "file": ".local/dogfood/2026-04-28/round_10/basic_ability_profile.yaml",
+      "valid": true
+    },
+    {
+      "file": ".local/dogfood/2026-04-28/round_11/basic_ability_profile.yaml",
+      "valid": true
+    },
+    {
+      "file": ".local/dogfood/2026-04-28/round_12/basic_ability_profile.yaml",
+      "valid": true
+    },
+    {
+      "file": ".local/dogfood/2026-04-28/round_13/basic_ability_profile.yaml",
+      "valid": true
+    }
+  ]
+}

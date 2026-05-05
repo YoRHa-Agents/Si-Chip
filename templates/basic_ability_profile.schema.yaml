@@ -18,11 +18,20 @@
 # for packaging.health_smoke_check are enforced out-of-band by spec_validator
 # BLOCKER 14 HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND (not expressible in
 # JSON-Schema draft-07 directly). See spec §21.2.
+#
+# v0.4.5-rc1 §24.4 add-on (Informative): lifecycle.category OPTIONAL field
+# — 7-value enum {define | plan | build | verify | review | ship | meta} or null
+# (default null). Absorbed from addyosmani/agent-skills v1.0.0 lifecycle taxonomy
+# convention. Backward-compat: pre-v0.4.5 profiles need no modification (default
+# null). NO new spec_validator BLOCKER (§24.4 is Informative, not Normative).
+# Si-Chip's own canonical first-use case: lifecycle.category: meta (because
+# Si-Chip optimizes other abilities and is therefore self-referential).
 
 $schema_version: "0.3.0"
 $spec_section: "§2"
 $spec_section_v0_3_0: "§2 + §14"
 $spec_section_v0_4_0: "§2 + §14 + §20 + §21 + §23"
+$spec_section_v0_4_5: "§2 + §14 + §20 + §21 + §23 + §24.4"
 $source_of_truth: ".agents/skills/si-chip/"
 
 $schema: "http://json-schema.org/draft-07/schema#"
@@ -223,6 +232,15 @@ properties:
             type: "string"
             format: "date"
             pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          # v0.4.5-rc1 §24.4 add-on (Informative): lifecycle.category OPTIONAL field.
+          # Default null; backward-compat for all v0.4.0–v0.4.4 profiles. No new
+          # spec_validator BLOCKER. Absorbed from addyosmani/agent-skills v1.0.0
+          # lifecycle taxonomy. See spec §24.4.
+          category:
+            type: ["string", "null"]
+            enum: [define, plan, build, verify, review, ship, meta, null]
+            description: "Lifecycle category (Informative §24.4). OPTIONAL; default null. Absorbed from addyosmani/agent-skills lifecycle taxonomy."
+            default: null
           # v0.4.0 §20.2 add-on: append-only promotion history block.
           # Records every stage transition with the triggering round + metric values.
           # Backward-compat: legacy profiles may omit this key or set it to [].

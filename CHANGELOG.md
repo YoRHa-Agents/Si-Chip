@@ -7,7 +7,124 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty; post-v0.4.4 items land here)
+- (empty; post-v0.4.5 items land here)
+
+## [0.4.5] - 2026-05-05
+
+### Summary
+Si-Chip v0.4.5 — "Lifecycle Category Taxonomy (Patch 4 of v0.5.0
+absorption plan)". Absorbs from `addyosmani/agent-skills` v1.0.0
+(push @ 2026-05-03) the `using-agent-skills/SKILL.md` 6-stage
+lifecycle taxonomy (`define / plan / build / verify / review /
+ship`) plus a `meta` category for self-referential abilities.
+Lands as **Informative** spec sub-section §24.4 plus 1 OPTIONAL
+schema field `lifecycle.category` on `BasicAbilityProfile`.
+**ZERO** new spec_validator BLOCKERs; **ZERO** new AGENTS.md hard
+rules. AGENTS.md §13 hard-rules count remains at 15;
+spec_validator BLOCKER count remains at 16. Backward-compat is
+**non-negotiable**: default value is `null`, so all v0.4.0–v0.4.4
+profiles (Si-Chip Round 1-22 + chip-usage-helper Round 1-27)
+remain valid in v0.4.5-rc1 schema with no edit needed. Si-Chip
+self-classifies as `lifecycle.category: meta` (the canonical
+first-use case, since Si-Chip optimises other abilities and is
+therefore self-referential). **Stacks on
+`feat/v0.4.4-progressive-disclosure` (Patch 3 / PR #16)** which
+itself stacks on Patches 2 / 1 (PR #15 / #14).
+
+### Added (Informative)
+
+- **Spec §24.4 Lifecycle Category Taxonomy** (NEW Informative):
+  six sub-sections §24.4.1–§24.4.6 covering (1) the 7-value enum
+  with one-line Si-Chip examples, (2) cross-references to §16
+  multi-ability layout, (3) schema sketch + backward-compat
+  guarantee, (4) "structural metadata, not a workflow gate"
+  positioning relative to §24.3 / §14 / §15 / §17, (5) what does
+  NOT trigger spec_validator FAIL, (6) §11 forever-out
+  re-affirmation.
+- **No AGENTS.md §13 hard-rule additions**: §24.4 is Informative,
+  so no rule 16 is added; `lifecycle.category` is OPTIONAL and
+  default-null.
+
+### Changed (Schema)
+
+- **`templates/basic_ability_profile.schema.yaml`** —
+  `lifecycle` block adds OPTIONAL property `category` (sibling of
+  `stage`, `last_reviewed_at`, `next_review_at`):
+  - type: `["string", "null"]`
+  - enum: `[define, plan, build, verify, review, ship, meta, null]`
+  - default: `null`
+  - Header comment updated; `$schema_version` left at `0.3.0`
+    (additive OPTIONAL field is backward-compat per §24.4.3).
+  - New auxiliary marker `$spec_section_v0_4_5` added.
+- **No changes** to `tools/spec_validator.py` (no new check;
+  BLOCKER count remains at 16). BLOCKER 1 BAP_SCHEMA continues
+  to validate the schema's structural integrity; the new
+  OPTIONAL field passes by virtue of not being in the `required`
+  list.
+
+### Added (Documentation)
+
+- `.local/research/spec_v0.4.5-rc1.md` (rc; pinned candidate).
+  §1–§24.3 byte-identical to `spec_v0.4.4-rc1.md` per
+  `additive_only: true` +
+  `preserves_byte_identical_v0_4_4_rc1: [...]` frontmatter
+  assertions. Adds §24.4 (Informative; six sub-sections).
+- `.agents/skills/si-chip/references/lifecycle-category-r13-summary.md`
+  (~12 KB; mirrored across `.cursor/` + `.claude/` trees).
+  Reader walkthrough covering: why the rule exists, rule statement,
+  category enum, integration with §16, structural-metadata vs
+  workflow-gate distinction, Si-Chip's `meta` self-classification,
+  stage vs category orthogonality, what does NOT trigger,
+  §11 forever-out re-affirmation.
+
+### Synced (Mirrors)
+
+- `.agents/skills/si-chip/SKILL.md` frontmatter `version: 0.4.5`
+  + new §24.4 Skill Hygiene Discipline add-on bullet (1 line) +
+  new References Index entry. Description bumped from "Si-Chip
+  v0.4.4" → "Si-Chip v0.4.5" (description still well under
+  1024-char cap; 162 chars). Body trimmed to 4998 tokens (under
+  v3_strict 5000 budget by 2 tokens; BLOCKER 16 SKIP-as-PASS via
+  the "all under threshold" path).
+- 3-tree mirror sync (`.agents/` + `.cursor/` + `.claude/`):
+  byte-identical sha256=`e25f7e75e19b7daa…`.
+- `references/lifecycle-category-r13-summary.md` byte-identical
+  across 3 trees: sha256=`6de32e7f7048580c…`.
+
+### Recompiled
+
+- `AGENTS.md` recompiled via DevolaFlow `RuleCompiler`: header
+  v0.4.4-rc1 → v0.4.5-rc1; new lineage paragraph appended; total
+  hard-rules in §13 still 15 (unchanged); content_hash
+  `ecd5c52fce33061a`.
+- `.rules/.compile-hashes.json` updated to the new hash.
+
+### Verification
+
+- spec_validator on `spec_v0.4.5-rc1.md` → 16/16 BLOCKERs PASS.
+- Backward compat: 16/16 PASS on `spec_v0.4.4-rc1.md`,
+  `spec_v0.4.3-rc1.md`, `spec_v0.4.2-rc1.md`, `spec_v0.4.0.md`,
+  default v0.2.0 (unchanged BLOCKER counts; no SKIP-as-PASS
+  regressions).
+- pytest `tools/test_spec_validator.py -q` → 70 passed (62
+  subtests passed); zero test changes required (existing schema
+  test continues to PASS with the new OPTIONAL field because the
+  test only validates that `core_goal` block + minimum_pass_rate
+  invariants hold, not the full property tree).
+- `count_tokens.py` on the three SKILL.md mirrors:
+  metadata=94/100 PASS, body=4998/5000 PASS.
+
+### Dogfood
+
+- Round 23 (`code_change`, v0.4.5-rc1) — 6 evidence files +
+  `raw/{pytest_full,spec_validator,count_tokens,schema_validate}` —
+  emitted under `.local/dogfood/2026-05-05/round_23/`. Round 23 is
+  the canonical first-use of the new `lifecycle.category` field
+  (set to `meta`). iteration_delta verdict.pass = true via
+  `governance_risk_delta` ≥ +0.05 (richer schema = better
+  governance / discoverability surface).
+- This is Patch 4 of 6 in the Si-Chip v0.5.0 absorption plan;
+  Patches 5–6 are stacked behind a research checkpoint.
 
 ## [0.4.4] - 2026-05-05
 
