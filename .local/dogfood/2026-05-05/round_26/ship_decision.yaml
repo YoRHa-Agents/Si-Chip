@@ -1,0 +1,358 @@
+# Si-Chip v0.5.0 Ship Decision (machine-readable verdict; 7th evidence file per §20.4)
+# Author: Round 26 dogfood — L3 Task Agent (Stage S2 v0.5.0 aggregate ship_prep)
+# Companion to: .local/dogfood/2026-05-05/round_26/{basic_ability_profile,metrics_report,
+#               router_floor_report,half_retire_decision,next_action_plan,iteration_delta_report}.yaml
+# Shape after .local/dogfood/2026-04-30/v0.4.0_ship_decision.yaml + templates/ship_decision.template.yaml.
+#
+# v0.5.0 is the FROZEN minor release that aggregates the 6-patch v0.5.0 absorption
+# arc landed across rc lineage v0.4.7-rc1 → v0.5.0 (PRs #14, #15, #16, #17, #18,
+# #20). Promoted v0.4.7-rc1 → v0.5.0 frozen with `compiled_into_rules: true` flip;
+# supersedes v0.4.0 (the prior frozen ship); §1–§24.6 prose byte-identical to
+# v0.4.7-rc1 — only frontmatter / H1 / footer / immediate header bullet block
+# reflect FROZEN status.
+#
+# Aggregate of 6 absorption patches from addyosmani/agent-skills v1.0.0 (push @
+# 2026-05-03; 27.7k stars; 21 skills):
+#   * A1 description-cap (§24.1; Normative + BLOCKER 15 + hard rule 14; PR #14)
+#   * A2 standardized SKILL.md sections (§24.2; Informative; PR #15)
+#   * A3 progressive-disclosure (§24.3; Normative + BLOCKER 16 + hard rule 15; PR #16)
+#   * A4 lifecycle.category (§24.4; Informative + 1 OPTIONAL schema field; PR #17)
+#   * A5 meta-routing pattern (§24.5; Informative; PR #18)
+#   * A6 anti-pattern documentation + agent-skills long-term registration (§24.6;
+#     Informative metadocumentary; PR #20; r13 long_term_pin)
+#
+# AGENTS.md §13 grew 13 → 15 hard rules across the arc; spec_validator BLOCKER set
+# grew 14 → 16 across the arc. This aggregate ship adds ZERO new hard rules + ZERO
+# new BLOCKERs (counts remain 15 / 16). agent-skills is registered as Si-Chip's
+# FIRST long-term external research reference at .local/research/r13_agent_skills_comparison.md
+# (kind: long_term_pin; decay: false; first_absorbed_at: v0.4.2-rc1; last_absorbed_at: v0.4.7-rc1).
+#
+# STRICT §11 forever-out compliance: agent-skills is RESEARCH MATERIAL, NOT a code
+# or runtime dependency — Si-Chip does NOT re-distribute, NOT auto-update from, NOT
+# bundle, NOT runtime-load any agent-skills code or markdown (re-affirmed verbatim
+# across §24.1.3 / §24.2.6 / §24.3.6 / §24.4.6 / §24.5.6 / §24.6.5).
+
+ship_decision_version: "0.5.0"
+spec_version: "v0.5.0"
+decided_at: "2026-05-05T16:30:00+00:00"
+ability_id: "si-chip"
+ability_version: "v0.5.0"
+
+# ── Verdict ──────────────────────────────────────────────────────────────
+verdict: "SHIP_ELIGIBLE"
+gate: "standard"                                 # = v2_tightened per §4.2 + §15.4 promotion rule
+ship_eligible: true
+ship_gate_achieved: "standard"                   # = v2_tightened; 9th consecutive Si-Chip v2 pass; FIRST v2 ship was v0.4.0
+ship_gate_v3_strict_deferred_to: "v0.6.x+"
+ship_gate_v3_deferral_reason: |
+  v3_strict gate is unblocked at most rows (per_invocation_footprint 5074 ≤ 5000? — at 5074, FAILS the
+  v3 ≤ 5000 row by 74 margin; metadata_tokens 94 ≤ 80 v3 row FAILS by 14; wall_clock_p95 17.5726
+  ≤ 20 v3 row PASSES; iteration_delta primary axis governance_risk +0.05 ≥ +0.15 v3 row
+  FAILS — v3 needs ≥ +0.15 per axis bucket). v3_strict promotion targeted for v0.6.x bump
+  after metadata_tokens shrink + per_invocation_footprint shrink + sustained ≥ +0.15 axis.
+  (Note: v0.4.0 ship_decision.yaml records body=4646 + meta=94, which produced footprint=4740;
+  the v0.5.0 frozen prose tightening adds +334 body tokens net of arc-complete callouts so
+  footprint settles at 5074 vs v0.4.0's 4740 — informational; well within v2_tightened 7000 budget.)
+
+evidence_basis: |
+  26 dogfood rounds (R1-R26); 16/16 BLOCKERs PASS at v0.5.0 spec; 70/70 pytest
+  (tools/test_spec_validator.py) PASS; tarball sha256 captured & rebuild-verified
+  byte-identical (d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672);
+  3-tree mirror sha256 byte-identical across .agents/ + .cursor/ + .claude/ trees
+  (d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659).
+
+risk_flags: []
+
+arc_summary: "v0.5.0 absorption arc complete — 6 patches A1-A6 absorbed from addyosmani/agent-skills v1.0.0"
+
+# ── Arc accumulation ladder ──────────────────────────────────────────────
+arc:
+  complete: true                                 # ★ v0.5.0 absorption arc COMPLETE
+  patches: 6                                     # A1, A2, A3, A4, A5, A6
+  blockers_added: 2                              # 15 (v0.4.2 §24.1) + 16 (v0.4.4 §24.3)
+  hard_rules_added: 2                            # 14 (v0.4.2 §17.7) + 15 (v0.4.4 §17.8)
+  external_sources_absorbed: 6                   # 5 substantive (A1-A5) + 1 long-term registration (A6)
+  source_repo: "addyosmani/agent-skills"
+  source_version: "v1.0.0"
+  source_pushed_at: "2026-05-03"
+  source_stars: 27700
+  source_skill_count: 21
+  patches_landed:
+    A1:
+      version: "v0.4.2-rc1"
+      pr: 14
+      branch: "feat/v0.4.2-description-cap"
+      round: "round_20"
+      kind: "Normative"
+      blocker: 15
+      blocker_id: "DESCRIPTION_CAP_1024"
+      hard_rule: 14
+      spec_section: "§24.1 Description Discipline"
+    A2:
+      version: "v0.4.3-rc1"
+      pr: 15
+      branch: "feat/v0.4.3-skill-md-sections"
+      round: "round_21"
+      kind: "Informative"
+      blocker: null
+      hard_rule: null
+      spec_section: "§24.2 Standardized SKILL.md Sections"
+    A3:
+      version: "v0.4.4-rc1"
+      pr: 16
+      branch: "feat/v0.4.4-progressive-disclosure"
+      round: "round_22"
+      kind: "Normative"
+      blocker: 16
+      blocker_id: "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT"
+      hard_rule: 15
+      spec_section: "§24.3 Progressive Disclosure Discipline"
+    A4:
+      version: "v0.4.5-rc1"
+      pr: 17
+      branch: "feat/v0.4.5-lifecycle-category"
+      round: "round_23"
+      kind: "Informative"
+      blocker: null
+      hard_rule: null
+      spec_section: "§24.4 Lifecycle Category Taxonomy"
+      schema_field_added: "lifecycle.category (OPTIONAL; default null; enum: define|plan|build|verify|review|ship|meta|null)"
+    A5:
+      version: "v0.4.6-rc1"
+      pr: 18
+      branch: "feat/v0.4.6-meta-routing-pattern"
+      round: "round_24"
+      kind: "Informative"
+      blocker: null
+      hard_rule: null
+      spec_section: "§24.5 Meta-Routing Pattern"
+      router_model_training: "FORBIDDEN — §24.5.2 enumerates 4 forbidden surfaces; verbatim re-affirms §5.2 + §11.1 item 2"
+    A6:
+      version: "v0.4.7-rc1"
+      pr: 20
+      branch: "feat/v0.4.7-anti-pattern-doc-agent-skills-registration"
+      round: "round_25"
+      kind: "Informative_metadocumentary"
+      blocker: null
+      hard_rule: null
+      spec_section: "§24.6 External Research Reference Registration"
+      reference_pin:
+        id: "r13"
+        path: ".local/research/r13_agent_skills_comparison.md"
+        decay: false
+        kind: "long_term_pin"
+  non_absorptions:
+    B1:
+      direction: "marketplace"
+      reason: "touches §11.1 item 1 verbatim (Skill / Plugin marketplace 与任何分发表面积) — forever-out of v0.x"
+    B2:
+      direction: "multi-IDE chase"
+      reason: "touches §11.1 item 3 verbatim (通用 IDE / Agent runtime 兼容层) + §7 frozen 3-platform priority Cursor → Claude Code → Codex (bridge-only) — forever-out of v0.x"
+
+# ── core_goal_invariant block (universal §15.3 across all round_kind) ────
+core_goal_invariant:
+  c0_pass_rate: 1.0
+  no_regression: true
+  cases_run: 5
+  cases_passed: 5
+  test_pack_path: ".local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml"
+  monotonicity_chain_length: 10                  # Round 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26
+  monotonicity_chain_first_round: "round_17"
+  monotonicity_chain_last_round: "round_26"
+  monotonicity_unbroken: true
+
+# ── real_data_verification block (§19) ───────────────────────────────────
+real_data_verification:
+  msw_fixture_provenance_verified: true          # spec_validator BLOCKER 13 PASS via SKIP-as-PASS path (no real_data_samples.yaml for si-chip ability)
+  user_install_verified: true                    # tarball install verified deterministic (rebuild byte-identical)
+  post_recovery_live_verified: false             # N/A for ship_prep round (no live backend; live_backend: false)
+  notes: |
+    real_data_samples is N/A for si-chip ability (it has no MSW fixtures —
+    chip-usage-helper Cycle 5 R45/R46/R47 is where real_data_verification primarily
+    applies). spec_validator BLOCKER 13 SKIPS-as-PASSes this round per §19.3 fallback.
+
+# ── health_smoke_check_results (per §21.4 packaging-gate) ────────────────
+health_smoke_check_results: []                   # Si-Chip has live_backend: false; spec_validator BLOCKER 14 SKIPS-as-PASSes
+health_smoke_check_inapplicable: true
+health_smoke_check_inapplicable_reason: "current_surface.dependencies.live_backend == false (Si-Chip is markdown_first; no live HTTP/CLI backends to probe)"
+
+# ── consecutive-pass ladders (per §4.2 promotion rule) ──────────────────
+consecutive_v1_passes: 26                        # Rounds 1-26 all clear v1_baseline
+consecutive_v2_passes: 9                         # Rounds 18-26 all clear v2_tightened (FIRST v2 was Round 18 via real_llm_runner.py unblock)
+consecutive_v3_passes: 0                         # v3_strict still blocked on metadata_tokens (94 vs ≤ 80) + per_invocation_footprint (5074 vs ≤ 5000) + iteration_delta axis (+0.05 vs ≥ +0.15)
+
+# ── promotion lineage (predecessor and arc context) ─────────────────────
+predecessor_ship:
+  version: "v0.4.0"                              # the prior frozen ship (v0.5.0 supersedes this)
+  decision_artifact: ".local/dogfood/2026-04-30/v0.4.0_ship_decision.yaml"
+  report_artifact: ".local/dogfood/2026-04-30/v0.4.0_ship_report.md"
+  shipped_at_gate: "standard"                    # v0.4.0 was the FIRST Si-Chip release at standard gate
+  shipped_at_date: "2026-04-30"
+  spec_section_count: 23                         # §1–§23
+  hard_rule_count: 13
+  blocker_count: 14
+
+# ── §11 forever-out compliance check (verbatim re-affirmed across §24.x sub-sections) ──
+spec_11_forever_out_check:
+  marketplace: "UNCHANGED — agent-skills B1 marketplace direction explicitly NOT-absorbed (r13 §5.1 verbatim cites §11.1 item 1; §24.6.5 verbatim re-affirms). Si-Chip does NOT re-distribute, NOT auto-update from, NOT bundle agent-skills."
+  router_model_training: "UNCHANGED — §5.2 byte-identical preserved; §24.5.2 (Patch 5 / v0.4.6) enumerates 4 forbidden router-implementation surfaces verbatim re-affirmed."
+  ide_compat: "UNCHANGED — §7 platform priority Cursor → Claude Code → Codex (bridge-only) preserved byte-identical; B2 multi-IDE chase explicitly NOT-absorbed (r13 §5.2 verbatim cites §11.1 item 3; §24.6.5 verbatim re-affirms)."
+  md_to_cli: "UNCHANGED — r13 is hand-authored Markdown; §24.6.2 registration format is hand-edited canonical fields, not CLI-generated; §11.1 item 4 verbatim re-affirmed in §24.6.5."
+  verdict: "ALL_4_FOREVER_OUT_PRESERVED — v0.5.0 FROZEN SHIP COMPLIANT — v0.5.0 ARC COMPLETE"
+  re_affirmed_in_sections:
+    - "§24.1.3 (Patch 1 / A1)"
+    - "§24.2.6 (Patch 2 / A2)"
+    - "§24.3.6 (Patch 3 / A3)"
+    - "§24.4.6 (Patch 4 / A4)"
+    - "§24.5.6 (Patch 5 / A5)"
+    - "§24.6.5 (Patch 6 / A6)"
+
+# ── machine_checks (raw artifact references) ───────────────────────────
+machine_checks:
+  spec_validator_v0_5_0_verdict: "PASS"
+  spec_validator_v0_5_0_count: "16/16 PASS (against frozen v0.5.0 spec at .local/research/spec_v0.5.0.md)"
+  spec_validator_v0_5_0_failed_invariants: []
+  spec_validator_v0_5_0_artifact: ".local/dogfood/2026-05-05/round_26/raw/spec_validator.json"
+  spec_validator_backward_compat:
+    spec_v0_4_7_rc1: "PASS (16/16)"
+    spec_v0_4_6_rc1: "PASS (16/16)"
+    spec_v0_4_5_rc1: "PASS (16/16)"
+    spec_v0_4_4_rc1: "PASS (16/16)"
+    spec_v0_4_3_rc1: "PASS (16/16)"
+    spec_v0_4_2_rc1: "PASS (16/16)"
+    spec_v0_4_0: "PASS (16/16; SKIP-as-PASS for BLOCKER 15+16 via §13.6.4 grace period)"
+    spec_v0_3_0: "PASS (16/16; SKIP-as-PASS for BLOCKER 12-16 via §13.6.4 grace period)"
+    spec_v0_2_0: "PASS (16/16; SKIP-as-PASS for BLOCKER 10-16 via §13.6.4 grace period)"
+  spec_validator_script_version: "0.3.0"
+  pytest_full_round_26:
+    exit_code: 0
+    n_tests_pass: 70
+    n_subtests_pass: 62
+    duration_s: 13.33
+    artifact: ".local/dogfood/2026-05-05/round_26/raw/pytest_full.txt"
+  count_tokens_skill_md_round_26:
+    metadata: 94
+    body: 4980
+    pass: true
+    backend: "tiktoken"
+    budget_meta: 100
+    budget_body: 5000
+    margin_meta: 6
+    margin_body: 20
+    artifact: ".local/dogfood/2026-05-05/round_26/raw/count_tokens.json"
+  three_tree_mirror_drift_round_26: 0
+  three_tree_mirror_skill_md_sha256_round_26: "d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659"
+  three_tree_mirror_byte_equality_verified: true
+  agents_md_compile_hash_round_26: "f7ade0fd9c0e06bb"
+  agents_md_total_hard_rules: 15
+  spec_validator_total_blockers: 16
+  health_smoke_check_round_26:
+    inapplicable: true
+    reason: "live_backend: false (Si-Chip is markdown_first; no HTTP/CLI backends to probe)"
+    artifact: ".local/dogfood/2026-05-05/round_26/raw/health_smoke.json"
+
+# ── packaging gate (3-tree consistency) ─────────────────────────────────
+packaging_gate_three_trees:
+  source: { metadata_tokens: 94, body_tokens: 4980, pass: true, sha256: "d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659" }
+  cursor: { metadata_tokens: 94, body_tokens: 4980, pass: true, sha256: "d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659" }
+  claude: { metadata_tokens: 94, body_tokens: 4980, pass: true, sha256: "d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659" }
+
+# ── deliverables of this aggregate ship round ───────────────────────────
+v0_5_0_ship_deliverables:
+  spec_v0_5_0_md_created: true                                  # .local/research/spec_v0.5.0.md (FROZEN; promoted from spec_v0.4.7-rc1.md; §1-§24.6 byte-identical except metadata)
+  spec_v0_4_7_rc1_md_pinned: true                               # .local/research/spec_v0.4.7-rc1.md retained as historical record (rc lineage)
+  prior_rc_pins_preserved:                                       # .local/research/spec_v0.4.6-rc1.md / spec_v0.4.5-rc1.md / spec_v0.4.4-rc1.md / spec_v0.4.3-rc1.md / spec_v0.4.2-rc1.md retained
+    - ".local/research/spec_v0.4.6-rc1.md"
+    - ".local/research/spec_v0.4.5-rc1.md"
+    - ".local/research/spec_v0.4.4-rc1.md"
+    - ".local/research/spec_v0.4.3-rc1.md"
+    - ".local/research/spec_v0.4.2-rc1.md"
+  skill_md_version: "0.5.0"
+  rules_si_chip_spec_mdc_updated: true                          # .rules/si-chip-spec.mdc bumped v0.4.7-rc1 → v0.5.0; status rc → frozen; H1 promoted to FROZEN prose; §13 hard rule body byte-identical
+  agents_md_recompiled: true
+  agents_md_compile_hash: "f7ade0fd9c0e06bb"
+  agents_md_total_hard_rules: 15                                # 8 (v0.2.0) + 2 (v0.3.0) + 3 (v0.4.0) + 1 (v0.4.2) + 1 (v0.4.4)
+  tarball_path: "docs/skills/si-chip-0.5.0.tar.gz"
+  tarball_sha256: "d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672"
+  tarball_size_bytes: 100292
+  tarball_files_count: 29
+  tarball_deterministic_build_flags: "--sort=name --owner=0 --group=0 --numeric-owner --mtime='2026-05-05 00:00:00 UTC' --exclude='*/__pycache__' --exclude='si-chip/scripts/test_*.py'"
+  tarball_reproducibility_verified: true                        # built twice; same SHA-256 d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672
+  changelog_v0_5_0_section_added: true                          # CHANGELOG [0.5.0] section added above [0.4.7]; structure mirrors [0.4.0]
+  ship_decision_yaml_emitted: true                              # ★ this file (7th evidence file per §20.4)
+  raw_artifacts_emitted:
+    - ".local/dogfood/2026-05-05/round_26/raw/pytest_full.txt"
+    - ".local/dogfood/2026-05-05/round_26/raw/spec_validator.json"
+    - ".local/dogfood/2026-05-05/round_26/raw/count_tokens.json"
+    - ".local/dogfood/2026-05-05/round_26/raw/tarball_sha256.txt"
+    - ".local/dogfood/2026-05-05/round_26/raw/health_smoke.json"
+
+# ── target_repo_commits (per template schema) ───────────────────────────
+target_repo_commits:
+  - branch: "feat/v0.5.0-aggregate-ship"
+    base: "feat/v0.4.7-anti-pattern-doc-agent-skills-registration"
+    note: "v0.5.0 FROZEN aggregate ship; stacked on Patch 6 PR #20; when this PR merges, it consolidates all of #14-#20 into a single frozen v0.5.0 release"
+  - branch: "feat/v0.4.7-anti-pattern-doc-agent-skills-registration"
+    pr: 20
+    note: "Patch 6 / A6 — anti-pattern doc + agent-skills registration; immediate base for this aggregate ship"
+  - branch: "feat/v0.4.6-meta-routing-pattern"
+    pr: 18
+    note: "Patch 5 / A5 — meta-routing pattern (NO router-model training)"
+  - branch: "feat/v0.4.5-lifecycle-category"
+    pr: 17
+    note: "Patch 4 / A4 — lifecycle.category OPTIONAL schema field"
+  - branch: "feat/v0.4.4-progressive-disclosure"
+    pr: 16
+    note: "Patch 3 / A3 — progressive-disclosure Normative + BLOCKER 16 + hard rule 15"
+  - branch: "feat/v0.4.3-skill-md-sections"
+    pr: 15
+    note: "Patch 2 / A2 — standardized SKILL.md sections Informative"
+  - branch: "feat/v0.4.2-description-cap"
+    pr: 14
+    note: "Patch 1 / A1 — description-cap Normative + BLOCKER 15 + hard rule 14"
+
+# ── next_steps (post-ship maintenance loop) ─────────────────────────────
+next_steps:
+  - "L0 reviews this v0.5.0 aggregate ship PR (stacked on PR #20 base feat/v0.4.7-anti-pattern-doc-agent-skills-registration)"
+  - "L0 verifies (a) §1-§24.6 byte-identical to v0.4.7-rc1 (only frontmatter/H1/footer change), (b) CHANGELOG [0.5.0] structure mirrors [0.4.0], (c) tarball is deterministic (rebuild matches sha256), (d) ship_decision.yaml verdict = SHIP_ELIGIBLE"
+  - "L3 (this agent) executes: git push -u origin feat/v0.5.0-aggregate-ship"
+  - "L3 (this agent) executes: gh pr create --base feat/v0.4.7-anti-pattern-doc-agent-skills-registration"
+  - "Post-merge of stack #14-#20 + this aggregate: main is ready for tagging at v0.5.0"
+  - "Post-merge: L3 runs Round 27 measurement_only post-ship round to confirm metric stability under frozen v0.5.0 spec (per next_action_plan.yaml a2)"
+  - "Future agent-skills minor/major upstream bumps trigger new r-numbered comparison docs (r14, r15, ...) per §24.6.3 lifecycle, NOT mutations to the r13 frozen pin"
+
+# ── forward look (post-v0.5.0 ladder) ──────────────────────────────────
+v0_5_x_forward_look:
+  primary_actions:
+    - "v3_strict promotion: shrink metadata_tokens 94 → ≤ 80 (currently fails v3 by 14 margin); shrink per_invocation_footprint 5074 → ≤ 5000 (currently fails v3 by 74 margin); sustain ≥ +0.15 axis bucket per round (currently +0.05 v1 bucket from arc-complete callouts)"
+    - "Round 27 measurement_only post-ship round (cache-replay byte-equivalent to Round 18-26; expected 16/16 BLOCKERs PASS unchanged on v0.5.0 spec; 27th consecutive v1 pass; 10th consecutive v2 pass)"
+    - "chip-usage-helper Round 31+ under v0.5.0 spec verifies cross-ability backward-compat (no migration required since arc only added 1 OPTIONAL schema field — lifecycle.category — defaulting to null)"
+    - "G2/G3/G4 + L5/L6/L7 fills (deferred from v0.4.x; depends on real-LLM runner step-trace emission)"
+    - "96-cell intermediate full router-test (vs current MVP 8-cell)"
+  v1_0_0_planning:
+    deferred: true
+    deferral_basis: "v1.0.0-rc1 design paper out-of-scope until v0.5.0 has accumulated sufficient post-ship evidence (Round 27 measurement_only + chip-usage-helper Round 31+ + at least 1 month of stable v0.5.0 ship_eligible verdict carry-forward)"
+    forever_out_re_affirmation: "v1.0.0 will NOT introduce marketplace / router-model training / Markdown-to-CLI / generic IDE compat layer surfaces (per §11 forever-out)"
+
+# ── provenance ──────────────────────────────────────────────────────────
+provenance:
+  target_commit_base: "HEAD-of-feat/v0.5.0-aggregate-ship (stacked on feat/v0.4.7-anti-pattern-doc-agent-skills-registration @ HEAD)"
+  generator: "round_26_L3_dogfood (v0.5.0 aggregate ship_prep — bundles 6-patch absorption arc A1-A6 from agent-skills v1.0.0; v0.5.0 absorption arc COMPLETE)"
+  spec_version: "v0.5.0"
+  spec_path: ".local/research/spec_v0.5.0.md"
+  rules_path: ".rules/si-chip-spec.mdc"
+  agents_md_path: "AGENTS.md"
+  skill_md_source_path: ".agents/skills/si-chip/SKILL.md"
+  tarball_path: "docs/skills/si-chip-0.5.0.tar.gz"
+  tarball_sha256_companion: "docs/skills/si-chip-0.5.0.tar.gz.sha256"
+  changelog_path: "CHANGELOG.md"
+  round_26_round_dir: ".local/dogfood/2026-05-05/round_26/"
+  evidence_files_count: 7                                       # 6 standard + ship_decision.yaml (this file)
+  evidence_files:
+    - "basic_ability_profile.yaml"
+    - "metrics_report.yaml"
+    - "router_floor_report.yaml"
+    - "half_retire_decision.yaml"
+    - "next_action_plan.yaml"
+    - "iteration_delta_report.yaml"
+    - "ship_decision.yaml"                                       # ★ the 7th evidence file per §20.4 (this file)

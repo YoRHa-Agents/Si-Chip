@@ -7,7 +7,92 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty; post-v0.4.7 items land here)
+- (empty; post-v0.5.0 items land here)
+
+## [0.5.0] - 2026-05-05
+
+### Summary
+Si-Chip v0.5.0 — "**v0.5.0 minor release; aggregates 6 absorption patches A1-A6 from `addyosmani/agent-skills` v1.0.0**". This is the **FROZEN** aggregate ship of the v0.5.0 absorption arc that landed across rc lineage v0.4.7-rc1 → **v0.5.0**, bundling Patches 1-6 from PRs #14 / #15 / #16 / #17 / #18 / #20: A1 description-cap (§24.1, Normative + BLOCKER 15 + hard rule 14) + A2 standardized SKILL.md sections (§24.2, Informative) + A3 progressive-disclosure (§24.3, Normative + BLOCKER 16 + hard rule 15) + A4 lifecycle.category (§24.4, Informative + 1 OPTIONAL schema field) + A5 meta-routing pattern (§24.5, Informative; NO router-model training) + A6 anti-pattern documentation + agent-skills long-term registration (§24.6, Informative metadocumentary). Spec promoted v0.4.7-rc1 → v0.5.0 frozen with `compiled_into_rules: true` flip; supersedes v0.4.0 (the prior frozen ship); §1–§24.6 prose **byte-identical to v0.4.7-rc1** — only frontmatter / H1 / footer / immediate header bullet block reflect frozen status. AGENTS.md §13 grew **13 → 15 hard rules** across the arc (rule 14 description-cap from v0.4.2; rule 15 body-budget references-split from v0.4.4); spec_validator BLOCKER set grew **14 → 16** (BLOCKER 15 `DESCRIPTION_CAP_1024` from v0.4.2; BLOCKER 16 `BODY_BUDGET_REQUIRES_REFERENCES_SPLIT` from v0.4.4). agent-skills v1.0.0 (push @ 2026-05-03; 27.7k stars; 21 skills) is registered as Si-Chip's **FIRST long-term external research reference** at `.local/research/r13_agent_skills_comparison.md` (`kind: long_term_pin`; `decay: false`; `first_absorbed_at: v0.4.2-rc1`; `last_absorbed_at: v0.4.7-rc1`). **STRICT §11 forever-out compliance**: agent-skills is RESEARCH MATERIAL, NOT a code or runtime dependency — Si-Chip does NOT re-distribute, NOT auto-update from, NOT bundle, NOT runtime-load any agent-skills code or markdown (re-affirmed verbatim across §24.1.3 / §24.2.6 / §24.3.6 / §24.4.6 / §24.5.6 / §24.6.5). Ship gate: **v2_tightened (= standard)** — first achieved Round 18 + 19, maintained 20-25 (8 consecutive v2 passes), confirmed at Round 26 ship_prep aggregate. **v0.5.0 absorption arc COMPLETE**: agent-skills v1.0.0 is fully absorbed at provenance-pin level; remaining directions (B1 marketplace / B2 multi-IDE chase) are deliberately NOT absorbed per §11.1 forever-out items 1 + 3. Future agent-skills minor / major upstream bumps trigger new r-numbered comparison docs (r14, r15, ...) per §24.6.3 lifecycle, NOT mutations to this r13 frozen pin.
+
+### Added (Normative — accumulated from arc)
+
+- **Spec §24.1 Description Discipline** (Patch 1 / v0.4.2; Normative): description ≤ 1024 chars, `min(len(s), len(s.encode('utf-8')))` measurement (CJK fairness); "what+when" semantic; must NOT embed full SKILL body / step-by-step workflow; spec_validator BLOCKER 15 `DESCRIPTION_CAP_1024`; AGENTS.md §13 hard rule 14.
+- **Spec §24.3 Progressive Disclosure Discipline** (Patch 3 / v0.4.4; Normative): when SKILL.md `body_tokens > 5000` (crosses §7.3 v3_strict body budget) → MUST cite ≥ 1 `references/<file>.md` AND that file MUST exist on disk; body-token measurement MUST use the same method as `scripts/count_tokens.py::count_tokens(body)` (tiktoken-with-fallback); spec_validator BLOCKER 16 `BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`; AGENTS.md §13 hard rule 15. `templates/lazy_manifest.template.yaml` Informative → Normative-conditional (only when SKILL body crosses v3_strict 5000 threshold).
+
+### Added (Informative — accumulated from arc)
+
+- **Spec §24.2 Standardized SKILL.md Sections** (Patch 2 / v0.4.3; Informative): SHOULD trio appended after `## When NOT To Trigger` — (1) `## Common Rationalizations` table, (2) `## Red Flags` bullet list, (3) `## Verification` checkbox list with Evidence path sub-bullets. Template: `templates/skill_md_sections.template.md`. NO BLOCKER. NO new hard rule.
+- **Spec §24.4 Lifecycle Category Taxonomy** (Patch 4 / v0.4.5; Informative): OPTIONAL schema field `lifecycle.category ∈ {define, plan, build, verify, review, ship, meta, null}` (default null). Si-Chip self-classifies as `meta` (canonical first-use case). NO BLOCKER. NO new hard rule. Backward-compat preserved across all v0.4.0–v0.4.4 BAP profiles.
+- **Spec §24.5 Meta-Routing Pattern** (Patch 5 / v0.4.6; Informative): description-driven discovery / routing meta-ability pattern (5 atomic features). §24.5.2 implementation constraint enumerates 4 forbidden surfaces: learned router models / external classifiers / online weight updates / training or fine-tuning — verbatim re-affirms §5.2 + §11.1 item 2. Si-Chip self-recognised as canonical reference impl. NO schema change. NO BLOCKER. NO new hard rule.
+- **Spec §24.6 External Research Reference Registration** (Patch 6 / v0.4.7; Informative metadocumentary): registration mechanism for absorbing external skill / agent ecosystems' lessons WITHOUT depending on or distributing their code. Five sub-sections: §24.6.1 Purpose / §24.6.2 Registration Format (canonical fields: id / path / source_repo / source_version / source_url / pinned_at / first_absorbed_at / last_absorbed_at / decay / kind) / §24.6.3 Lifecycle (long_term_pin = NOT decay; vs DevolaFlow short-term observations 30-day half-life) / §24.6.4 First Registered Reference (agent-skills as canonical exemplar) / §24.6.5 §11.1 Forever-Out Re-Affirmation (verbatim 4 items + table showing each one is NOT touched). Frontmatter array `registered_research_references[]` is the canonical machine-readable counterpart. NO schema change. NO BLOCKER. NO new hard rule.
+- **r13 cross-walk** at `.local/research/r13_agent_skills_comparison.md` (~28 KB; substantive new artifact): 10 sections covering A1-A5 absorptions cross-walk, B1+B2 anti-patterns (verbatim §11.1 cites), Si-Chip self-review against agent-skills' rubric (where Si-Chip exceeds: §14 core_goal / §18 token_tier / §19 real-data / §22 eval-pack / §8 dogfood / spec_validator BLOCKERs), §11 forever-out re-affirmation, decay policy, long-term tracking obligations.
+
+### Added (Tooling — accumulated)
+
+- `tools/spec_validator.py` BLOCKER count `14 → 16` across the arc (rounds 20 + 22): `DESCRIPTION_CAP_1024` measures across all 3 SKILL.md trees + all BAP profiles' `basic_ability.description` (or `intent` fallback); `BODY_BUDGET_REQUIRES_REFERENCES_SPLIT` graduates SKIP-as-PASS for `body ≤ 5000` and FAIL when body > 5000 without an existing references cite.
+- 11 reference docs landed under `.agents/skills/si-chip/references/` (mirrored across all 3 trees) for the §24.x family — `description-discipline-r13-summary.md` / `standardized-sections-r13-summary.md` / `progressive-disclosure-r13-summary.md` / `lifecycle-category-r13-summary.md` / `meta-routing-pattern-r13-summary.md` (one per Patch 1-5; Patch 6 r13 lives under `.local/research/`).
+
+### Changed
+
+- `.local/research/spec_v0.4.0.md` (frozen) → `.local/research/spec_v0.5.0.md` (FROZEN) — promoted from `spec_v0.4.7-rc1.md`; supersedes v0.4.0; `compiled_into_rules: true` flip; `effective_date: 2026-05-05`. §1–§24.6 prose **byte-identical to v0.4.7-rc1**.
+- `.rules/si-chip-spec.mdc` `v0.4.7-rc1` → `v0.5.0`; `status: rc → frozen`; `promoted_from: null → v0.4.7-rc1`; `supersedes: v0.4.6-rc1 → v0.4.0`; H1 promoted to FROZEN prose (§13 hard rule body byte-identical).
+- `AGENTS.md` recompiled from `.rules/si-chip-spec.mdc`; H1 reflects v0.5.0 FROZEN; §13 retains 15 hard rules (rules byte-identical). New SHA256-16 = `f7ade0fd9c0e06bb`; updated in `.rules/.compile-hashes.json`.
+- `.agents/skills/si-chip/SKILL.md` frontmatter `version: 0.4.7 → 0.5.0`; description text `per Si-Chip v0.4.7 → per Si-Chip v0.5.0`; Provenance line updated to `spec_v0.5.0.md` (FROZEN). 3-tree mirror byte-identical (sha256 = `d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659`).
+
+### Verified (Dogfood — 26 rounds total)
+
+- **R1-R19** (across v0.1.0 / v0.1.1-v0.1.12 / v0.2.0 / v0.3.0 / v0.4.0): pre-v0.5.0 history (relaxed → v2_tightened progression; FIRST v2 PASS at Round 18 via `real_llm_runner.py`; SECOND v2 PASS at Round 19 via cache-replay byte-equivalence).
+- **R20** (v0.4.2 absorption; PR #14): A1 description-cap landed; v1 + v2 PASS; FIRST external-source absorption ever.
+- **R21** (v0.4.3 absorption; PR #15): A2 standardized sections landed; v1 + v2 PASS.
+- **R22** (v0.4.4 absorption; PR #16): A3 progressive-disclosure landed; v1 + v2 PASS; BLOCKER 16 added; SKILL.md body crossed v2_tightened best-practice marker but stayed under v3_strict MUST-fail trigger 5000.
+- **R23** (v0.4.5 absorption; PR #17): A4 lifecycle.category landed; Si-Chip declares `lifecycle.category: meta`; v1 + v2 PASS.
+- **R24** (v0.4.6 absorption; PR #18): A5 meta-routing pattern landed; v1 + v2 PASS.
+- **R25** (v0.4.7-rc1 absorption; PR #20): A6 anti-pattern doc + r13 long-term registration landed; v1 + v2 PASS; v0.5.0 absorption arc complete.
+- **R26** (v0.5.0 ship_prep; this PR; `round_kind: ship_prep` per §15.1): aggregate ship_prep round emitting **7 evidence files** (6 standard + 7th `ship_decision.yaml` per §20.4); ship verdict `SHIP_ELIGIBLE` at gate `standard` (= v2_tightened); 9th consecutive v2 PASS; 26th consecutive v1 PASS; 10th consecutive C0 = 1.0 monotonicity (Round 17 → 26).
+- spec_validator: **16/16 BLOCKERs PASS** at v0.5.0 spec; backward-compat **16/16 PASS** at every preceding rc spec (v0.4.7-rc1 → v0.4.6-rc1 → ... → v0.4.2-rc1) + legacy frozen specs (v0.4.0 / v0.3.0 / v0.2.0) via the §13.6.4 grace-period SKIP-as-PASS path.
+- pytest: **70/70 PASS** (`tools/test_spec_validator.py`); ZERO new tests required across the arc (Patches 2 / 4 / 5 / 6 are Informative; Patches 1 + 3 added BLOCKERs but the test suite was extended in those patches not this aggregate ship).
+- count_tokens: SKILL.md metadata=94/100, body=4980/5000 PASS at v2_tightened body budget (margin 20).
+- 3-tree mirror: byte-identical sha256 `d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659`.
+- Tarball: `docs/skills/si-chip-0.5.0.tar.gz` (deterministic; **sha256 `d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672`**; rebuild verified byte-identical via `--sort=name --owner=0 --group=0 --numeric-owner --mtime='2026-05-05 00:00:00 UTC' --exclude='*/__pycache__' --exclude='si-chip/scripts/test_*.py'`).
+
+### Unchanged (Forever-Out — §11.1)
+
+- **Skill / Plugin marketplace** (item 1): Si-Chip does NOT re-distribute, NOT auto-update from, NOT bundle agent-skills; r13 §5.1 + §24.6.5 verbatim cite this. The B1 marketplace direction in agent-skills is the canonical anti-pattern this absorption deliberately did NOT take.
+- **Router-model training** (item 2): Si-Chip's §5 router work is forever description-driven; §24.5 (Patch 5) re-affirms; §24.5.2 enumerates 4 forbidden router-implementation surfaces (learned models / external classifiers / online weight updates / training or fine-tuning); r13 §9 verbatim cites §5.2 + §11.1 item 2.
+- **Generic IDE / Agent runtime compat layer** (item 3): Si-Chip's §7 platform priority remains frozen at Cursor → Claude Code → Codex (bridge-only); B2 multi-IDE chase in agent-skills is the canonical anti-pattern this absorption deliberately did NOT take; r13 §5.2 + §24.6.5 verbatim cite §11.1 item 3.
+- **Markdown-to-CLI auto converter** (item 4): r13 is hand-authored Markdown; §24.6.2 registration format is hand-edited canonical fields, not CLI-generated; §11.1 item 4 verbatim re-affirmed in §24.6.5.
+- **Metric taxonomy** (§3): R6 7 dimensions × 37 sub-metrics frozen unchanged across the arc.
+- **Value vector** (§6.1): 8 axes (`task_delta` / `token_delta` / `latency_delta` / `context_delta` / `path_efficiency_delta` / `routing_delta` / `governance_risk_delta` / `eager_token_delta`) frozen since v0.4.0.
+- **Platform priority** (§7.2): Cursor (priority 1) → Claude Code (priority 2) → Codex (priority 3, bridge-only).
+- **§8.1 8-step dogfood protocol order**: profile → evaluate → diagnose → improve → router-test → half-retire-review → iterate → package-register.
+- **§8.2 6-evidence-file minimum** (extends to 7 only when `round_kind == ship_prep`): basic_ability_profile / metrics_report / router_floor_report / half_retire_decision / next_action_plan / iteration_delta_report (+ ship_decision.yaml per §20.4 when ship_prep).
+
+### Files
+
+- New: `.local/research/spec_v0.5.0.md` (FROZEN; promoted from spec_v0.4.7-rc1.md; §1-§24.6 byte-identical to rc1) ; `docs/skills/si-chip-0.5.0.tar.gz` (deterministic) + `docs/skills/si-chip-0.5.0.tar.gz.sha256` ; `.local/dogfood/2026-05-05/round_26/` (6 standard evidence files + ship_decision.yaml + raw/ artifacts).
+- Modified: `.rules/si-chip-spec.mdc` (rc → frozen + frontmatter) ; `.rules/.compile-hashes.json` (new SHA256-16 = f7ade0fd9c0e06bb) ; `AGENTS.md` (recompiled) ; `.agents/skills/si-chip/SKILL.md` + `.cursor/skills/si-chip/SKILL.md` + `.claude/skills/si-chip/SKILL.md` (3-tree mirror; v0.4.7 → v0.5.0) ; `CHANGELOG.md` ([0.5.0] section above [0.4.7]).
+
+### Stack Position
+
+```text
+main
+ └─ #14 feat/v0.4.2-description-cap         (Patch 1; A1)
+   └─ #15 feat/v0.4.3-skill-md-sections     (Patch 2; A2)
+     └─ #16 feat/v0.4.4-progressive-disclosure (Patch 3; A3)
+       └─ #17 feat/v0.4.5-lifecycle-category (Patch 4; A4)
+         └─ #18 feat/v0.4.6-meta-routing-pattern (Patch 5; A5)
+           └─ #20 feat/v0.4.7-anti-pattern-doc-agent-skills-registration (Patch 6; A6)
+             └─ feat/v0.5.0-aggregate-ship  ← THIS RELEASE; FROZEN; v0.5.0 minor; arc complete
+```
+
+### Ship Verdict
+
+- `ship_eligible: true`
+- `ship_gate_achieved: standard` (= v2_tightened per §4.2 + §15.4 promotion rule)
+- `consecutive_v1_passes: 26` (Rounds 1-26)
+- `consecutive_v2_passes: 9` (Rounds 18-26)
+- `c0_pass_rate: 1.0` (10 consecutive 1.0 rounds since R17)
+- `arc_complete: v0.5.0_absorption_arc` ; `arc_patches: 6` (A1-A6) ; `arc_blockers_added: 2` (15+16) ; `arc_hard_rules_added: 2` (14+15) ; `arc_external_sources_absorbed: 6` (5 substantive + 1 long-term registration).
 
 ## [0.4.7] - 2026-05-05
 
