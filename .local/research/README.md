@@ -1,6 +1,6 @@
 # Si-Chip Research Index
 
-> Last updated: 2026-04-28  
+> Last updated: 2026-05-05  
 > 本目录保存 Si-Chip 关于 Skill/basic ability 迭代优化体系的调研、证据库与 canonical 文档。
 
 ## Canonical Reading Path
@@ -30,6 +30,10 @@ R1-R10 是证据库，保留详细调研和来源，不作为主线文档。
 | `r8_router_test_protocol.md` | Router-test 协议、router_floor | spec §5；主报告 §5；清单 §6 |
 | `r9_half_retirement_framework.md` | 半退役 / value vector / 简化策略 | spec §6；主报告 §6；清单 §7 |
 | `r10_self_registering_skill_roadmap.md` | 自注册 Skill/Plugin 与 self-dogfood 行动路线 | spec §7/§8；主报告 §9；清单 §8.1 |
+| `r11_core_goal_invariant.md` | Core-Goal Invariant + round_kind enum + multi-ability layout | spec v0.3.0 §14/§15/§16；主报告 §3 |
+| `r12_v0_4_0_industry_practice.md` | v0.4.0 industry practice survey + chip-usage-helper R1-R47 实证 | spec v0.4.0 §18/§19/§20/§21/§22/§23 |
+| `r12.5_real_llm_runner_feasibility.md` | Real-LLM runner feasibility spike (Veil proxy + Anthropic Messages) | spec v0.4.0 §3 D1 + §22.6 cache + r12.5 PROCEED_MAJOR |
+| `r13_agent_skills_comparison.md` (NEW v0.4.7) | **FIRST registered long-term external research reference**: addyosmani/agent-skills v1.0.0 comparative study + anti-pattern doc + provenance pin | spec v0.4.7-rc1 §24.6 (canonical exemplar) |
 
 > 注：没有 `r5`。R5 是前一轮 synthesis 任务，产物已经被 canonical 文档取代。
 
@@ -94,3 +98,12 @@ Basic Ability
 | v0.0.3 | 2026-04-28 | 文档统一：重写主报告与清单，新增 research index，确立 canonical / evidence 分层 |
 | v0.0.4 | 2026-04-28 | 吸收 feedback v0.0.3：新增 R10，自注册 Skill/Plugin 路线，明确 Claude Code / Cursor / Codex 与 self-dogfood 成功标准 |
 | v0.0.5 / spec v0.1.0 | 2026-04-28 | 吸收 feedback v0.0.5：冻结 `spec_v0.1.0.md` 与 `.rules/si-chip-spec.mdc`，翻转优先级为 Cursor → Claude Code → Codex，全量 7 维 28 子指标，阈值 v1/v2/v3 递进，router 严禁训练，half_retire 必须基于评测指标，marketplace 永远不做 |
+| spec v0.2.0 | 2026-04-29 | 吸收 R5 reconciliation 与 28→37 子指标 prose 对齐；增加 metric coverage 表 |
+| spec v0.3.0 | 2026-04-29 | 新增 §14 Core-Goal Invariant + §15 round_kind enum + §16 multi-ability layout (Informative); §17 hard rules 9 + 10 |
+| spec v0.4.0 | 2026-04-30 | 新增 §18 token-tier + §19 real-data-verification + §20 lifecycle state machine + §21 health-smoke + §22 eval-pack-curation + §23 method-tagged-metrics; §17 hard rules 11/12/13; FIRST v2_tightened ship |
+| spec v0.4.2-rc1 | 2026-05-05 | A1 description-cap absorption from `addyosmani/agent-skills` v1.0.0 docs/skill-anatomy.md; §24.1 Normative; +1 hard rule (14); +1 BLOCKER (15) |
+| spec v0.4.3-rc1 | 2026-05-05 | A2 standardized SKILL.md sections from agent-skills TDD + code-review SKILL.mds; §24.2 Informative; ZERO new BLOCKER |
+| spec v0.4.4-rc1 | 2026-05-05 | A3 progressive-disclosure from agent-skills docs/skill-anatomy.md; §24.3 Normative; +1 hard rule (15); +1 BLOCKER (16) |
+| spec v0.4.5-rc1 | 2026-05-05 | A4 lifecycle category taxonomy from agent-skills using-agent-skills/SKILL.md; §24.4 Informative; +1 OPTIONAL schema field |
+| spec v0.4.6-rc1 | 2026-05-05 | A5 meta-routing pattern from agent-skills using-agent-skills/SKILL.md; §24.5 Informative; ZERO new BLOCKER; STRICT §11 / §5.2 router-model-training forever-out compliance |
+| spec v0.4.7-rc1 | 2026-05-05 | **A6 anti-pattern doc + r13 long-term registration**; §24.6 Informative metadocumentary registration mechanism; FIRST registered long-term external research reference (`r13_agent_skills_comparison.md` against agent-skills v1.0.0); ZERO new BLOCKER; STRICT §11 forever-out — research material only, NOT code dependency; **v0.5.0 absorption arc COMPLETE** |

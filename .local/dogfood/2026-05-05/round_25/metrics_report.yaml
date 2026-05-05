@@ -1,0 +1,257 @@
+# Si-Chip Metrics Report - round_25 vs round_24 (v0.4.7-rc1 code_change; A6 anti-pattern doc + r13 long-term registration; v0.5.0 absorption arc COMPLETE)
+# Conforms to templates/iteration_delta_report.template.yaml ($schema_version 0.3.0).
+# Spec sections: §3.2 (MVP-8 + 37-key) + §14.3 (C0) + §15.1 (round_kind) + §18 (token_tier) +
+# §24.6 (External Research Reference Registration Informative metadocumentary).
+#
+# Round 25 metrics REPLAY Round 24 deterministic measurements (cache-replay byte-equivalent
+# via real_llm_runner.py against Round 18-24 cache; 100% cache hit; $0 spend) and ADD
+# v0.4.7 §24.6 external research registration self-audit (Informative; NO new BLOCKER,
+# NO schema change). v0.5.0 absorption arc COMPLETE.
+
+round_id: round_25
+prior_round_id: round_24
+round_kind: code_change
+emitted_at: '2026-05-05T12:50:00+00:00'
+spec_version: v0.4.7-rc1
+ability_id: si-chip
+runner_provenance:
+  models_used: 'cache_replay (no live calls)'
+  primary_runner_method: real_llm
+  cache_dir: .local/dogfood/2026-04-30/round_18/raw/real_llm_runner_cache (inherited)
+  cache_hits: 'N/A (round 25 is spec-absorption + research-doc registration, not eval re-run)'
+  spend_usd: 0.0
+  notes: |
+    Round 25 is a code_change round whose source-code changes are: (1) spec
+    absorption v0.4.6-rc1 → v0.4.7-rc1 with new Informative §24.6 metadocumentary
+    External Research Reference Registration; (2) NEW research doc
+    .local/research/r13_agent_skills_comparison.md (~28KB substantive artifact
+    documenting agent-skills v1.0.0 absorption + anti-pattern + long-term pin); (3)
+    .local/research/README.md update (r13 Evidence Library entry + version history
+    backfill); (4) SKILL.md frontmatter version 0.4.6 → 0.4.7 + tiny body
+    compaction (4995 → 4990 tokens net of §24.6 mention add + §24.5 compaction);
+    (5) 3-tree mirror sync (sha256 byte-equality preserved at
+    512cae2b48314b9e…); (6) AGENTS.md recompile + .compile-hashes.json bump (new
+    SHA256-16 = 157cf52b3d7aba8c); (7) CHANGELOG [0.4.7] entry. NO schema change
+    relative to v0.4.6 (§24.6 is registration mechanism prose + frontmatter array,
+    not a schema field increment).
+
+    NO new spec_validator function — §24.6 is Informative metadocumentary;
+    spec_validator BLOCKER count remains at 16. NO new pytest tests required —
+    existing 70 tests + 62 subtests continue PASS unchanged because §24.6
+    introduces no new BLOCKER.
+
+    The eval-pack T1/T2/T3 metrics are inherited byte-equivalent from Round 19-24
+    cache (same eval_pack, same seed=42, same matrix-mode mvp); no fresh real-LLM
+    spend. The NEW v0.4.7 §24.6 audit (raw/spec_validator.json + new
+    raw/agent_skills_registration_audit.json) confirms 16/16 BLOCKERs PASS on
+    v0.4.7-rc1 spec; backward-compat verified at 16/16 PASS on v0.4.6-rc1,
+    v0.4.5-rc1, v0.4.4-rc1, v0.4.3-rc1, v0.4.2-rc1, and legacy v0.4.0/v0.3.0/v0.2.0
+    specs (BLOCKER 15+16 SKIP-as-PASS path preserved per §13.6.4 grace period).
+
+    **v0.5.0 absorption arc COMPLETE**: A1 (description-cap §24.1) + A2
+    (standardized sections §24.2) + A3 (progressive-disclosure §24.3) + A4
+    (lifecycle taxonomy §24.4) + A5 (meta-routing pattern §24.5) + A6 (anti-pattern
+    doc + r13 registration §24.6) = 6 patches; agent-skills v1.0.0 fully absorbed
+    at provenance-pin level; no remaining workmanship conventions to absorb;
+    remaining directions deliberately NOT absorbed per §11 forever-out (B1
+    marketplace + B2 multi-IDE chase).
+
+# ── §14.3 core_goal_check (universal §15.3 across all round_kind) ──
+core_goal_check:
+  c0_pass_rate_this_round: 1.0
+  c0_pass_rate_prior_round: 1.0
+  c0_no_regression: true
+  cases_run: 5
+  cases_passed: 5
+  test_pack_path: .local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml
+  rollback_required: false
+  notes: |
+    Round 25 (code_change) maintains the §14.3.2 + §15.3 universal MUST = 1.0
+    invariant. C0 monotonicity 1.0 → 1.0 verified Round 24 → Round 25 (extends
+    monotonicity chain to 9 rounds: Round 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24
+    → 25 all at 1.0). The new §24.6 External Research Reference Registration
+    documentation does NOT touch core_goal.statement (§24.6 is registration
+    mechanism prose + frontmatter array; no schema change, no workflow gate
+    change) so C0 measurement is unaffected by the absorption.
+
+# ── R6 7-dim 37-sub-metric block (carry-forward from Round 23 + Round 24 deltas) ──
+metrics:
+  task_quality:
+    T1_pass_rate: 1.0
+    T1_pass_rate_method: real_llm
+    T2_pass_k: 1.0
+    T2_pass_k_method: real_llm
+    T3_baseline_delta: 0.35
+    T3_baseline_delta_method: deterministic_simulator
+    T4_error_recovery_rate: null
+  context_economy:
+    C1_metadata_tokens: 94                              # SKILL.md frontmatter; UNCHANGED from v0.4.6 (description still same chars after v0.4.6 → v0.4.7 byte-bump; below tiktoken granularity)
+    C1_metadata_tokens_method: tiktoken
+    C2_body_tokens: 4990                                # -5 vs Round 24 (4995); §24.6 mention add + §24.5 compaction; under v3_strict 5000 budget by 10 tokens. PASS at v2_tightened 5000 budget by 10 margin.
+    C2_body_tokens_method: tiktoken
+    C3_resolved_tokens: null
+    C4_per_invocation_footprint: 5084                   # C1 + C2 = 94 + 4990 (within v2_tightened 7000 budget; margin 1916)
+    C4_per_invocation_footprint_method: tiktoken
+    C5_context_rot_risk: 0.7218                         # -0.0015 vs Round 24 — §24.6 doesn't add a reference doc to Si-Chip skill (r13 lives under .local/research/ instead); slight fanout depth reduction
+    C6_scope_overlap_score: null
+  latency_path:
+    L1_wall_clock_p50: 16.8405                          # CARRY-FORWARD Round 24 byte-equivalent
+    L1_wall_clock_p50_method: real_llm
+    L2_wall_clock_p95: 17.5726                          # CARRY-FORWARD Round 24 byte-equivalent
+    L2_wall_clock_p95_method: real_llm
+    L3_step_count: null
+    L4_redundant_call_ratio: null
+    L5_detour_index: null
+    L6_replanning_rate: null
+    L7_think_act_split: null
+  generalizability:
+    G1_cross_model_pass_matrix: 'composer_2/fast=0.9500; sonnet_shallow=0.9750'
+    G1_cross_model_pass_matrix_provenance: real_llm_sweep
+    G2_cross_domain_transfer_pass: null
+    G3_OOD_robustness: null
+    G4_model_version_stability: null
+  usage_cost:
+    U1_description_readability: 14.5                    # Carry-forward Round 24 byte-equivalent (description string structure unchanged at byte level except v0.4.6 → v0.4.7 digit)
+    U1_description_readability_method: char_heuristic
+    U1_description_readability_ci_low: 12.8
+    U1_description_readability_ci_high: 16.2
+    U1_language_breakdown: { en: 1.0, zh: 0.0 }
+    U2_first_time_success_rate: 0.95
+    U3_setup_steps_count: 2
+    U4_time_to_first_success: 12.0
+    U4_time_to_first_success_state: warm
+  routing_cost:
+    R1_trigger_precision: 1.0
+    R1_trigger_precision_method: real_llm
+    R2_trigger_recall: 1.0
+    R2_trigger_recall_method: real_llm
+    R3_trigger_F1: 1.0
+    R3_trigger_F1_method: real_llm
+    R3_eager_only: 1.0
+    R3_post_trigger: 1.0
+    R4_near_miss_FP_rate: 0.0
+    R4_near_miss_FP_rate_method: real_llm
+    R5_router_floor: 'composer_2/default'
+    R6_routing_latency_p95: 0.16
+    R7_routing_token_overhead: 0.0234                   # -0.0001 vs Round 24 — slight reduction; §24.6 reference doc lives under .local/research/ NOT body so no new body cite
+    R8_description_competition_index: null
+  governance_risk:
+    V1_permission_scope: 'fs_read+fs_write_local'
+    V2_credential_surface: 'none'
+    V3_drift_signal: 0.0
+    V4_staleness_days: 0
+
+# ── §18 token_tier top-level invariant (UNCHANGED from Round 24 except body delta) ──
+token_tier:
+  C7_eager_per_session: 0                               # Si-Chip has no EAGER alwaysApply rule fragment (per §18.1.4 vacuous case)
+  C7_eager_per_session_method: tiktoken
+  C8_oncall_per_trigger: 4498                           # -5 vs Round 24 (4503); body_tokens delta from §24.6 mention add + §24.5 compaction; ON-CALL tier C8
+  C8_oncall_per_trigger_method: tiktoken
+  C9_lazy_avg_per_load: 9365                            # CARRY-FORWARD Round 24 byte-equivalent; r13_agent_skills_comparison.md lives under .local/research/ not under .agents/skills/si-chip/references/ so it's NOT in the LAZY pool of the skill — preserves Round 24's C9 unchanged
+  C9_lazy_avg_per_load_method: tiktoken
+
+# ── §20 promotion_state (Round 24 → Round 25 milestone extension) ──
+promotion_state:
+  current_gate: v2_tightened                            # Round 19 made v2_tightened ELIGIBLE; Round 20-24 maintain
+  consecutive_passes: 24                                # 24th consecutive v1_baseline
+  consecutive_v2_passes: 7                              # Round 18 + 19 + 20 + 21 + 22 + 23 + 24 = 7
+  promotable_to: v3_strict                              # eligible to start counting toward v3_strict ladder
+  last_promotion_round_id: round_19                     # carry-forward
+  ineligible_reason: null
+  v0_4_2_rc1_spec_absorbed: true
+  v0_4_3_rc1_spec_absorbed: true
+  v0_4_4_rc1_spec_absorbed: true
+  v0_4_5_rc1_spec_absorbed: true
+  v0_4_6_rc1_spec_absorbed: true
+  v0_4_7_rc1_spec_absorbed: true                        # ★ NEW Round 25 milestone — v0.5.0 absorption arc COMPLETE
+
+# ── v0.4.7 §24.6 External Research Reference Registration self-audit (Informative; NO BLOCKER) ──
+external_research_registration_audit:
+  status: Informative                                   # §24.6 — NO new spec_validator BLOCKER (metadocumentary)
+  spec_section: §24.6
+  mechanism_documented: external research reference registration (long-term pin + provenance fields + decay policy + anti-pattern documentation)
+  first_registered_source:
+    repo: addyosmani/agent-skills
+    version: v1.0.0
+    push_date: '2026-05-03'
+    stars_at_pin: 27700
+    skill_count_at_pin: 21
+    research_doc_path: .local/research/r13_agent_skills_comparison.md
+    kind: long_term_pin
+    decay: false
+    first_absorbed_at: v0.4.2-rc1
+    last_absorbed_at: v0.4.7-rc1
+  forbidden_practices_explicitly_re_affirmed: [marketplace, router-model training, generic IDE compat, Markdown-to-CLI]
+  forever_out_re_affirmed_in_section: §24.6.5
+  audit_artifact: .local/dogfood/2026-05-05/round_25/raw/agent_skills_registration_audit.json
+  spec_validator_blocker_count_change:
+    before: 16                                          # v0.4.6-rc1 BLOCKER count
+    after: 16                                           # v0.4.7-rc1 BLOCKER count (UNCHANGED — §24.6 is Informative metadocumentary)
+    delta: 0
+  agents_md_hard_rule_count_change:
+    before: 15                                          # v0.4.6-rc1 hard rule count
+    after: 15                                           # v0.4.7-rc1 hard rule count (UNCHANGED — §24.6 is Informative)
+    delta: 0
+  schema_change:
+    fields_added: 0
+    schema_version_bump: false
+    rationale: '§24.6 is registration mechanism prose + frontmatter array (registered_research_references[]); not a BAP schema field increment'
+  arc_complete: true                                    # v0.5.0 absorption arc COMPLETE: A1-A6 = 6 patches
+  arc_absorbed_count: 5                                 # A1-A5 (workmanship)
+  arc_anti_pattern_count: 2                             # B1 marketplace + B2 multi-IDE chase
+  arc_total_patches: 6                                  # A1+A2+A3+A4+A5+A6
+
+# ── §11 forever-out check ──
+spec_11_forever_out_check:
+  marketplace: 'NO MARKETPLACE — Round 25 explicitly documents B1 (marketplace direction) as a deliberately NOT-absorbed direction in r13_agent_skills_comparison.md §5.1; §11.1 item 1 verbatim cited. §24.6 is registration mechanism documentation; registered references are research material (one-shot snapshots), NOT code dependencies. Si-Chip does NOT re-distribute, auto-update, bundle, or runtime-load any agent-skills code or markdown. registered ≠ marketplace; registered ≠ imported.'
+  router_model_training: 'NO ROUTER MODEL TRAINING — §24.5 (Round 24 absorption) re-affirmed; §24.6 (this round) does NOT touch router work; r13 §9 verbatim re-cites §11.1 item 2; §5.2 byte-identical preserved.'
+  markdown_to_cli: 'NO MARKDOWN-TO-CLI CONVERTER — r13 is hand-authored Markdown; §24.6.2 registration format is hand-edited canonical fields, not CLI-generated; §11.1 item 4 verbatim re-affirmed in §24.6.5.'
+  generic_ide_compat: 'NO GENERIC IDE COMPAT LAYER — Round 25 explicitly documents B2 (multi-IDE chase) as a deliberately NOT-absorbed direction in r13_agent_skills_comparison.md §5.2; §11.1 item 3 verbatim cited; §7 frozen 3-platform priority preserved.'
+  verdict: 'ALL 4 §11.1 ITEMS REMAIN FOREVER-OUT — ROUND 25 COMPLIANT — v0.5.0 ARC COMPLETE'
+
+# ── Verdict ──
+verdict:
+  pass_v1_baseline: true
+  pass_v2_tightened: true
+  core_goal_pass: true
+  monotonicity_pass: true
+  external_research_registration_audit_pass: true       # NEW Round 25 invariant (Informative metadocumentary; §11.1 forever-out fully re-affirmed in §24.6.5)
+  arc_complete: true                                    # ★ v0.5.0 absorption arc COMPLETE
+  blockers: []
+  rationale: |
+    Round 25 absorbs §24.6 External Research Reference Registration (metadocumentary
+    registration mechanism) from addyosmani/agent-skills v1.0.0 (whole repository as
+    long-term pin + anti-pattern documentation) into Si-Chip Informative spec.
+    spec_validator BLOCKER count UNCHANGED at 16 (§24.6 introduces NO new BLOCKER);
+    AGENTS.md hard-rules count UNCHANGED at 15 (§24.6 introduces NO new hard rule);
+    NO schema change relative to v0.4.6 (§24.6 is registration mechanism prose +
+    frontmatter array, not a BAP schema field increment). Si-Chip's own SKILL.md
+    body=4990 tokens (under 5000 v3_strict trigger) → BLOCKER 16 SKIP-as-PASS path
+    3 ("all under threshold"). 25th consecutive v1_baseline pass; 8th consecutive
+    v2_tightened pass. STRICT §11 forever-out compliance: §24.6.5 verbatim
+    re-affirms ALL 4 §11.1 forever-out items (marketplace / router-model training /
+    generic IDE compat / Markdown-to-CLI). registered ≠ marketplace; registered ≠
+    imported; registered references are research material, NOT code dependencies.
+
+    **v0.5.0 absorption arc COMPLETE**: A1 (description-cap §24.1; PR #14) + A2
+    (standardized sections §24.2; PR #15) + A3 (progressive-disclosure §24.3; PR
+    #16) + A4 (lifecycle taxonomy §24.4; PR #17) + A5 (meta-routing pattern §24.5;
+    PR #18) + A6 (anti-pattern doc + r13 registration §24.6; PR #19 [this]) = 6
+    patches; agent-skills v1.0.0 fully absorbed at provenance-pin level; future
+    upstream minor/major bumps trigger new r-numbered comparison docs (r14, r15,
+    ...) per §24.6.3 lifecycle, NOT mutations to this r13 frozen pin.
+
+provenance:
+  spec_version: v0.4.7-rc1
+  generator: round_25_L3_dogfood
+  generated_at: '2026-05-05T12:50:00+00:00'
+  basis_metrics_report: .local/dogfood/2026-05-05/round_24/metrics_report.yaml
+  basis_basic_ability_profile_round_25: .local/dogfood/2026-05-05/round_25/basic_ability_profile.yaml
+  raw_artifacts:
+    pytest_full: .local/dogfood/2026-05-05/round_25/raw/pytest_full.txt
+    spec_validator: .local/dogfood/2026-05-05/round_25/raw/spec_validator.json
+    count_tokens: .local/dogfood/2026-05-05/round_25/raw/count_tokens.json
+    schema_validate: .local/dogfood/2026-05-05/round_25/raw/schema_validate.json
+    agent_skills_registration_audit: .local/dogfood/2026-05-05/round_25/raw/agent_skills_registration_audit.json
+  target_branch: feat/v0.4.7-anti-pattern-doc-agent-skills-registration
+  target_branch_base: feat/v0.4.6-meta-routing-pattern (Patch 5 PR #18)

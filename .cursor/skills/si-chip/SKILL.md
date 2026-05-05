@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.6.
+description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.7.
 when_to_use: When a Skill needs eval evidence, router_floor, half-retire, C0, token-tier, provenance, or health-smoke.
-version: 0.4.6
+version: 0.4.7
 license: Apache-2.0
 ---
 
@@ -95,7 +95,9 @@ Details: `references/core-goal-invariant-r11-summary.md`.
 
 §24.4 Informative (v0.4.5): OPTIONAL `lifecycle.category ∈ {define, plan, build, verify, review, ship, meta, null}` (default null). Si-Chip = `meta`. Ref: `references/lifecycle-category-r13-summary.md`.
 
-**Meta-Routing Pattern — v0.4.6 Add-on (§24.5 Informative)**: description-driven discovery of related abilities via `description` + `When To Trigger` / `When NOT To Trigger` enumeration. **NO router-model training** (§24.5.2 + §5.2 + §11.1). Si-Chip = canonical impl. Details: `references/meta-routing-pattern-r13-summary.md`. §24 absorbed from addyosmani/agent-skills v1.0.0.
+§24.5 Informative (v0.4.6): meta-routing description-driven; **NO router-model training** (§5.2). Si-Chip canonical impl. Ref: `references/meta-routing-pattern-r13-summary.md`.
+
+§24.6 Informative (v0.4.7): External Research Reference Registration; r13 first long-term pin `.local/research/r13_agent_skills_comparison.md` (research-only per §11.1; v0.5.0 arc complete). §24 absorbed from addyosmani/agent-skills v1.0.0.
 
 ## When To Trigger
 
@@ -179,7 +181,7 @@ Each round produces 6 evidence files (§8.2): `basic_ability_profile.yaml` / `me
 
 **v0.4.0**: `round_kind=ship_prep` emits 7 files (+`ship_decision.yaml` §20.4); token-tier C7/C8/C9 OPTIONAL-but-REQUIRED-when-reported (BLOCKER 12); real-data provenance REQUIRED when declared (BLOCKER 13); `health_smoke_check` REQUIRED when `live_backend: true` (BLOCKER 14).
 
-**v0.4.x §24**: §24.1 description cap BLOCKER 15; §24.2 sections (above); §24.3 progressive-disclosure BLOCKER 16; §24.4 OPTIONAL `lifecycle.category`; §24.5 meta-routing (NO router-training).
+**v0.4.x §24**: §24.1 description cap BLOCKER 15; §24.2 sections (above); §24.3 progressive-disclosure BLOCKER 16; §24.4 OPTIONAL `lifecycle.category`; §24.5 meta-routing (NO router-training); §24.6 r13 registration.
 
 ## References Index
 
@@ -228,8 +230,8 @@ Steps 4–7 instantiate `templates/{next_action_plan,router_test_matrix,half_ret
 
 Forever-out per §11.1: marketplace / router-model training / generic IDE compat / Markdown-to-CLI. Reject any such request. Codex native SKILL.md runtime is §11.2 deferred (bridge-only at v0.2.0).
 
-**v0.3.0 / v0.4.x reaffirm forever-out**: core_goal, token-tier, real-data verification, health-smoke, §24.1-§24.5 (description cap / standardized sections / progressive-disclosure / lifecycle category / meta-routing pattern) introduce NONE of the four §11.1 items (verbatim in §14.6 / §18.7 / §19.6 / §20.6 / §21.6 / §22.7 / §23.7 / §24.1.3 / §24.2.6 / §24.3.6 / §24.4.6 / §24.5.6).
+**v0.3.0 / v0.4.x reaffirm forever-out**: core_goal, token-tier, real-data, health-smoke, §24.1-§24.6 introduce NONE of §11.1 items (verbatim in §14.6 / §18.7 / §19.6 / §20.6 / §21.6 / §22.7 / §23.7 / §24.1.3 / §24.2.6 / §24.3.6 / §24.4.6 / §24.5.6 / §24.6.5).
 
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.6-rc1.md` (rc; +§24.5 Informative meta-routing-pattern; §1–§24.4 byte-identical to v0.4.5-rc1) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.7-rc1.md` (rc; +§24.6 external research registration; v0.5.0 arc complete) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.

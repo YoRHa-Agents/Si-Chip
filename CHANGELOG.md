@@ -7,7 +7,78 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty; post-v0.4.5 items land here)
+- (empty; post-v0.4.7 items land here)
+
+## [0.4.7] - 2026-05-05
+
+### Summary
+Si-Chip v0.4.7 — "**Anti-pattern doc + agent-skills long-term registration (Patch 6 of 6 of v0.5.0 absorption plan; COMPLETES the arc)**". This patch is the contrast / synthesis patch that closes the v0.5.0 absorption arc. It does two things in tandem: (1) **registers `addyosmani/agent-skills` v1.0.0 (push @ 2026-05-03; 27.7k stars; 21 skills) as Si-Chip's FIRST long-term external research reference** with a frozen pin (`r13_agent_skills_comparison.md`, `kind: long_term_pin`, `decay: false`) under spec §24.6; (2) **explicitly documents what Si-Chip deliberately did NOT absorb** from agent-skills (B1: marketplace direction touches §11.1 item 1 marketplace forever-out; B2: multi-IDE chase touches §11.1 item 3 generic IDE compat forever-out + §7 frozen platform priority) so future maintainers cannot accidentally "complete the absorption" by importing those directions. Lands as **Informative metadocumentary** spec sub-section §24.6 plus a substantive new research doc at `.local/research/r13_agent_skills_comparison.md`. **ZERO** new spec_validator BLOCKERs; **ZERO** new AGENTS.md hard rules; **ZERO** schema $schema_version bump (registered references are research material with provenance pin metadata, NOT code dependencies; the registration mechanism is documented prose, not a BAP enum increment). AGENTS.md §13 hard-rules count remains at **15**; spec_validator BLOCKER count remains at **16**. Backward-compat is **non-negotiable**: registered references do not bind any existing BAP profile so all v0.4.0–v0.4.6 profiles (Si-Chip Round 1-24 + chip-usage-helper Round 1-30) remain valid in v0.4.7-rc1 spec with no edit needed. **Stacks on `feat/v0.4.6-meta-routing-pattern` (Patch 5 / PR #18)** which itself stacks on Patches 4 / 3 / 2 / 1 (PR #17 / #16 / #15 / #14). **v0.5.0 absorption arc COMPLETE**: A1 (description-cap §24.1; Patch 1) + A2 (standardized sections §24.2; Patch 2) + A3 (progressive-disclosure §24.3; Patch 3) + A4 (lifecycle taxonomy §24.4; Patch 4) + A5 (meta-routing pattern §24.5; Patch 5) + A6 (anti-pattern doc + r13 registration §24.6; Patch 6) = 6 patches; agent-skills v1.0.0 has been fully absorbed at provenance-pin level (no remaining workmanship conventions to absorb; remaining directions are deliberately NOT absorbed per §11 forever-out).
+
+### Added (Informative)
+
+- **Spec §24.6 External Research Reference Registration** (NEW Informative; metadocumentary): five sub-sections §24.6.1–§24.6.5 covering (1) **Purpose** — why register external sources (provenance pin, anti-pattern documentation, bootstrap §24.6 mechanism); (2) **Registration Format** — canonical fields (id / path / source_repo / source_version / source_url / pinned_at / first_absorbed_at / last_absorbed_at / decay / kind), 7 sections layout for r-numbered comparison docs (Status & pin / Source overview / Catalogue structure / Absorption cross-walk / Anti-pattern / Long-term tracking / Decay policy); (3) **Lifecycle** — `kind: long_term_pin` does NOT decay (vs DevolaFlow short-term observations 30-day half-life); annual re-verify; manual re-pin trigger on upstream minor/major bump; (4) **First Registered Reference** — agent-skills as canonical exemplar; (5) **§11.1 Forever-Out Re-Affirmation** verbatim citing all 4 forever-out items + table showing each one is NOT touched by §24.6 (registered ≠ marketplace; registered ≠ imported).
+- **Frontmatter `registered_research_references[]` list** (NEW additive frontmatter array on spec_v0.4.7-rc1.md): the canonical machine-readable counterpart to §24.6.2 prose. First entry is `id: "r13"` for `addyosmani/agent-skills` v1.0.0.
+- **No AGENTS.md §13 hard-rule additions**: §24.6 is Informative metadocumentary, so no rule 16 is added; registration is prose-mediated, not BLOCKER-enforced.
+
+### Added (Research; the BIG deliverable)
+
+- **`.local/research/r13_agent_skills_comparison.md`** (~28 KB; substantial): the canonical first registered long-term external research reference. Ten sections:
+  1. Why this comparative study exists (provenance pin / anti-pattern doc / §24.6 bootstrap rationale).
+  2. agent-skills repo overview (1-paragraph; Addy Osmani; 27.7k stars; v1.0.0 push @ 2026-05-03).
+  3. The 21-skill catalogue (compact table; lifecycle stage; Si-Chip relevance per skill).
+  4. Cross-walk A1–A5 absorptions (table mapping lesson → spec section / hard rule / BLOCKER / dogfood round / PR# / upstream source) + A6 (this patch's registration).
+  5. What Si-Chip deliberately did NOT absorb: 5.1 B1 marketplace direction (verbatim cites §11.1 item 1); 5.2 B2 multi-IDE chase (verbatim cites §11.1 item 3); 5.3 NEUTRAL contrasts (no automated cross-repo eval harness; hooks/shell as substitute for measurement).
+  6. Long-term tracking obligations (8 questions to revisit on next agent-skills version bump).
+  7. Decay policy (long-term pin = NOT decay; annual re-verify; re-pin on upstream bump).
+  8. Si-Chip self-review against agent-skills' rubric (where Si-Chip exceeds: §14 core_goal / §18 token_tier / §19 real-data / §22 eval-pack / §8 dogfood / spec_validator BLOCKERs are unique).
+  9. §11 forever-out re-affirmation (verbatim 4 items; table of compliance per item).
+  10. References & provenance pin (canonical fields YAML; cross-references to all related Si-Chip artifacts; verification commands).
+
+### Added (Documentation)
+
+- **`.local/research/spec_v0.4.7-rc1.md`** (rc; pinned candidate). §1–§24.5 byte-identical to `spec_v0.4.6-rc1.md` per `additive_only: true` + `preserves_byte_identical_v0_4_6_rc1: [...]` frontmatter assertions. Adds §24.6 (Informative metadocumentary; five sub-sections).
+- **`.local/research/README.md`** updated: r13 entry added to Evidence Library; version history table extended through v0.4.7-rc1 (with backfill for v0.2.0 / v0.3.0 / v0.4.0 / v0.4.2-rc1 / v0.4.3-rc1 / v0.4.4-rc1 / v0.4.5-rc1 / v0.4.6-rc1).
+
+### Synced (Mirrors)
+
+- `.agents/skills/si-chip/SKILL.md` frontmatter `version: 0.4.6 → 0.4.7`; description updated `v0.4.6 → v0.4.7`; §24 group bullet adds §24.6 mention; "v0.4.x §24" line adds `; §24.6 r13 registration`; "reaffirm forever-out" line extends `§24.1-§24.5 → §24.1-§24.6`; Provenance line updated to `spec_v0.4.7-rc1.md`. Body stays under v3_strict 5000 token budget (4990; margin 10).
+- `.cursor/skills/si-chip/SKILL.md` and `.claude/skills/si-chip/SKILL.md` re-synced byte-identical with `.agents/skills/si-chip/SKILL.md`. SHA256: `512cae2b48314b9ed877ba55ad7fb255cc14e8abf6d798fec47e72dea675eb1f` (3-tree mirror byte-equality preserved; V3_drift_signal = 0.0).
+- **No new reference doc** under `.agents/skills/si-chip/references/`: the comparison doc `r13_agent_skills_comparison.md` lives under `.local/research/` because it is research material, not skill body material.
+
+### Compiled
+
+- `.rules/si-chip-spec.mdc` bumped `v0.4.6-rc1 → v0.4.7-rc1`; appended v0.4.7 add-on prose paragraph after the v0.4.6 add-on.
+- `AGENTS.md` recompiled from `.rules/si-chip-spec.mdc` (devolaflow rule compiler stub: strip frontmatter + prepend auto-gen header). New SHA256-16 = `157cf52b3d7aba8c`; updated in `.rules/.compile-hashes.json`.
+
+### Dogfood
+
+- **Round 25** (`.local/dogfood/2026-05-05/round_25/`; `round_kind: code_change`): SIXTH absorption + arc completion. 6 evidence files emitted + 4 raw files (pytest_full.txt, spec_validator.json, count_tokens.json, agent_skills_registration_audit.json). promotion_history extends with `v0.4.6-rc1 → v0.4.7-rc1` entry. `meta_routing_pattern_audit` block renamed to `external_research_registration_audit` with appropriate fields. iteration_delta verdict.pass = true; `governance_risk_delta = +0.05` (formal external-source registration discipline = governance lift). C0 chain extends to **9 consecutive rounds** at 1.0 (Round 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 all at 1.0). 25th consecutive v1_baseline pass; 8th consecutive v2_tightened pass.
+
+### Verification
+
+- `tools/spec_validator.py --spec .local/research/spec_v0.4.7-rc1.md --json` → **16/16 PASS**.
+- Backward-compat: 16/16 PASS against `spec_v0.4.6-rc1.md`, `spec_v0.4.5-rc1.md`, `spec_v0.4.4-rc1.md`, `spec_v0.4.3-rc1.md`, `spec_v0.4.2-rc1.md`, `spec_v0.4.0.md`, `spec_v0.3.0.md`, `spec_v0.2.0.md`.
+- `pytest tools/test_spec_validator.py -q` → **all green** (no new tests; §24.6 introduces no new BLOCKER).
+- `count_tokens.py --file .agents/skills/si-chip/SKILL.md --both --json` → metadata 94 / 100 + body **4990 / 5000** PASS at v2_tightened body budget (margin 10).
+
+### Out of Scope (re-affirmed per §11.1 forever-out)
+
+- Marketplace direction (B1 NOT-absorbed): §11.1 item 1 verbatim "Skill / Plugin **marketplace** 与任何分发表面积"; registered references are research material, NOT code dependencies; Si-Chip does not re-distribute, auto-update, bundle, or runtime-load any agent-skills code or markdown.
+- Router-model training: §11.1 item 2 verbatim "**Router 模型训练** 或在线权重学习"; §24.5 (already absorbed in Patch 5) re-affirmed; r13 documents the absorption boundary.
+- Generic IDE compat (B2 NOT-absorbed): §11.1 item 3 verbatim "通用 IDE / Agent runtime **兼容层**"; §7 frozen 3-platform priority preserved; multi-IDE chase explicitly rejected.
+- Markdown-to-CLI auto-converter: §11.1 item 4 verbatim "Markdown-to-CLI 自动转换器"; r13 is hand-authored Markdown; §24.6.2 registration format is hand-edited canonical fields.
+
+### Stack Position
+
+```text
+main
+ └─ #14 feat/v0.4.2-description-cap
+   └─ #15 feat/v0.4.3-skill-md-sections
+     └─ #16 feat/v0.4.4-progressive-disclosure
+       └─ #17 feat/v0.4.5-lifecycle-category
+         └─ #18 feat/v0.4.6-meta-routing-pattern
+           └─ #19 feat/v0.4.7-anti-pattern-doc-agent-skills-registration  ← THIS RELEASE; v0.5.0 arc complete
+```
 
 ## [0.4.5] - 2026-05-05
 

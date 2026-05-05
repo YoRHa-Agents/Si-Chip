@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-05-05T12:50:00+00:00",
+  "spec": "v0.4.7-rc1",
+  "patch": "P6 A6 anti-pattern doc + r13 long-term registration; v0.5.0 absorption arc COMPLETE",
+  "schema_loaded_ok": true,
+  "skill_md_mirrored_3_trees": true,
+  "spec_validator_pass": "16/16",
+  "verdict": "PASS",
+  "schema_version": "0.3.0",
+  "schema_change_relative_to_v0_4_6": false,
+  "schema_change_rationale": "§24.6 is registration mechanism prose + frontmatter array (registered_research_references[]); not a BAP schema field increment",
+  "skill_md_sha256": "512cae2b48314b9ed877ba55ad7fb255cc14e8abf6d798fec47e72dea675eb1f",
+  "skill_md_metadata_tokens": 94,
+  "skill_md_body_tokens": 4990,
+  "skill_md_pass_packaging_gate": true,
+  "blocker_16_skip_as_pass": true,
+  "blocker_16_skip_path": "all_under_threshold (body=4990 <= 5000 v3_strict)",
+  "external_research_registration_audit": {
+    "status": "Informative",
+    "spec_section": "§24.6",
+    "mechanism_documented": "external research reference registration (long-term pin + provenance fields + decay policy + anti-pattern documentation)",
+    "first_registered_source": {
+      "repo": "addyosmani/agent-skills",
+      "version": "v1.0.0",
+      "push_date": "2026-05-03",
+      "research_doc_path": ".local/research/r13_agent_skills_comparison.md",
+      "kind": "long_term_pin",
+      "decay": false,
+      "first_absorbed_at": "v0.4.2-rc1",
+      "last_absorbed_at": "v0.4.7-rc1"
+    },
+    "forbidden_practices_re_affirmed": ["marketplace", "router-model training", "generic IDE compat", "Markdown-to-CLI"],
+    "forever_out_re_affirmed_in_section": "§24.6.5",
+    "arc_complete": true,
+    "arc_workmanship_absorptions": 5,
+    "arc_anti_pattern_documentations": 2,
+    "arc_total_patches": 6
+  },
+  "spec_validator_blocker_count_change": {"before": 16, "after": 16, "delta": 0},
+  "agents_md_hard_rule_count_change": {"before": 15, "after": 15, "delta": 0}
+}
