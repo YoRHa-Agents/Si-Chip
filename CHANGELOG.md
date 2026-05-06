@@ -7,7 +7,149 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty; post-v0.4.2 items land here)
+- (empty; post-v0.4.3 items land here)
+
+## [0.4.3] - 2026-05-05
+
+### Summary
+Si-Chip v0.4.3 — "Standardized SKILL.md Sections (Patch 2 of v0.5.0
+absorption plan)". Absorbs from `addyosmani/agent-skills` v1.0.0
+(push @ 2026-05-03) the end-of-body three-section convention shared
+across the upstream SKILL files (typified by
+`skills/test-driven-development/SKILL.md` and
+`skills/code-review-and-quality/SKILL.md`):
+`## Common Rationalizations` + `## Red Flags` + `## Verification`.
+Lands as **Informative** spec sub-section §24.2 + a new template
+`templates/skill_md_sections.template.md` + applied as the reference
+implementation in Si-Chip's own SKILL.md. **No new hard rule, no new
+BLOCKER**: AGENTS.md §13 hard-rules count stays at 14;
+spec_validator BLOCKER count stays at 15. Authors who do not adopt
+the three sections continue to PASS spec_validator. **Stacks on
+`feat/v0.4.2-description-cap` (Patch 1 / PR #14)**.
+
+### Added (Informative)
+
+- **Spec §24.2 Standardized SKILL.md Sections** (NEW; **Informative,
+  not Normative**): three recommended end-of-body sections any
+  Si-Chip-instrumented `SKILL.md` SHOULD adopt — `## Common
+  Rationalizations` (table mapping author shortcut-thinking → spec
+  clause / BLOCKER anchor; ≥3 rows), `## Red Flags` (bullet list of
+  observable anti-patterns cross-referencing C0 / round_kind /
+  BLOCKER signals; ≥5 items), `## Verification` (checkbox list with
+  per-item Evidence path sub-bullet; ≥5 items). Six sub-sections
+  §24.2.1-§24.2.6 cover recommended structure, cross-refs to
+  existing Normative invariants, template reference, the Si-Chip
+  reference implementation, what does NOT trigger, and §11
+  forever-out re-affirmation.
+- **Spec §1–§24.1 byte-identical to v0.4.2-rc1**: no Normative
+  content changed; BLOCKER count unchanged; hard-rule count
+  unchanged. v0.4.3 is purely additive Informative.
+
+### Added (Templates)
+
+- **NEW `templates/skill_md_sections.template.md`** (Informative;
+  ~5 KB): canonical skeleton for the three §24.2 sections.
+  Frontmatter `template_version: 0.4.3-rc1` + `informative: true` +
+  `purpose: standardized recommended sections for any Si-Chip
+  SKILL.md`. Contains prose explanations + 2-line code-fenced
+  Markdown examples for each section + closing cross-reference to
+  spec §24.2 and the agent-skills upstream sources. Sibling of
+  `templates/eval_pack_qa_checklist.md` (§22.3 Informative;
+  Markdown-only template class — does NOT pass through
+  `template_engine/validator.py`).
+
+### Added (Documentation)
+
+- `.local/research/spec_v0.4.3-rc1.md` (rc; ~2470 lines; pinned
+  candidate). §1–§24.1 byte-identical to `spec_v0.4.2-rc1.md` per
+  `additive_only: true` + `preserves_byte_identical_v0_4_2_rc1: [...]`
+  frontmatter assertions. Adds §24.2 (Informative) +
+  appendix terms-and-citations index entry.
+- `.agents/skills/si-chip/references/standardized-sections-r13-summary.md`
+  (~8 KB; mirrored across `.cursor/` + `.claude/` trees). Reader
+  walkthrough covering: why the three sections exist, why they are
+  Informative not Normative, cross-tree positioning vs §24.1,
+  recommended structure, interlock with C0 / round_kind / BLOCKERs,
+  what does NOT trigger, §11 forever-out re-affirmation, and the
+  Si-Chip self-dogfood reference implementation.
+
+### Changed (Skill / Rule layer)
+
+- `.agents/skills/si-chip/SKILL.md` (mirrored across 3 trees;
+  byte-identical sha256=`f903e66ccb61ba96...`) frontmatter
+  `version: 0.4.2 → 0.4.3` + description string `v0.4.2 → v0.4.3`.
+  - New ### sub-section header consolidated to
+    "Skill Hygiene Discipline — v0.4.2 + v0.4.3 Add-ons (§24)" with
+    a §24.1 line and a §24.2 line.
+  - **NEW** `## Common Rationalizations` table (4 rows;
+    Si-Chip-specific content citing §8.1, §14.3.2, §15.2, hard
+    rules 9-14).
+  - **NEW** `## Red Flags` bullet list (5 items; all greppable
+    against round artefact fields / BLOCKER outputs).
+  - **NEW** `## Verification` checkbox list (5 checkboxes + per-item
+    Evidence path sub-bullet; covers §8.2 6 evidence files,
+    spec_validator PASS, pytest PASS, count_tokens budget, C0
+    monotonicity).
+  - **NEW** entry in References Index for
+    `references/standardized-sections-r13-summary.md`.
+  - Compressed several existing sections (When To Trigger / When NOT
+    To Trigger / How To Use v0.3.0+v0.4.0 add-ons / Out of Scope
+    forever-out reaffirmations) to keep the body within the §7.3
+    `body_tokens ≤ 5000` packaging gate. Body went 4829 (v0.4.2) →
+    4924 (v0.4.3); metadata 94 unchanged. PASS at v2_tightened.
+- `.rules/si-chip-spec.mdc` `version: v0.4.2-rc1 → v0.4.3-rc1` /
+  `effective_date: 2026-05-05` (unchanged, same day) /
+  `supersedes: v0.4.0 → v0.4.2-rc1`. New "v0.4.3 add-on (Informative)"
+  paragraph appended after the §13 v0.4.2 add-on paragraph;
+  hard-rules count **unchanged at 14** (no rule added). The §24.2
+  add-on paragraph in this rule layer mirrors spec §24.2's prose in
+  prose-form and explicitly notes this is Informative not Normative.
+- `AGENTS.md` recompiled via `RuleCompiler('.rules/compile-config.yaml')`;
+  new content_hash `a95c240cbf6119e8`. Tokens used 5078 / 10000
+  budget (within budget). `.rules/.compile-hashes.json` updated to
+  the new hash.
+
+### Changed (Tooling)
+
+- `tools/spec_validator.py`: **no logic change** required for v0.4.3;
+  the existing `_spec_text_has_section_24` helper already detects
+  §24.2 (the regex matches `## 24.` H2 header which is unchanged
+  between v0.4.2 and v0.4.3). The existing `SUPPORTED_SPEC_VERSIONS`
+  set already accepts arbitrary unknown spec versions through the
+  default v0.2.0 fallback path. The `EXPECTED_R6_PROSE_BY_SPEC` /
+  `EXPECTED_THRESHOLD_CELLS_PROSE_BY_SPEC` /
+  `EXPECTED_VALUE_VECTOR_AXES_BY_SPEC` dicts gain v0.4.3-rc1 keys
+  inheriting from the v0.4.2-rc1 values (37 / 30 / 8 axes).
+
+### Verification (this release)
+
+- **15/15 BLOCKERs PASS** against `spec_v0.4.3-rc1.md` (no new
+  BLOCKER; §24.2 is Informative).
+- **Backward-compat**: 15/15 PASS against `spec_v0.4.2-rc1.md`
+  (Patch 1 spec); 15/15 PASS against the legacy default v0.2.0 spec
+  (BLOCKER 15 SKIP-as-PASS path keying on absent §24 marker per
+  §13.6.4 grace period).
+- **count_tokens**: metadata 94 / 100, body 4924 / 5000 — PASS at
+  v2_tightened body budget even after 3 new SKILL.md sections.
+- **Dogfood round 21** (code_change) emitted 6 evidence files;
+  iteration_delta verdict = pass via governance_risk_delta or
+  usage_cost_delta efficiency axis (≥ +0.05 v1 bucket).
+
+### Scope guards (§11 forever-out re-affirmed)
+
+- §24.2 absorbs ONLY the SKILL.md end-of-body three-section
+  convention (Common Rationalizations / Red Flags / Verification —
+  Informative). It does NOT introduce: marketplace, router-model
+  training, generic IDE compat layer, Markdown-to-CLI converter.
+  All four §11.1 forever-out items remain byte-identical.
+- The standardized sections do NOT introduce a SKILL.md DSL — they
+  are plain Markdown convention. Authors hand-write the sections;
+  no code-generator, no transpiler, no schema validator beyond the
+  existing `count_tokens.py` body-budget check.
+- The §24.2 template (`templates/skill_md_sections.template.md`) is
+  the same Informative-Markdown class as
+  `templates/eval_pack_qa_checklist.md` (§22.3); neither passes
+  through DevolaFlow `template_engine/validator.py`.
 
 ## [0.4.2] - 2026-05-05
 
