@@ -77,42 +77,6 @@ poetry.lock
 uv.lock
 Pipfile.lock
 
-# =====================================================================
-# DevolaFlow `.local/` workspace policy (v8.3.0 Q-5, resolved 2026-04-22)
-# ---------------------------------------------------------------------
-# The `.local/` tree carries TWO sub-trees that MUST be tracked in git:
-#   (a) the full `.local/.agent/` workspace
-#   (b) `.local/memory/specs/` source-of-truth specs
-# The rest of `.local/` (feedbacks, tasks, index, MEMORY.md, learnings)
-# remains gitignored as runtime/agent state.
-#
-# Strategy: ignore the *contents* of `.local/` (not the directory itself),
-# so Git recurses into it; then re-include the public sub-trees; then
-# re-ignore secrets and runtime state inside those sub-trees as defense
-# in depth. (A bare `.local/` ignore would block re-include patterns per
-# gitignore docs.)
-# =====================================================================
-.local/*
-# Re-include the agent workspace tree:
-!.local/.agent/
-!.local/.agent/**
-# Re-include source-of-truth specs without re-including the rest of memory:
-!.local/memory/
-.local/memory/*
-!.local/memory/specs/
-!.local/memory/specs/**
-# Re-include the canonical research evidence library (frozen for v0.1.0):
-!.local/research/
-!.local/research/**
-
-# Re-include dogfood evidence (per spec §10 persistence contract):
-!.local/dogfood/
-!.local/dogfood/**
-# Defense in depth — re-ignore secrets / runtime state / per-change learnings
-# even after the un-ignore patterns above:
-.local/.agent/active/*/learnings.jsonl
-.local/.agent/archive/*/learnings.jsonl
-.local/memory/operational.jsonl
-.local/memory/session_state.json
-.local/memory/prefs.md
-.local/memory/plugin_install.log
+# --- Local agent/runtime state -----------------------------------------
+# Keep `.local/` available on each machine, but do not track it in git.
+.local/

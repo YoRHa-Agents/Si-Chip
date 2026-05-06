@@ -1,6 +1,0 @@
-Golden test set directory not found: /home/agent/workspace/Si-Chip/data/golden_test_set
-Golden test set directory not found: /home/agent/workspace/Si-Chip/data/golden_test_set
-Golden test set directory not found: /home/agent/workspace/Si-Chip/data/golden_test_set
-run_all() called with ctx=None but 1 ctx-aware dim(s) registered (['decomposition_coverage']); they will fall back to their constructor-time src_dir defaults
-Report written to /home/agent/workspace/Si-Chip/.local/dogfood/2026-04-28/round_3/raw/nines_self_eval_out/self_eval_report.txt
-EXIT=0
