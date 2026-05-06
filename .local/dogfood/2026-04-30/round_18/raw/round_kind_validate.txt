@@ -1,4 +1,0 @@
-validate code_change -> exit 0
-validate measurement_only -> exit 0
-validate ship_prep -> exit 0
-validate maintenance -> exit 0

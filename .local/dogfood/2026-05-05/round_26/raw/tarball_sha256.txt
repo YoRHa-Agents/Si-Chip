@@ -1,1 +1,0 @@
-d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672  docs/skills/si-chip-0.5.0.tar.gz
