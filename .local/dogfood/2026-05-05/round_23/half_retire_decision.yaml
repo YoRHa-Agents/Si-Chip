@@ -1,0 +1,122 @@
+# Si-Chip Half-Retire Decision - round_23 (v0.4.5-rc1 code_change; A4 lifecycle-category absorption)
+# Spec §6 + §14.7 (core_goal_invariant block) + §15 round_kind + §17.1 hard rule 9.
+# Structurally byte-identical to round_22's decision (action: keep) plus:
+#   * round_id / prior_round_id / spec_version / decided_at bumped
+#   * v0.4.5 lifecycle.category absorbed; Si-Chip self-classified as 'meta'
+#   * monotonicity_check chain extended to round_23
+
+round_id: round_23
+prior_round_id: round_22
+ability_id: si-chip
+ability_version: v0.4.5-rc1
+spec_version: v0.4.5-rc1
+decided_at: '2026-05-05T03:36:00+00:00'
+
+action: keep
+rationale: |
+  v0.4.5 lifecycle.category absorbed; Si-Chip self-classified as 'meta' (the canonical
+  first-use case of the new OPTIONAL §24.4 schema field — Si-Chip optimises other
+  abilities and is therefore self-referential / orchestration-tier, not directly
+  delivering user-end output).
+
+  Round 23 absorbs §24.4 lifecycle-category 7-value enum from
+  addyosmani/agent-skills v1.0.0 using-agent-skills/SKILL.md into Si-Chip Informative
+  spec. **ZERO new BLOCKERs (count remains 16), ZERO new hard rules (count remains 15)**
+  — §24.4 is Informative (sibling-pattern to §24.2; contrast with §24.1 / §24.3
+  Normative). Schema additively extends the `lifecycle` block with 1 OPTIONAL field
+  `category` (enum {define, plan, build, verify, review, ship, meta} or null; default
+  null); backward-compat verified at 100% (47/47 pre-v0.4.5 BAP profiles in repo PASS
+  schema validation with no edit needed).
+
+  Si-Chip's own SKILL.md body=4998 tokens (under 5000 v3_strict trigger so BLOCKER 16
+  SKIP-as-PASS path 3 maintained). 23rd consecutive v1_baseline pass; 6th consecutive
+  v2_tightened pass (Round 18 + 19 + 20 + 21 + 22 + 23). C0 = 1.0 (5/5); monotonicity
+  1.0 → 1.0 → 1.0 → 1.0 → 1.0 → 1.0 → 1.0 chain extended (Round 17 → 18 → 19 → 20 →
+  21 → 22 → 23).
+
+  governance_risk_delta axis +0.05 this round from §24.4 enriching the BAP schema with
+  a normalized lifecycle-vocabulary surface — reviewer / router / dogfood agent can
+  now grep `lifecycle.category` to filter ability sets by SDLC phase, improving
+  discoverability + audit-trail surface area at v1 bucket. This is a STRUCTURAL
+  governance discipline lift (richer schema = better governance through normalized
+  classification), not a carry-forward; the +0.05 is fresh round-over-round. Pattern
+  complements:
+  - Round 20 (v0.4.2): governance +0.05 via Normative description-cap BLOCKER 15
+  - Round 21 (v0.4.3): governance +0.05 via Informative author-side mnemonics
+  - Round 22 (v0.4.4): context +0.05 via Normative body-budget BLOCKER 16
+  - Round 23 (v0.4.5): governance +0.05 via Informative lifecycle.category schema enrichment
+  All under §11.1 forever-out (no marketplace, no router-training, no Markdown-to-CLI,
+  no generic IDE compat).
+
+risk_flags: []
+
+value_vector:                                       # 8 axes (v0.4.0 §6.1 7→8 break preserved)
+  task_delta: 0.0                                   # carry-forward Round 18's +0.4522 lift via byte-equivalent cache replay
+  token_delta: 0.0                                  # SKILL.md body 4969 → 4998 (+29); within budget; measurement-stable
+  latency_delta: 0.0                                # cache replay; same wall-clock
+  context_delta: 0.0                                # no fresh context-discipline change this round (§24.4 is naming convention, not body-shape)
+  path_efficiency_delta: 0.0
+  routing_delta: 0.0                                # router_floor unchanged (composer_2/default carry-forward)
+  governance_risk_delta: 0.05                       # ★ NEW §24.4 lifecycle-category enriches BAP schema vocabulary; reviewer / dogfood can grep `lifecycle.category` to filter ability sets at v1 bucket — discoverability + audit-trail surface area lift
+  eager_token_delta: 0.0                            # Si-Chip has no EAGER alwaysApply rule
+
+core_goal_invariant:                                # §14.7 (mandatory under §17.1 hard rule 9)
+  c0_pass_rate: 1.0
+  no_regression: true
+  monotonicity_check:
+    round_17: 1.0
+    round_18: 1.0
+    round_19: 1.0
+    round_20: 1.0
+    round_21: 1.0
+    round_22: 1.0
+    round_23: 1.0
+    pass: true
+  test_pack_path: ".local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml"
+  test_pack_version: "1.0.0"
+  cases_passed: 5
+  cases_total: 5
+
+reactivation_triggers_check:                        # §6.4 (none triggered; ability is keep)
+  trigger_1_new_model_no_ability_baseline_gap: not_evaluated
+  trigger_2_new_scenario_or_domain_match: not_evaluated
+  trigger_3_router_test_requires_ability_for_cheap_model: not_evaluated
+  trigger_4_efficiency_axis_becomes_significant: not_evaluated
+  trigger_5_upstream_api_change_wrapper_stabilizes: not_evaluated
+  trigger_6_manual_invocation_rebound: not_evaluated
+  status_overall: not_applicable_action_is_keep
+
+lifecycle_category_audit:                           # v0.4.5 §24.4 self-audit (Informative; NO BLOCKER)
+  status: Informative
+  schema_field_added: lifecycle.category
+  enum_values: [define, plan, build, verify, review, ship, meta, null]
+  default_value: null
+  si_chip_self_classification: meta
+  spec_validator_blocker_count_change:
+    before: 16
+    after: 16                                       # UNCHANGED — §24.4 is Informative
+    delta: 0
+  agents_md_hard_rule_count_change:
+    before: 15
+    after: 15                                       # UNCHANGED — §24.4 is Informative
+    delta: 0
+  reference_doc: references/lifecycle-category-r13-summary.md
+  schema_template: templates/basic_ability_profile.schema.yaml (lifecycle.category OPTIONAL field added)
+  backward_compat:
+    pre_v0_4_5_profiles_inspected: 47
+    pre_v0_4_5_profiles_passing_with_no_edit: 47
+    drift_pct: 0.0
+
+provenance:
+  generator: 'Round 23 dogfood - L3 Task Agent (v0.4.5-rc1 code_change Patch 4 of v0.5.0 absorption plan; A4 lifecycle-category)'
+  spec_version: v0.4.5-rc1
+  basis_round_22_half_retire_decision: .local/dogfood/2026-05-05/round_22/half_retire_decision.yaml
+  basis_metrics_report: .local/dogfood/2026-05-05/round_23/metrics_report.yaml
+  absorbed_external_source:
+    repo: addyosmani/agent-skills
+    version: v1.0.0
+    upstream_pushed_at: '2026-05-03'
+    upstream_doc: 'using-agent-skills/SKILL.md (lifecycle taxonomy: define/plan/build/verify/review/ship organising 21 skills + meta category for self-referential)'
+    absorbed_into: 'Si-Chip spec §24.4 (Informative) + templates/basic_ability_profile.schema.yaml lifecycle.category OPTIONAL field + references/lifecycle-category-r13-summary.md'
+  target_branch: feat/v0.4.5-lifecycle-category
+  target_branch_base: feat/v0.4.4-progressive-disclosure (Patch 3 PR #16)

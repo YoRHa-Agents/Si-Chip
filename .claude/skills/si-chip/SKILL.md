@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.4.
+description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.5.
 when_to_use: When a Skill needs eval evidence, router_floor, half-retire, C0, token-tier, provenance, or health-smoke.
-version: 0.4.4
+version: 0.4.5
 license: Apache-2.0
 ---
 
@@ -85,13 +85,15 @@ Details: `references/core-goal-invariant-r11-summary.md`.
 - **§22 Eval-Pack Curation**: v1 20 / v2 **40** / v3 60+ prompts; G1 `provenance` REQUIRED; deterministic seed `hash(round_id + ability_id)`; real-LLM cache at `raw/real_llm_runner_cache/`. Ref: `references/eval-pack-curation-r12-summary.md`.
 - **§23 Method-Tagged Metrics**: `<metric>_method` companions + `_ci_low/_ci_high` for `char_heuristic`; `U1_language_breakdown` + `U4_*_state`. Ref: `references/method-tagged-metrics-r12-summary.md`.
 
-### Skill Hygiene Discipline — v0.4.2 / v0.4.3 / v0.4.4 Add-ons (§24)
+### Skill Hygiene Discipline — §24 v0.4.x Add-ons
 
-§24.1 Normative (v0.4.2): description ≤ 1024 chars; binding `min(chars,bytes)` (CJK fair); "what + when" only. Hard rule 14 / BLOCKER 15. Ref: `references/description-discipline-r13-summary.md`.
+§24.1 Normative (v0.4.2): description ≤ 1024 chars; binding `min(chars,bytes)` (CJK fair); "what+when" only. Hard rule 14 / BLOCKER 15. Ref: `references/description-discipline-r13-summary.md`.
 
-§24.2 Informative (v0.4.3): Rationalizations / Red Flags / Verification — recommended end-of-body sections (applied below). Template `templates/skill_md_sections.template.md`. Ref: `references/standardized-sections-r13-summary.md`.
+§24.2 Informative (v0.4.3): Rationalizations / Red Flags / Verification — recommended end-of-body sections (applied below). Ref: `references/standardized-sections-r13-summary.md`.
 
-§24.3 Normative (v0.4.4): when `body_tokens > 5000` (v3_strict budget) → MUST cite ≥1 existing `references/<file>.md` (graduated: encouraged at v1 if body > 4000, MUST at v3). Hard rule 15 / BLOCKER 16 `BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`. `templates/lazy_manifest.template.yaml` promoted to Normative-conditional. Ref: `references/progressive-disclosure-r13-summary.md`. All §24 add-ons absorbed from addyosmani/agent-skills v1.0.0.
+§24.3 Normative (v0.4.4): when `body_tokens > 5000` (v3_strict) → MUST cite ≥1 existing `references/<file>.md` (graduated: v1 if > 4000, MUST at v3). Hard rule 15 / BLOCKER 16; `templates/lazy_manifest.template.yaml` promoted to Normative-conditional. Ref: `references/progressive-disclosure-r13-summary.md`.
+
+§24.4 Informative (v0.4.5): OPTIONAL `lifecycle.category ∈ {define, plan, build, verify, review, ship, meta, null}` (default null); NO new BLOCKER. Si-Chip = `meta`. Ref: `references/lifecycle-category-r13-summary.md`. §24 absorbed from addyosmani/agent-skills v1.0.0.
 
 ## When To Trigger
 
@@ -175,7 +177,7 @@ Each round produces 6 evidence files (§8.2): `basic_ability_profile.yaml` / `me
 
 **v0.4.0**: `round_kind=ship_prep` emits 7 files (+`ship_decision.yaml` §20.4); token-tier C7/C8/C9 OPTIONAL-but-REQUIRED-when-reported (BLOCKER 12); real-data provenance REQUIRED when declared (BLOCKER 13); `health_smoke_check` REQUIRED when `live_backend: true` (BLOCKER 14).
 
-**v0.4.2 / v0.4.3 / v0.4.4**: see §24 add-ons (§24.1 description cap BLOCKER 15; §24.2 Informative Rationalizations + Red Flags + Verification applied above; §24.3 progressive-disclosure body-budget BLOCKER 16).
+**v0.4.x §24**: §24.1 description cap BLOCKER 15; §24.2 Informative Rationalizations + Red Flags + Verification (above); §24.3 progressive-disclosure body-budget BLOCKER 16; §24.4 Informative OPTIONAL `lifecycle.category`, no BLOCKER.
 
 ## References Index
 
@@ -198,6 +200,7 @@ Each round produces 6 evidence files (§8.2): `basic_ability_profile.yaml` / `me
 | `references/description-discipline-r13-summary.md` | §24.1 description cap 1024 + "what+when" + CJK fairness; BLOCKER 15. |
 | `references/standardized-sections-r13-summary.md` | §24.2 Informative Common Rationalizations + Red Flags + Verification template (no BLOCKER); reference impl in own SKILL.md above. |
 | `references/progressive-disclosure-r13-summary.md` | §24.3 Normative body-budget triggers references/ split (graduated v1 best-practice → v3 MUST); hard rule 15 / BLOCKER 16. |
+| `references/lifecycle-category-r13-summary.md` | §24.4 Informative OPTIONAL `lifecycle.category` 7-value enum + meta (no BLOCKER). |
 | `templates/lazy_manifest.template.yaml` | §18.5 v0.4.0 + §24.3.3 v0.4.4 (Normative-conditional when SKILL body crosses v3_strict threshold; cross-linked from progressive-disclosure ref). |
 
 Reference files are loaded on demand and are excluded from the §7.3
@@ -222,8 +225,8 @@ Steps 4–7 instantiate `templates/{next_action_plan,router_test_matrix,half_ret
 
 Forever-out per §11.1: marketplace / router-model training / generic IDE compat / Markdown-to-CLI. Reject any such request. Codex native SKILL.md runtime is §11.2 deferred (bridge-only at v0.2.0).
 
-**v0.3.0 / v0.4.0 / v0.4.2 / v0.4.3 / v0.4.4 reaffirm forever-out**: core_goal, token-tier, real-data verification, health-smoke, §24.1 description cap, §24.2 standardized sections, and §24.3 progressive-disclosure introduce NONE of the four §11.1 items (re-affirmed verbatim in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7 + §23.7 + §24.1.3 + §24.2.6 + §24.3.6).
+**v0.3.0 / v0.4.x reaffirm forever-out**: core_goal, token-tier, real-data verification, health-smoke, §24.1 description cap, §24.2 standardized sections, §24.3 progressive-disclosure, and §24.4 lifecycle category introduce NONE of the four §11.1 items (re-affirmed verbatim in §14.6 + §18.7 + §19.6 + §20.6 + §21.6 + §22.7 + §23.7 + §24.1.3 + §24.2.6 + §24.3.6 + §24.4.6).
 
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.4-rc1.md` (rc; +§24.3 Normative absorbed from addyosmani/agent-skills v1.0.0 progressive-disclosure pattern; §1–§24.2 byte-identical to v0.4.3-rc1) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.5-rc1.md` (rc; +§24.4 Informative; §1–§24.3 byte-identical to v0.4.4-rc1) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.

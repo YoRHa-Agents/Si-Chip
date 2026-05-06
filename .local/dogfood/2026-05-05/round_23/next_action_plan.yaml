@@ -1,0 +1,121 @@
+# Si-Chip Next Action Plan - round_23 (v0.4.5-rc1 code_change; A4 lifecycle-category absorption)
+# Targets the Patch 4 ship of v0.4.5 (rc1 → frozen) once review approves Patches 1-4.
+# Spec: §15.1 round_kind = code_change; §24.4 (Informative; +0 hard rules, +0 BLOCKERs).
+
+ability_id: si-chip
+emitted_at: '2026-05-05T03:42:00+00:00'
+targets_round: round_24_v0_4_5_ship_or_patch_5_of_v0_5_0
+bound_gate: v2_tightened                            # carried forward from Round 19; this round MAINTAINS the gate
+target_branch: feat/v0.4.5-lifecycle-category
+target_branch_base: feat/v0.4.4-progressive-disclosure   # ★ STACKED on Patch 3 PR #16
+spec_version: v0.4.5-rc1
+
+round_kind: code_change                             # §15.1; Round 23 is code_change (added §24.4 Informative spec section + new OPTIONAL schema field + new reference doc + AGENTS.md recompile + CHANGELOG entry)
+round_kind_rationale: |
+  Round 23 is code_change per §15.1.2 decision tree: this round modifies ability source
+  (.agents/skills/si-chip/SKILL.md frontmatter version 0.4.4 → 0.4.5 + body net +29 tokens
+  for §24.4 add-on bullet + new References Index entry, with several existing lines
+  compacted to stay under v3_strict 5000 budget;
+  .agents/skills/si-chip/references/lifecycle-category-r13-summary.md NEW + mirrored across
+  3 trees; .rules/si-chip-spec.mdc bumped v0.4.4-rc1 → v0.4.5-rc1 with §24.4 lineage
+  paragraph appended; AGENTS.md recompiled (new content_hash ecd5c52fce33061a);
+  templates/basic_ability_profile.schema.yaml additively extends lifecycle block with
+  OPTIONAL field `category` (enum + default null); CHANGELOG [0.4.5] section added).
+
+  Per §15.4.1 the code_change round counts toward the §4.2 promotion-rule
+  consecutive-rounds counter (C0 = 1.0 + no v1_baseline regression both
+  satisfied — 23rd consecutive v1 pass; 6th consecutive v2 pass).
+
+  Per §15.2 the iteration_delta clause is `strict` (≥1 axis at gate bucket);
+  satisfied by governance_risk_delta = +0.05 v1 bucket fresh round-over-round
+  (§24.4 lifecycle.category schema enrichment provides reviewer / router / dogfood
+  agent a normalized vocabulary to filter ability sets by SDLC phase, improving
+  discoverability + audit-trail surface area).
+
+token_tier_target: relaxed                          # Si-Chip has no EAGER surface; relaxed pressure adequate
+
+# ★ Action target — required by task spec
+action_target: 'absorb agent-skills lifecycle taxonomy as Informative §24.4 + OPTIONAL schema field'
+
+actions:
+  - action_id: a1_v0_4_5_ship_decision_review
+    priority: P0
+    targets_metric: v0_4_5_promotion_decision
+    description: |
+      L0 review of feat/v0.4.5-lifecycle-category PR (stacked on PR #16 base
+      feat/v0.4.4-progressive-disclosure, which itself stacks on PR #15 / #14).
+      Decision criteria:
+      (a) all 16/16 BLOCKERs PASS against new spec_v0.4.5-rc1.md (Patch 4 introduces
+          ZERO new BLOCKERs; total remains at 16 — §24.4 is Informative);
+      (b) all 16/16 BLOCKERs PASS against spec_v0.4.4-rc1.md (Patch 3 spec
+          backward-compat verified; ZERO regressions);
+      (c) all 16/16 BLOCKERs PASS against spec_v0.4.3-rc1.md (Patch 2 spec
+          backward-compat verified; BLOCKER 16 SKIP-as-PASS via missing §24.3 marker
+          per §13.6.4 grace period — UNCHANGED);
+      (d) all 16/16 BLOCKERs PASS against spec_v0.4.2-rc1.md (Patch 1 spec
+          backward-compat verified; BLOCKER 15 PASS + BLOCKER 16 SKIP-as-PASS — UNCHANGED);
+      (e) all 16/16 BLOCKERs PASS against legacy spec_v0.4.0.md / v0.3.0 / v0.2.0
+          (legacy backward-compat verified via SKIP-as-PASS path keying on absent
+          §24 / §24.3 markers per §13.6.4 grace period — UNCHANGED);
+      (f) pytest tools/test_spec_validator.py 100% green; ZERO new tests required
+          (Patch 4 introduces NO new BLOCKER); 70 tests + 62 subtests all PASS
+          (existing schema test continues PASS with the new OPTIONAL `category` field
+          because BLOCKER 1 BAP_SCHEMA validates required-key presence, not enumeration
+          of all OPTIONAL properties);
+      (g) count_tokens.py against updated SKILL.md: metadata=94/100, body=4998/5000
+          PASS (margin 2; under v3_strict trigger so BLOCKER 16 SKIP-as-PASSes);
+      (h) backward-compat verification: 47/47 pre-v0.4.5 BAP profiles in repo
+          (Round 1-22 Si-Chip + Round 1-27 chip-usage-helper) PASS schema validation
+          with no edit needed; 0% drift verified;
+      (i) C0 = 1.0 (5/5) maintained; v1_baseline 9-row check PASS (23rd consecutive);
+          v2_tightened 10-row check PASS (6th consecutive);
+      (j) §11 forever-out re-affirmation §24.4.6 explicitly contrasts the absorption
+          from agent-skills v1.0.0 with that project's marketplace direction; §24.4
+          is plain BAP schema increment + Informative naming convention, NOT a SKILL
+          DSL or code-gen.
+      If review approves: promote spec_v0.4.5-rc1.md → spec_v0.4.5.md (frozen)
+      bundled with v0.4.2 + v0.4.3 + v0.4.4 promotion (Patches 1 + 2 + 3 + 4 ship
+      together since stacked).
+
+  - action_id: a2_chip_usage_helper_round_28_under_v0_4_5
+    priority: P1
+    targets_metric: cross_ability_witness_v0_4_5
+    description: |
+      Cross-ability witness: chip-usage-helper Round 28 under v0.4.5-rc1 spec
+      verifies that the new OPTIONAL `lifecycle.category` field is correctly
+      accepted (default null = no edit needed, OR author may choose to set it
+      to e.g. `build` or `verify` based on chip-usage-helper's functional intent).
+      Since chip-usage-helper has its own SKILL.md and BAP under
+      .local/dogfood/<DATE>/abilities/chip-usage-helper/round_<N>/, this acts as
+      the cross-ability empirical proof that the schema change is fully backward-
+      compat across all ability instances. NO migration required; chip-usage-helper
+      can adopt `lifecycle.category` opportunistically.
+
+  - action_id: a3_next_absorption_patch_5
+    priority: P2
+    targets_metric: v0_5_0_absorption_plan_progress
+    description: |
+      Round 23 is Patch 4 of 6 in the Si-Chip v0.5.0 absorption plan. Patch 5
+      target (per the plan): TBD per next research review (candidate sources
+      from upstream agent-skills: per-skill installer architecture (still
+      §11.1 forever-out), OR "router-floor declaration discipline" (intersection
+      with §5 router paradigm), OR "lazy_manifest BLOCKER-ization" — the latter
+      would close the §24.3.3 deferred BLOCKER on .lazy-manifest content
+      compliance). Land Patch 5 only after v0.4.2 + v0.4.3 + v0.4.4 + v0.4.5
+      ship together as a bundled v0.4.x ship event (Patches 1 + 2 + 3 + 4 stack).
+
+      Mid-checkpoint: this is Patch 4 of 6. The L0 orchestrator pauses here for
+      user review before continuing with Patches 5-6 + the v0.5.0 aggregate.
+
+provenance:
+  spec_version: v0.4.5-rc1
+  target_commit_base: HEAD-of-feat/v0.4.5-lifecycle-category (stacked on feat/v0.4.4-progressive-disclosure @ 93a1def)
+  basis_iteration_delta: .local/dogfood/2026-05-05/round_23/iteration_delta_report.yaml
+  basis_round_22_next_action_plan: .local/dogfood/2026-05-05/round_22/next_action_plan.yaml
+  basis_round_22_iteration_delta: .local/dogfood/2026-05-05/round_22/iteration_delta_report.yaml
+  absorbed_external_source:
+    repo: addyosmani/agent-skills
+    version: v1.0.0
+    upstream_pushed_at: '2026-05-03'
+    upstream_doc: 'using-agent-skills/SKILL.md (lifecycle taxonomy: define/plan/build/verify/review/ship organising 21 skills + meta category for self-referential)'
+    absorbed_into: 'Si-Chip spec §24.4 (Informative) + templates/basic_ability_profile.schema.yaml lifecycle.category OPTIONAL field + references/lifecycle-category-r13-summary.md'
