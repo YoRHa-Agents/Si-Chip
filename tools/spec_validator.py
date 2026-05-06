@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Static structural validator for the Si-Chip spec.
 
-Implements the **fifteen** machine-checkable invariants declared across
+Implements the **sixteen** machine-checkable invariants declared across
 spec §13.4 (v0.2.0 — 9 BLOCKERs), §13.5.4 (v0.3.0-rc1 — 2 additive
-BLOCKERs), §13.6.4 (v0.4.0-rc1 — 3 additive BLOCKERs) and §24.1.1
-(v0.4.2-rc1 — 1 additive BLOCKER). Round 12 (Si-Chip v0.1.11) added
-the 9th BLOCKER ``REACTIVATION_DETECTOR_EXISTS``. Stage 4 Wave 2a
-(v0.3.0-rc1, 2026-04-29) added the 10th (``CORE_GOAL_FIELD_PRESENT``)
-and 11th (``ROUND_KIND_TEMPLATE_VALID``). Stage 4 Wave 1b (v0.4.0-rc1,
+BLOCKERs), §13.6.4 (v0.4.0-rc1 — 3 additive BLOCKERs), §24.1.1
+(v0.4.2-rc1 — 1 additive BLOCKER) and §24.3.4 (v0.4.4-rc1 — 1
+additive BLOCKER). Round 12 (Si-Chip v0.1.11) added the 9th BLOCKER
+``REACTIVATION_DETECTOR_EXISTS``. Stage 4 Wave 2a (v0.3.0-rc1,
+2026-04-29) added the 10th (``CORE_GOAL_FIELD_PRESENT``) and 11th
+(``ROUND_KIND_TEMPLATE_VALID``). Stage 4 Wave 1b (v0.4.0-rc1,
 2026-04-30) added the 12th, 13th and 14th. Stage 4 Wave 1d (v0.4.2-rc1,
-2026-05-05) adds the 15th:
+2026-05-05) added the 15th. Stage 4 Wave 1e (v0.4.4-rc1, 2026-05-05)
+adds the 16th:
 
 * ``CORE_GOAL_FIELD_PRESENT`` — asserts that the BasicAbilityProfile
   schema declares a REQUIRED ``core_goal`` block with the §14.1.1
@@ -47,6 +49,22 @@ and 11th (``ROUND_KIND_TEMPLATE_VALID``). Stage 4 Wave 1b (v0.4.0-rc1,
   as PASS when no SKILL.md / BAP files exist OR when the validated
   spec lacks the §24 marker (pre-v0.4.2 backward compat per §13.6.4
   grace period).
+* ``BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`` (v0.4.4 §24.3) — asserts
+  that every ``SKILL.md`` whose ``body_tokens > 5000`` (i.e. crosses
+  the §7.3 v3_strict body budget) cites at least one
+  ``references/<file>.md`` path verbatim in its body AND that the
+  cited file exists at ``<skill_dir>/references/<file>.md`` on disk.
+  Body-token measurement uses the same method as
+  ``scripts/count_tokens.py`` (tiktoken-with-fallback;
+  measurement-method consistency is the binding constraint between
+  this BLOCKER and the §7.3 packaging gate). Graduated: spec
+  encourages references-split at body > 4000 (v1_baseline / v2
+  best practice) but only MUST-fails at body > 5000 (v3_strict).
+  Skipped as PASS in three cases: (a) no SKILL.md found
+  (pre-bootstrap repo); (b) every SKILL.md has body ≤ 5000
+  (no SKILL.md crosses the graduated trigger); (c) the validated
+  spec lacks the §24.3 marker (pre-v0.4.4 backward compat per
+  §13.6.4 grace period).
 
 Spec path defaults to ``.local/research/spec_v0.2.0.md`` (Si-Chip v0.2.0
 ship, 2026-04-28; promoted from v0.2.0-rc1 with no Normative semantic
@@ -2852,6 +2870,328 @@ def check_description_cap_1024(
     )
 
 
+# §24.3 progressive-disclosure / body-budget references-split helpers.
+#
+# BODY_BUDGET_THRESHOLD is the v3_strict body budget from §7.3 packaging
+# gate (frozen at 5000 since v0.1.0). When a SKILL.md body crosses this
+# threshold (graduated trigger per §24.3.1), it MUST cite at least one
+# ``references/<file>.md`` path AND the cited file MUST exist on disk.
+# v1_baseline / v2_tightened keep the same numeric threshold; the rule
+# is "graduated" in encouragement, not in numeric value.
+BODY_BUDGET_THRESHOLD: int = 5000
+
+# Capture every ``references/<filename>.md`` path verbatim cited in the
+# SKILL.md body. The character class ``[\w\-]+`` accepts alphanumerics,
+# underscores, and hyphens — matching the reference file naming
+# convention used across .agents/skills/<name>/references/*.md (e.g.
+# ``description-discipline-r13-summary.md``).
+_REFERENCES_CITE_RE = re.compile(r"references/([\w\-]+\.md)")
+
+
+def _count_skill_md_body_tokens(skill_md_path: Path) -> Tuple[int, str]:
+    """Return ``(body_tokens, backend)`` for a SKILL.md.
+
+    Reads the file, splits frontmatter via ``scripts/count_tokens.py``'s
+    ``split_frontmatter`` (importing the live module to guarantee
+    measurement-method consistency with the §7.3 packaging gate per
+    §24.3.4 binding constraint), then counts body tokens via the same
+    module's ``count_tokens`` (tiktoken-with-fallback backend).
+
+    Falls back to an inline equivalent (regex-based frontmatter split +
+    word-split heuristic) when the import fails — this preserves
+    workspace rule "No Silent Failures" by raising on truly unreadable
+    files rather than emitting fake counts, while still letting the
+    BLOCKER run in environments where the skill-package script is
+    unavailable.
+    """
+
+    try:
+        text = skill_md_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise RuntimeError(
+            f"spec_validator BLOCKER 16: cannot read {skill_md_path} "
+            f"for body-budget check: {exc}"
+        ) from exc
+
+    # Try to import the live count_tokens module so BLOCKER 16 and
+    # the §7.3 packaging gate report identical body_tokens numbers.
+    try:
+        repo_root_guess = skill_md_path
+        # Walk up to find a directory containing
+        # ``.agents/skills/si-chip/scripts/count_tokens.py`` — the
+        # canonical Si-Chip script path.
+        for ancestor in skill_md_path.parents:
+            cand = ancestor / ".agents/skills/si-chip/scripts/count_tokens.py"
+            if cand.exists():
+                repo_root_guess = ancestor
+                break
+        scripts_dir = (
+            repo_root_guess / ".agents/skills/si-chip/scripts"
+        )
+        if str(scripts_dir) not in sys.path and scripts_dir.exists():
+            sys.path.insert(0, str(scripts_dir))
+        import count_tokens as _ct  # type: ignore
+        _meta, body = _ct.split_frontmatter(text)
+        body_tokens, backend = _ct.count_tokens(body)
+        return int(body_tokens), str(backend)
+    except Exception as exc:
+        LOGGER.warning(
+            "spec_validator BLOCKER 16: count_tokens import failed "
+            "(%s); falling back to inline split + word-split heuristic",
+            exc,
+        )
+
+    # Inline fallback. Mirrors ``split_frontmatter`` (anchor at start;
+    # ``---\n...\n---\n``) and ``_fallback_count`` (split on whitespace
+    # + non-alphanumeric, drop empties) from count_tokens.py.
+    fm_re = re.compile(
+        r"\A---\s*\n(?:.*?\n)?---\s*\n?(?P<body>.*)\Z",
+        re.DOTALL,
+    )
+    m = fm_re.match(text)
+    body = m.group("body") if m else text
+    if not body:
+        return 0, "inline_fallback"
+    units = re.split(r"[\s\W_]+", body, flags=re.UNICODE)
+    return sum(1 for u in units if u), "inline_fallback"
+
+
+def _extract_skill_md_body(skill_md_path: Path) -> str:
+    """Return the SKILL.md body (everything after the YAML frontmatter).
+
+    Returns the entire file content when no frontmatter is present.
+    """
+
+    try:
+        text = skill_md_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise RuntimeError(
+            f"spec_validator BLOCKER 16: cannot read {skill_md_path} "
+            f"for references/ cite check: {exc}"
+        ) from exc
+    fm_re = re.compile(
+        r"\A---\s*\n(?:.*?\n)?---\s*\n?(?P<body>.*)\Z",
+        re.DOTALL,
+    )
+    m = fm_re.match(text)
+    return m.group("body") if m else text
+
+
+def _spec_text_has_section_24_3(spec_text: str) -> bool:
+    """Return True iff ``spec_text`` carries a §24.3 / BLOCKER 16 marker.
+
+    The marker must appear in one of:
+      * H3 header ``### 24.3 ...`` (canonical sub-section anchor)
+      * Inline reference to ``BODY_BUDGET_REQUIRES_REFERENCES_SPLIT``
+        (rule-layer compatibility — appears in the §17.8 hard-rule
+        prose).
+      * Inline reference to ``§24.3`` (cross-reference convention used
+        in §17.8 and the v0.4.4 lineage paragraph).
+
+    Used by ``check_body_budget_requires_references_split`` to
+    SKIP-as-PASS against pre-v0.4.4 specs (per §13.6.4 grace period).
+    """
+
+    return bool(
+        re.search(r"^###\s+24\.3\s", spec_text, re.MULTILINE)
+        or "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT" in spec_text
+        or "§24.3" in spec_text
+    )
+
+
+def check_body_budget_requires_references_split(
+    repo_root: Optional[Path] = None,
+    *,
+    spec_text: Optional[str] = None,
+) -> AssertionResult:
+    """BLOCKER 16 — BODY_BUDGET_REQUIRES_REFERENCES_SPLIT (v0.4.4 §24.3).
+
+    For every ``SKILL.md`` under ``.agents/skills/``,
+    ``.cursor/skills/`` and ``.claude/skills/`` whose
+    ``body_tokens > BODY_BUDGET_THRESHOLD`` (5000; the §7.3 v3_strict
+    body budget): MUST cite at least one ``references/<file>.md``
+    path verbatim in its body AND that file MUST exist at
+    ``<skill_dir>/references/<file>.md``. Body-token measurement uses
+    the same method as ``scripts/count_tokens.py`` (tiktoken-with-
+    fallback; measurement-method consistency is the §24.3.4 binding
+    constraint between this BLOCKER and the §7.3 packaging gate).
+
+    Skipped as PASS in three cases (per §13.6.4 grace period):
+
+      1. The validated spec text does not declare §24.3 (i.e. the
+         ``--spec`` target is pre-v0.4.4). Keeps backward
+         compatibility with the v0.4.3 / v0.4.2 / v0.4.0 / v0.3.0 /
+         v0.2.0 spec runs (all 15 historical BLOCKERs still PASS;
+         the 16th SKIP-PASSes).
+      2. No SKILL.md files are found under any of the three trees
+         (pre-bootstrap repo).
+      3. Every SKILL.md has body_tokens ≤ BODY_BUDGET_THRESHOLD —
+         no SKILL.md crosses the graduated trigger so the BLOCKER
+         has nothing to enforce.
+    """
+
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+
+    # SKIP-as-PASS path 1: spec lacks the §24.3 marker (pre-v0.4.4).
+    if spec_text is not None and not _spec_text_has_section_24_3(spec_text):
+        return AssertionResult(
+            id="BODY_BUDGET_REQUIRES_REFERENCES_SPLIT",
+            name=(
+                "SKILL.md body_tokens > 5000 MUST cite ≥1 existing "
+                "references/<file>.md (spec §24.3.1 / §17.8 hard rule 15)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                "skipped: spec does not declare §24.3 / "
+                "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT (pre-v0.4.4 "
+                "backward compat per §13.6.4 grace period)"
+            ),
+            evidence={
+                "skipped_reason": "spec_lacks_section_24_3_marker",
+                "body_budget_threshold": BODY_BUDGET_THRESHOLD,
+            },
+        )
+
+    skill_md_files = _iter_skill_md_files(repo_root)
+
+    # SKIP-as-PASS path 2: no SKILL.md anywhere.
+    if not skill_md_files:
+        return AssertionResult(
+            id="BODY_BUDGET_REQUIRES_REFERENCES_SPLIT",
+            name=(
+                "SKILL.md body_tokens > 5000 MUST cite ≥1 existing "
+                "references/<file>.md (spec §24.3.1 / §17.8 hard rule 15)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                "skipped: no SKILL.md files under .agents/skills/, "
+                ".cursor/skills/, .claude/skills/ (pre-bootstrap repo)"
+            ),
+            evidence={
+                "skipped_reason": "no_skill_md_files",
+                "body_budget_threshold": BODY_BUDGET_THRESHOLD,
+                "skill_md_trees": list(SKILL_MD_TREES),
+            },
+        )
+
+    findings: List[str] = []
+    per_artifact: List[Dict[str, Any]] = []
+    files_over_threshold = 0
+
+    for path in skill_md_files:
+        body_tokens, backend = _count_skill_md_body_tokens(path)
+        entry: Dict[str, Any] = {
+            "path": str(path.relative_to(repo_root)),
+            "body_tokens": body_tokens,
+            "body_tokens_backend": backend,
+            "body_budget_threshold": BODY_BUDGET_THRESHOLD,
+        }
+        if body_tokens <= BODY_BUDGET_THRESHOLD:
+            entry["over_threshold"] = False
+            entry["pass"] = True
+            per_artifact.append(entry)
+            continue
+        files_over_threshold += 1
+        entry["over_threshold"] = True
+        body = _extract_skill_md_body(path)
+        cited = sorted(set(_REFERENCES_CITE_RE.findall(body)))
+        entry["references_cited"] = cited
+        if not cited:
+            findings.append(
+                f"{path.relative_to(repo_root)}: body_tokens={body_tokens} "
+                f"> {BODY_BUDGET_THRESHOLD} but no references/<file>.md "
+                "cite found in body (spec §24.3.1 + §17.8 hard rule 15)"
+            )
+            entry["pass"] = False
+            per_artifact.append(entry)
+            continue
+        # Verify each cited reference exists at <skill_dir>/references/<file>.md.
+        missing: List[str] = []
+        existing: List[str] = []
+        skill_dir = path.parent
+        for cite in cited:
+            ref_path = skill_dir / "references" / cite
+            if ref_path.exists():
+                existing.append(cite)
+            else:
+                missing.append(cite)
+        entry["references_existing"] = existing
+        entry["references_missing"] = missing
+        if not existing:
+            # All cites point to missing files — FAIL.
+            findings.append(
+                f"{path.relative_to(repo_root)}: body_tokens={body_tokens} "
+                f"> {BODY_BUDGET_THRESHOLD} cites references/{cited} "
+                f"but none of those files exist under "
+                f"{skill_dir.relative_to(repo_root)}/references/ "
+                "(spec §24.3.1 + §17.8 hard rule 15)"
+            )
+            entry["pass"] = False
+        else:
+            # At least one cited reference exists — PASS for this file.
+            # Missing cites are reported informationally but do not
+            # FAIL the BLOCKER (the rule is "≥1 existing cite", not
+            # "every cite must exist"; authors may legitimately
+            # mention a future-planned references/* doc without
+            # blocking the round on its absence).
+            entry["pass"] = True
+            if missing:
+                entry["info_missing_cited_refs"] = missing
+        per_artifact.append(entry)
+
+    # SKIP-as-PASS path 3: every SKILL.md is under threshold.
+    if files_over_threshold == 0:
+        return AssertionResult(
+            id="BODY_BUDGET_REQUIRES_REFERENCES_SPLIT",
+            name=(
+                "SKILL.md body_tokens > 5000 MUST cite ≥1 existing "
+                "references/<file>.md (spec §24.3.1 / §17.8 hard rule 15)"
+            ),
+            passed=True,
+            severity="BLOCKER",
+            message=(
+                f"skipped: all {len(skill_md_files)} SKILL.md file(s) "
+                f"have body_tokens ≤ {BODY_BUDGET_THRESHOLD} (no file "
+                "crosses graduated trigger)"
+            ),
+            evidence={
+                "skipped_reason": "all_skill_md_under_body_budget",
+                "body_budget_threshold": BODY_BUDGET_THRESHOLD,
+                "skill_md_files_inspected": len(skill_md_files),
+                "files_over_threshold": 0,
+                "per_artifact": per_artifact,
+            },
+        )
+
+    passed = not findings
+    return AssertionResult(
+        id="BODY_BUDGET_REQUIRES_REFERENCES_SPLIT",
+        name=(
+            "SKILL.md body_tokens > 5000 MUST cite ≥1 existing "
+            "references/<file>.md (spec §24.3.1 / §17.8 hard rule 15)"
+        ),
+        passed=passed,
+        severity="BLOCKER",
+        message=(
+            f"all {files_over_threshold} SKILL.md file(s) over "
+            f"{BODY_BUDGET_THRESHOLD} tokens cite ≥1 existing "
+            "references/<file>.md"
+            if passed
+            else "; ".join(findings)
+        ),
+        evidence={
+            "skill_md_files_inspected": len(skill_md_files),
+            "files_over_threshold": files_over_threshold,
+            "body_budget_threshold": BODY_BUDGET_THRESHOLD,
+            "findings": findings,
+            "per_artifact": per_artifact,
+        },
+    )
+
+
 # ─────────────────────────── runner ───────────────────────────
 
 
@@ -2871,11 +3211,18 @@ def run_all(
     new BLOCKERs PASSes as SKIP when no v0.4.0 artefacts exist in the
     repo (backward compat with pre-v0.4.0 round histories).
 
-    Stage 4 Wave 1d (v0.4.2-rc1) widens the set further to **fifteen**:
+    Stage 4 Wave 1d (v0.4.2-rc1) widened the set to **fifteen**:
     adds ``DESCRIPTION_CAP_1024`` (§24.1; absorbed from
     addyosmani/agent-skills v1.0.0). Skipped as PASS when the validated
     spec lacks the §24 marker (pre-v0.4.2 backward compat per §13.6.4
     grace period) OR when no SKILL.md / BAP files exist.
+
+    Stage 4 Wave 1e (v0.4.4-rc1) widens the set further to **sixteen**:
+    adds ``BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`` (§24.3; absorbed
+    from addyosmani/agent-skills v1.0.0 progressive-disclosure
+    pattern). Skipped as PASS when the validated spec lacks the §24.3
+    marker (pre-v0.4.4 backward compat per §13.6.4 grace period) OR
+    when no SKILL.md exists OR when every SKILL.md has body ≤ 5000.
 
     Total order:
 
@@ -2894,6 +3241,7 @@ def run_all(
     13. ``REAL_DATA_FIXTURE_PROVENANCE`` *(NEW @ Stage 4 Wave 1b)*
     14. ``HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND`` *(NEW @ Stage 4 Wave 1b)*
     15. ``DESCRIPTION_CAP_1024`` *(NEW @ Stage 4 Wave 1d, v0.4.2-rc1)*
+    16. ``BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`` *(NEW @ Stage 4 Wave 1e, v0.4.4-rc1)*
     """
 
     spec_text = _read_text(spec_path)
@@ -2929,6 +3277,9 @@ def run_all(
         check_description_cap_1024(
             repo_root=repo_root, spec_text=spec_text
         ),
+        check_body_budget_requires_references_split(
+            repo_root=repo_root, spec_text=spec_text
+        ),
     ]
     verdict = "PASS" if all(r.passed for r in results) else "FAIL"
     return ValidationReport(
@@ -2942,13 +3293,14 @@ def run_all(
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Static structural validator for the Si-Chip spec. Runs 15 "
+            "Static structural validator for the Si-Chip spec. Runs 16 "
             "BLOCKERs (9 historical + 2 v0.3.0 additive: "
             "CORE_GOAL_FIELD_PRESENT, ROUND_KIND_TEMPLATE_VALID; + 3 "
             "v0.4.0 additive: TOKEN_TIER_DECLARED_WHEN_REPORTED, "
             "REAL_DATA_FIXTURE_PROVENANCE, "
             "HEALTH_SMOKE_DECLARED_WHEN_LIVE_BACKEND; + 1 v0.4.2 "
-            "additive: DESCRIPTION_CAP_1024)."
+            "additive: DESCRIPTION_CAP_1024; + 1 v0.4.4 additive: "
+            "BODY_BUDGET_REQUIRES_REFERENCES_SPLIT)."
         ),
     )
     parser.add_argument(
@@ -2956,10 +3308,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         default=DEFAULT_SPEC,
         help=(
             f"Path to spec markdown (default: {DEFAULT_SPEC}). "
-            "Latest accepted spec version is v0.4.2-rc1 "
-            "(`.local/research/spec_v0.4.2-rc1.md`); v0.4.0 / v0.4.0-rc1 / "
-            "v0.3.0 / v0.3.0-rc1 / v0.2.0 / v0.2.0-rc1 / v0.1.0 remain "
-            "accepted for historical artefact regression."
+            "Latest accepted spec version is v0.4.4-rc1 "
+            "(`.local/research/spec_v0.4.4-rc1.md`); v0.4.3-rc1 / "
+            "v0.4.2-rc1 / v0.4.0 / v0.4.0-rc1 / v0.3.0 / v0.3.0-rc1 / "
+            "v0.2.0 / v0.2.0-rc1 / v0.1.0 remain accepted for "
+            "historical artefact regression."
         ),
     )
     parser.add_argument(

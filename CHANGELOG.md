@@ -7,7 +7,138 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty; post-v0.4.3 items land here)
+- (empty; post-v0.4.4 items land here)
+
+## [0.4.4] - 2026-05-05
+
+### Summary
+Si-Chip v0.4.4 — "Progressive Disclosure Discipline (Patch 3 of v0.5.0
+absorption plan)". Absorbs from `addyosmani/agent-skills` v1.0.0
+(push @ 2026-05-03) the `docs/skill-anatomy.md` "progressive
+disclosure" workmanship convention: SKILL.md body stays ≤ ~5 KB and
+long material lives in per-skill `references/<topic>.md` files
+loaded only when explicitly cited. Lands as **Normative** spec
+sub-section §24.3 + 1 new hard rule (#15) + 1 new spec_validator
+BLOCKER 16 `BODY_BUDGET_REQUIRES_REFERENCES_SPLIT`. AGENTS.md §13
+hard-rules count grows 14 → 15; spec_validator BLOCKER count grows
+15 → 16. Si-Chip's own SKILL.md continues to satisfy the rule
+(body=4969 tokens, under the 5000 v3_strict trigger). Existing
+`templates/lazy_manifest.template.yaml` (v0.4.0 §18.5 OPTIONAL) is
+promoted to **Normative-conditional** (REQUIRED when SKILL.md body
+crosses the v3_strict body threshold; documentation-only at v0.4.4
+— no new BLOCKER for `.lazy-manifest`). **Stacks on
+`feat/v0.4.3-skill-md-sections` (Patch 2 / PR #15)** which itself
+stacks on `feat/v0.4.2-description-cap` (Patch 1 / PR #14).
+
+### Added (Normative)
+
+- **Spec §24.3 Progressive Disclosure Discipline** (NEW Normative):
+  six sub-sections §24.3.1–§24.3.6 covering (1) graduated body-budget
+  trigger (encouraged at v1 if body > 4000, MUST at v3_strict if
+  body > 5000), (2) reference-doc anatomy (1-line summary + named
+  section + "Cross-references" tail block), (3) lazy-manifest
+  Normative-conditional integration with §18 token-tier, (4)
+  BLOCKER 16 mechanics + measurement-consistency binding to
+  `count_tokens.py`, (5) what does NOT trigger, (6) §11 forever-out
+  re-affirmation.
+- **AGENTS.md §13 hard rule 15**: when `body_tokens > 5000`, MUST
+  cite ≥1 existing `references/<file>.md` per §24.3.1. Body-token
+  measurement MUST match `scripts/count_tokens.py::count_tokens`.
+
+### Added (Validator)
+
+- **`tools/spec_validator.py::check_body_budget_requires_references_split`**
+  — BLOCKER 16 implementation. Discovery via `_iter_skill_md_files`
+  (shared with BLOCKER 15). Token count via live import of
+  `count_tokens.py` (with inline regex fallback). Cite scan via
+  `references/[\w\-]+\.md` regex; existence check at
+  `<skill_dir>/references/<file>.md`. Three SKIP-as-PASS paths: spec
+  lacks §24.3 marker (pre-v0.4.4 grace period), no SKILL.md found,
+  every SKILL.md ≤ threshold.
+- **6 new tests in `tools/test_spec_validator.py`** (+ 1 backward-
+  compat verification): under-threshold PASS, over-threshold no-cite
+  FAIL, over-threshold valid-cite PASS, over-threshold missing-cited
+  FAIL, no-SKILL.md SKIP-as-PASS, run_all wiring verifies 16 results
+  total. Plus a bonus regression test that checks v0.4.3 / v0.4.2 /
+  v0.4.0 specs still PASS 16 BLOCKERs (15 historical + 1 SKIP-as-PASS).
+- **Run-all order updated**: BLOCKER 16 added as the 16th invariant
+  after `DESCRIPTION_CAP_1024`. Top docstring + run_all docstring +
+  argparse description all updated to "sixteen" / "16".
+
+### Added (Documentation)
+
+- `.local/research/spec_v0.4.4-rc1.md` (rc; ~2540 lines; pinned
+  candidate). §1–§24.2 byte-identical to `spec_v0.4.3-rc1.md` per
+  `additive_only: true` + `preserves_byte_identical_v0_4_3_rc1: [...]`
+  frontmatter assertions. Adds §24.3 (Normative; six sub-sections)
+  + §17.8 hard rule 15.
+- `.agents/skills/si-chip/references/progressive-disclosure-r13-summary.md`
+  (~10 KB; mirrored across `.cursor/` + `.claude/` trees). Reader
+  walkthrough covering: why the rule exists, Si-Chip's pre-existing
+  informal practice, rule statement + graduated nature, reference
+  doc anatomy, lazy-manifest integration, BLOCKER 16 mechanics,
+  measurement-consistency constraint, what does NOT trigger, §11
+  forever-out re-affirmation.
+
+### Changed (Skill / Rule layer)
+
+- `.agents/skills/si-chip/SKILL.md` (mirrored across 3 trees;
+  byte-identical sha256=`a23875fec03ab83d…`) frontmatter
+  `version: 0.4.3 → 0.4.4` + description string `v0.4.3 → v0.4.4`.
+  v0.4.0 add-on section consolidated to a 6-bullet block (was 6
+  separate H3 sub-sections; net body shrink ~500 tokens) to make
+  room for §24.3 add-on bullet. Common Rationalizations gains 1 row
+  ("Just stuff the long material into SKILL.md body" → §24.3.1 +
+  BLOCKER 16). Red Flags gains 1 item (`body_tokens > 5000` without
+  cite). References Index gains 2 entries (progressive-disclosure-
+  r13-summary.md; cross-link to lazy_manifest.template.yaml). When
+  To Trigger gains 1 item ("SKILL body grew past 5000 tokens"). Net
+  body=4969 tokens (was 4924 in v0.4.3); under the 5000 v3_strict
+  budget so BLOCKER 16 SKIP-as-PASSes for Si-Chip's own SKILL.md.
+- `.rules/si-chip-spec.mdc` frontmatter `version: v0.4.3-rc1 →
+  v0.4.4-rc1`, `supersedes: v0.4.2-rc1 → v0.4.3-rc1`, `source: …
+  spec_v0.4.3-rc1.md → spec_v0.4.4-rc1.md`. §13 numbered list
+  extended to 15 rules (rule 15 verbatim from §17.8 spec text).
+  v0.4.4 lineage paragraph appended after v0.4.3 paragraph.
+- `AGENTS.md` recompiled via `sync-rules`; hash
+  `a95c240cbf6119e8 → 544d5fac7454e73d`. `check-rules-drift`
+  reports `agents_md — in_sync`.
+
+### Verification
+- 16/16 BLOCKERs PASS against `spec_v0.4.4-rc1.md` (BLOCKER 16
+  SKIP-as-PASSes since Si-Chip's own SKILL.md body=4969 < 5000).
+- 16/16 BLOCKERs PASS against `spec_v0.4.3-rc1.md` (BLOCKER 16
+  SKIP-as-PASS via missing §24.3 marker).
+- 16/16 BLOCKERs PASS against `spec_v0.4.2-rc1.md` /
+  `spec_v0.4.0.md` / default v0.2.0 spec (BLOCKER 16 + BLOCKER 15
+  SKIP-as-PASS via missing markers, per §13.6.4 grace period).
+- `pytest tools/test_spec_validator.py -q`: 70 passed, 62 subtests
+  passed (was 63 → +7 from 6 new BLOCKER 16 tests + 1 bonus
+  regression test).
+- `count_tokens.py` against `.agents/skills/si-chip/SKILL.md`:
+  metadata=94/100, body=4969/5000 PASS at v2_tightened budget.
+- `check-rules-drift`: agents_md in_sync (post-recompile).
+- Measurement-consistency check: `count_tokens.py::count_tokens` on
+  Si-Chip's SKILL.md body returns 4969; `spec_validator.py
+  BLOCKER 16` reports body_tokens=4969 against the same file. 0%
+  drift (well under the 5% binding constraint of §24.3.4).
+
+### Forever-out re-affirmation (§24.3.6)
+- §11.1 four forever-out items (marketplace, router-model training,
+  generic IDE compat, Markdown-to-CLI converter) remain byte-
+  identical. §24.3 absorbs ONLY the SKILL body / references/ split
+  workmanship convention from agent-skills v1.0.0; explicitly does
+  NOT absorb that project's marketplace direction, plugin
+  distribution surface, per-skill installer, or any Markdown-to-CLI
+  tooling. BLOCKER 16 is a deterministic length + grep + filesystem-
+  existence check, not a code generator or distribution mechanism.
+
+### Mid-checkpoint marker
+This is the 3rd of 6 absorption patches in the Si-Chip v0.5.0 plan.
+The L0 orchestrator pauses here for user review before continuing
+with Patches 4–6 + the v0.5.0 aggregate. Stacked PR chain:
+v0.4.2 (Patch 1, PR #14) → v0.4.3 (Patch 2, PR #15) → v0.4.4
+(Patch 3, this PR).
 
 ## [0.4.3] - 2026-05-05
 
