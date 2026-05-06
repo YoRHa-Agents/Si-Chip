@@ -1,0 +1,128 @@
+# Si-Chip Next Action Plan - round_26 vs round_25 (v0.5.0 FROZEN aggregate ship_prep)
+# Targets the post-ship maintenance / re-measurement round 27 (measurement_only) per §15.1.
+# Spec: §15.1 round_kind = ship_prep (this round) → round 27 measurement_only follow-up;
+# §20.4 ship_decision.yaml = 7th evidence file emitted this round.
+
+ability_id: si-chip
+emitted_at: '2026-05-05T16:30:00+00:00'
+targets_round: round_27_post_ship_measurement_only
+bound_gate: v2_tightened                            # carried forward from Round 19; this round MAINTAINS the gate; v0.5.0 frozen ship promotes the spec to compiled_into_rules: true at v2_tightened
+target_branch: feat/v0.5.0-aggregate-ship
+target_branch_base: feat/v0.4.7-anti-pattern-doc-agent-skills-registration   # ★ STACKED on Patch 6 PR #20
+spec_version: v0.5.0
+
+round_kind: ship_prep                               # §15.1; Round 26 is ship_prep (aggregate ship of the 6-patch v0.5.0 absorption arc; emits 7th evidence file ship_decision.yaml per §20.4)
+round_kind_rationale: |
+  Round 26 is ship_prep per §15.1.4 decision tree: this round bundles the v0.5.0
+  FROZEN minor release that aggregates the 6-patch absorption arc A1-A6 into a single
+  ship event. The spec is promoted v0.4.7-rc1 → v0.5.0 with `compiled_into_rules: true`
+  flip (this is the ship signal); .rules/si-chip-spec.mdc + AGENTS.md + .compile-
+  hashes.json all re-bumped; SKILL.md frontmatter version 0.4.7 → 0.5.0 with body
+  compaction (4990 → 4980 tokens); 3-tree mirror sync; deterministic tarball
+  docs/skills/si-chip-0.5.0.tar.gz emitted (sha256=d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672);
+  CHANGELOG [0.5.0] section added above [0.4.7]; 7th evidence file ship_decision.yaml
+  emitted per §20.4 with verdict = SHIP_ELIGIBLE at gate `standard` (= v2_tightened).
+
+  Per §15.4.1 the ship_prep round counts toward the §4.2 promotion-rule consecutive-
+  rounds counter when (a) C0 == 1.0, (b) C0 >= prior_round.C0, (c) no v1_baseline hard
+  gate regressed. Round 26 satisfies all three (C0 = 1.0 + 1.0 → 1.0 monotonicity +
+  no v1_baseline regression; 26th consecutive v1 pass; 9th consecutive v2 pass).
+
+  Per §15.2 the iteration_delta clause is `WAIVED` for ship_prep rounds — the
+  iteration_delta_report.yaml documents the audit but does not impose a per-axis
+  bucket requirement. The ship verdict is governed by §20.4 (ship_decision.yaml +
+  acceptance criteria) rather than §4.2 promotion thresholds.
+
+token_tier_target: relaxed                          # Si-Chip has no EAGER surface; relaxed pressure adequate
+
+# ★ Action target — required by task spec
+action_target: |
+  Post-ship measurement_only iteration round 27 (next round = round 27 = measurement_only
+  per §15.2 — re-runs eval-pack against the now-frozen v0.5.0 spec to confirm metrics
+  stability without source-code changes; iteration_delta clause RELAXED to monotonicity).
+  Subsequent v1.0.0-rc1 design paper out-of-scope for this PR; deferred until v0.5.0
+  has accumulated sufficient post-ship measurement_only evidence + cross-ability witness
+  evidence (chip-usage-helper Round 30+ under v0.5.0 spec).
+
+actions:
+  - action_id: a1_v0_5_0_ship_decision_review
+    priority: P0
+    targets_metric: v0_5_0_aggregate_ship_decision
+    description: |
+      L0 review of feat/v0.5.0-aggregate-ship PR (stacked on PR #20 base
+      feat/v0.4.7-anti-pattern-doc-agent-skills-registration, which itself stacks on
+      PRs #14 / #15 / #16 / #17 / #18). Decision criteria:
+      (a) all 16/16 BLOCKERs PASS against new spec_v0.5.0.md (this aggregate ship
+          introduces ZERO new BLOCKERs; total remains at 16 — the 6-patch arc
+          accumulated +2 BLOCKERs across v0.4.2 + v0.4.4 already);
+      (b) all 16/16 BLOCKERs PASS against spec_v0.4.7-rc1.md (Patch 6 spec
+          backward-compat verified; ZERO regressions);
+      (c) all 16/16 BLOCKERs PASS against spec_v0.4.6-rc1.md / spec_v0.4.5-rc1.md /
+          spec_v0.4.4-rc1.md / spec_v0.4.3-rc1.md / spec_v0.4.2-rc1.md (all 5 prior
+          rcs continue PASS; backward-compat preserved);
+      (d) all 16/16 BLOCKERs PASS against legacy spec_v0.4.0.md / spec_v0.3.0.md /
+          spec_v0.2.0.md (legacy backward-compat verified via SKIP-as-PASS path
+          keying on absent §24 / §24.3 markers per §13.6.4 grace period — UNCHANGED);
+      (e) pytest tools/test_spec_validator.py 100% green; ZERO new tests required;
+          70 tests + 62 subtests all PASS;
+      (f) count_tokens.py against updated SKILL.md: metadata=94/100, body=4980/5000
+          PASS (margin 20; under v3_strict trigger so BLOCKER 16 SKIP-as-PASSes);
+      (g) C0 = 1.0 (5/5) maintained; v1_baseline 9-row check PASS (26th consecutive);
+          v2_tightened 10-row check PASS (9th consecutive);
+      (h) §11 forever-out re-affirmation §24.x.6 across all 6 absorbed sub-sections
+          (§24.1.3 / §24.2.6 / §24.3.6 / §24.4.6 / §24.5.6 / §24.6.5) — all 4
+          forever-out items verbatim re-affirmed; this aggregate ship preserves
+          byte-identical;
+      (i) tarball docs/skills/si-chip-0.5.0.tar.gz deterministic (rebuild produces
+          byte-identical sha256 d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672);
+      (j) ship_decision.yaml verdict = SHIP_ELIGIBLE at gate standard (= v2_tightened).
+      If review approves: merge feat/v0.5.0-aggregate-ship → main bundling all 7 PRs
+      stacked (#14 + #15 + #16 + #17 + #18 + #20 + this v0.5.0 aggregate); main is
+      then ready for tagging at v0.5.0.
+
+  - action_id: a2_round_27_measurement_only_post_ship
+    priority: P1
+    targets_metric: post_ship_stability_witness
+    description: |
+      Round 27 = measurement_only post-ship round per §15.1.2 + §15.2 measurement_only
+      iteration_delta clause RELAXED to monotonicity. Re-runs eval-pack against the
+      now-frozen v0.5.0 spec to confirm metrics stability without source-code changes.
+      Expected outcome: 16/16 BLOCKERs PASS unchanged on v0.5.0 spec; T1/T2 cache-replay
+      byte-equivalent to Round 18-26; C0 = 1.0; 27th consecutive v1 pass; 10th
+      consecutive v2 pass.
+
+  - action_id: a3_chip_usage_helper_round_30_under_v0_5_0
+    priority: P2
+    targets_metric: cross_ability_witness_v0_5_0
+    description: |
+      Cross-ability witness: chip-usage-helper Round 30 under v0.5.0 spec verifies
+      that this aggregate ship does NOT regress any existing BAP fields (since the
+      arc only added 1 OPTIONAL schema field across all 6 patches — `lifecycle.category`
+      from Patch 4 — and that field defaults to null preserving all v0.4.0–v0.4.6
+      profiles, this is automatically backward-compat). chip-usage-helper is NOT a
+      meta ability so it does NOT register external research references — but its
+      BAP must continue to load and validate cleanly under spec_v0.5.0.md. NO
+      migration required.
+
+  - action_id: a4_v1_0_0_rc1_design_paper_deferred
+    priority: P3
+    targets_metric: v1_0_0_planning
+    description: |
+      v1.0.0-rc1 design paper out-of-scope for this PR; deferred until v0.5.0 has
+      accumulated sufficient post-ship evidence (Round 27 measurement_only +
+      chip-usage-helper Round 30+ + at least 1 month of stable v0.5.0 ship_eligible
+      verdict carry-forward). Per §11 forever-out, v1.0.0 will NOT introduce
+      marketplace / router-model training / Markdown-to-CLI / generic IDE compat
+      layer surfaces; v1.0.0 is reserved for natural maturation milestones (e.g.
+      v3_strict gate promotion if achieved, frozen 96-cell router-test matrix,
+      method-tagged metrics maturation).
+
+provenance:
+  spec_version: v0.5.0
+  target_commit_base: HEAD-of-feat/v0.5.0-aggregate-ship (stacked on feat/v0.4.7-anti-pattern-doc-agent-skills-registration @ HEAD)
+  basis_iteration_delta: .local/dogfood/2026-05-05/round_26/iteration_delta_report.yaml
+  basis_round_25_next_action_plan: .local/dogfood/2026-05-05/round_25/next_action_plan.yaml
+  basis_round_25_iteration_delta: .local/dogfood/2026-05-05/round_25/iteration_delta_report.yaml
+  arc_complete: true                                # ★ v0.5.0 absorption arc COMPLETE — agent-skills v1.0.0 fully absorbed at provenance-pin level
+  arc_patches_landed: [v0.4.2, v0.4.3, v0.4.4, v0.4.5, v0.4.6, v0.4.7, v0.5.0]
+  arc_next_step: round_27_measurement_only_post_ship_v0_5_0

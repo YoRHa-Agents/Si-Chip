@@ -1,8 +1,8 @@
 ---
 name: si-chip
-description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.4.7.
+description: BasicAbility optimization factory. Covers profile, evaluate, diagnose, improve, router-test, half-retire plus core_goal, token-tier, real-data per Si-Chip v0.5.0.
 when_to_use: When a Skill needs eval evidence, router_floor, half-retire, C0, token-tier, provenance, or health-smoke.
-version: 0.4.7
+version: 0.5.0
 license: Apache-2.0
 ---
 
@@ -234,4 +234,4 @@ Forever-out per §11.1: marketplace / router-model training / generic IDE compat
 
 ## Provenance
 
-Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.4.7-rc1.md` (rc; +§24.6 external research registration; v0.5.0 arc complete) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.
+Source-of-truth: `.agents/skills/si-chip/` ; Spec: `.local/research/spec_v0.5.0.md` (FROZEN; v0.5.0 arc complete) ; Compiled into `AGENTS.md` via `.rules/si-chip-spec.mdc`.
