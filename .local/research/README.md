@@ -1,6 +1,6 @@
 # Si-Chip Research Index
 
-> Last updated: 2026-05-05  
+> Last updated: 2026-05-05 (Stage S4 — added Design papers section + spec_v1.0.0-rc1.md design reference)
 > 本目录保存 Si-Chip 关于 Skill/basic ability 迭代优化体系的调研、证据库与 canonical 文档。
 
 ## Canonical Reading Path
@@ -107,3 +107,23 @@ Basic Ability
 | spec v0.4.5-rc1 | 2026-05-05 | A4 lifecycle category taxonomy from agent-skills using-agent-skills/SKILL.md; §24.4 Informative; +1 OPTIONAL schema field |
 | spec v0.4.6-rc1 | 2026-05-05 | A5 meta-routing pattern from agent-skills using-agent-skills/SKILL.md; §24.5 Informative; ZERO new BLOCKER; STRICT §11 / §5.2 router-model-training forever-out compliance |
 | spec v0.4.7-rc1 | 2026-05-05 | **A6 anti-pattern doc + r13 long-term registration**; §24.6 Informative metadocumentary registration mechanism; FIRST registered long-term external research reference (`r13_agent_skills_comparison.md` against agent-skills v1.0.0); ZERO new BLOCKER; STRICT §11 forever-out — research material only, NOT code dependency; **v0.5.0 absorption arc COMPLETE** |
+| spec v0.5.0 | 2026-05-05 | **FROZEN aggregate ship** of the v0.5.0 absorption arc bundling A1-A6 (PRs #14 / #15 / #16 / #17 / #18 / #20); spec promoted v0.4.7-rc1 → v0.5.0 with `compiled_into_rules: true` flip; supersedes v0.4.0; §1–§24.6 prose byte-identical to v0.4.7-rc1; deterministic tarball `docs/skills/si-chip-0.5.0.tar.gz` (sha256 = `d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672`); 26 dogfood rounds witnessed |
+| spec v1.0.0-rc1 | 2026-05-05 | **DESIGN PAPER (NOT shipped; archived; status: design_paper; not_for_compile: true; not_for_ship: true)** — articulates 6 promotion gates for v1.0.0 stable + schema migration plan + new forever-out (NO automated cross-repo absorption) + promotion procedure + pinned historical references + 90-day re-verification cadence. Authored 2026-05-05 by Round 27 L3 Task Agent (post-ship self-iter + v1.0.0-rc1 design paper PR; companions Round 27 measurement_only stability witness round). NOT a normal spec rc — does NOT enter `.rules/` compile, does NOT trigger spec_validator runs, does NOT bump version. See **Design papers (NOT for ship)** section below. |
+
+## Design papers (NOT for ship)
+
+> **Design papers are research artefacts, not normative specs.** They live under
+> `.local/research/` for archival and reference, but they DO NOT enter `.rules/`
+> compile. spec_validator does NOT run against design papers. They are explicitly
+> non-shippable: each design paper carries the frontmatter signals
+> `status: design_paper` + `archived: true` + `not_for_compile: true` +
+> `not_for_ship: true` + `effective_date: null`.
+>
+> Their purpose is to make architectural intent explicit BEFORE the work begins,
+> so honest progress tracking is possible. Compare to `r12_v0_4_0_industry_practice.md`
+> which documents industry evidence collected DURING work; design papers articulate
+> a fixed target FOR future work.
+
+| File | Successor of | Status | Purpose |
+|---|---|---|---|
+| `spec_v1.0.0-rc1.md` | `spec_v0.5.0` | `design_paper` (archived; NOT shipped) | Articulates 6 promotion gates for v1.0.0 stable. Currently 0/6 gates satisfied at Round 27. ETA: ~30+ rounds + ≥30 days post-v0.5.0 ship. Reviewed every 90 days per §8. |

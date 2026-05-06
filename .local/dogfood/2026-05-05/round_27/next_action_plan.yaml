@@ -1,0 +1,170 @@
+# Si-Chip Next Action Plan - round_27 vs round_26 (v0.5.0 post-ship measurement_only stability witness)
+# Targets the post-ship maintenance / re-measurement round 28 (likely measurement_only or first
+# v0.6.x-targeting code_change exploration round) per §15.1.
+# Spec: §15.1 round_kind = measurement_only (this round) → round 28 follow-up;
+# §15.2 measurement_only RELAXED iteration_delta clause; §15.4.1 promotion-counter eligibility.
+
+ability_id: si-chip
+emitted_at: '2026-05-05T18:00:00+00:00'
+targets_round: round_28_post_ship_continued_stability_or_v0_6_x_exploration
+bound_gate: v2_tightened                            # carried forward Round 19; this round MAINTAINS the gate; v0.5.0 frozen ship at v2_tightened (= standard) MAINTAINED
+target_branch: feat/v0.5.0-post-ship-self-iter-and-v1-rc1
+target_branch_base: feat/v0.5.0-aggregate-ship      # ★ STACKED on v0.5.0 aggregate ship PR #21
+spec_version: v0.5.0
+
+round_kind: measurement_only                        # §15.1; Round 27 is measurement_only — post-v0.5.0-frozen-ship stability witness; emits 6 evidence files (NOT 7 — ship_prep was one-time at Round 26 per §20.4)
+round_kind_rationale: |
+  Round 27 is measurement_only per §15.1.4 decision tree:
+    Q1: did this round touch ability source files? → NO (no spec edit, no SKILL.md
+        edit, no AGENTS.md edit, no template edit, no tarball rebuild — v0.5.0 is
+        FROZEN; no source change since Round 26 ship_prep)
+    Q2: does this round bundle a release? → NO (no version bump; SKILL.md frontmatter
+        UNCHANGED at v0.5.0; no new tarball; no CHANGELOG release section)
+    Q3: is this a post-ship review or maintenance? → it IS post-ship but it is NOT a
+        maintenance round (no spec / template / docs touch). It is a STABILITY WITNESS
+        round that re-runs the eval pack against the now-frozen v0.5.0 spec to confirm
+        metrics stability without source-code changes.
+    Q4: default classification → measurement_only.
+
+  Round 27 emits **6 evidence files** per §8.2 (NOT 7 — ship_prep is one-time and was
+  consumed at Round 26 per §20.4 conditional clause; measurement_only round_kind
+  expected count = 6 per §13.5.4 EVIDENCE_FILES BLOCKER conditional rule).
+
+  Per §15.4.1 the measurement_only round counts toward the §4.2 promotion-rule
+  consecutive-rounds counter when (a) C0 == 1.0, (b) C0 >= prior_round.C0 (strict
+  equality for measurement_only per §15.3), (c) no v1_baseline hard gate regressed.
+  Round 27 satisfies all three (C0 = 1.0 + 1.0 → 1.0 strict equality + no v1_baseline
+  regression; 27th consecutive v1 pass; 10th consecutive v2 pass).
+
+  Per §15.2 the iteration_delta clause is RELAXED to monotonicity-only for
+  measurement_only rounds — the iteration_delta_report.yaml documents the audit but
+  does not require a fresh per-axis bucket lift. NO axis lift is claimed (would be
+  DISHONEST per §15.2 RELAXED clause prose). The verdict.pass = true is via
+  monotonicity-only clause: C0 == prior strict equality + no v1_baseline regression.
+
+token_tier_target: relaxed                          # Si-Chip has no EAGER surface; relaxed pressure adequate (UNCHANGED Round 26)
+
+# ★ Action target — required by task spec
+action_target: |
+  Post-v0.5.0 stability witness; demonstrate §15.2 monotonicity-only verdict; gate
+  v0.5.0 ship as the new baseline for v1.0.0-rc1 design. This round produces the
+  FIRST canonical measurement_only-clause execution under the FROZEN v0.5.0 spec,
+  formalising the byte-equivalent replay pattern as the §15.2 measurement_only branch's
+  canonical execution shape. Round 27 also produces a custom raw artefact —
+  monotonicity_witness.json — that captures the prior_round / this_round / c0_delta /
+  monotonicity_verdict / regressions_found machine-readable witness for downstream
+  audit (e.g., v1.0.0-rc1 §6 pinned historical references; future maintainers can grep
+  monotonicity_witness.json across all dogfood rounds to verify the chain).
+
+  This round companions the v1.0.0-rc1 design paper in this same PR — the design
+  paper articulates the 6 promotion gates Si-Chip would need to satisfy before a
+  v1.0.0 stable ship; the measurement_only round witnesses that v0.5.0 is the new
+  baseline against which those gates are measured. NEITHER work bumps version
+  (v0.5.0 stays FROZEN; v1.0.0-rc1 design paper is NOT a normal spec rc, status =
+  design_paper, archived = true, NOT for compile, NOT for ship).
+
+actions:
+  - action_id: a1_round_27_measurement_only_post_ship_audit
+    priority: P0
+    targets_metric: post_v0_5_0_stability_witness
+    description: |
+      L0 review of feat/v0.5.0-post-ship-self-iter-and-v1-rc1 PR (stacked on PR #21
+      base feat/v0.5.0-aggregate-ship). Decision criteria for Round 27 measurement_only:
+      (a) all 16/16 BLOCKERs PASS against spec_v0.5.0.md UNCHANGED (FROZEN; this round
+          touched zero spec content);
+      (b) pytest tools/test_spec_validator.py 70/70 PASS UNCHANGED;
+      (c) count_tokens.py against unchanged SKILL.md: metadata=94/100, body=4980/5000
+          PASS UNCHANGED (margin 6 / 20);
+      (d) C0 = 1.0 (5/5) maintained AND C0 == prior strict equality (per §15.3
+          measurement_only clause); v1_baseline 9-row check PASS (27th consecutive);
+          v2_tightened 10-row check PASS (10th consecutive);
+      (e) iteration_delta_report.yaml verdict.pass = true via §15.2 monotonicity-only
+          clause (NOT via fresh axis lift — that would be dishonest);
+      (f) round 27 has 6 evidence files (NOT 7; ship_prep was one-time at Round 26;
+          measurement_only round_kind expected count = 6 per §13.5.4 EVIDENCE_FILES
+          BLOCKER conditional rule);
+      (g) raw/monotonicity_witness.json records the prior_round / this_round / c0_delta
+          / monotonicity_verdict / regressions_found machine-readable witness;
+      (h) no spec / SKILL.md / AGENTS.md / template / tarball touch — the round is
+          source-touch-free per §15.1 measurement_only definition.
+      If review approves: merge feat/v0.5.0-post-ship-self-iter-and-v1-rc1 → feat/v0.5.0-
+      aggregate-ship (PR #21 then merges to feat/v0.4.7-... → ... → main; the full
+      8-PR stack lands as a single coherent v0.5.0 + post-ship + v1.0.0-rc1 design
+      bundle).
+
+  - action_id: a2_v1_0_0_rc1_design_paper_review
+    priority: P0
+    targets_metric: v1_0_0_promotion_gate_articulation
+    description: |
+      L0 review of .local/research/spec_v1.0.0-rc1.md (this PR's second deliverable;
+      ARCHIVED design reference; NOT a normal spec rc). Decision criteria:
+      (a) frontmatter status = "design_paper" + archived = true + not_for_compile =
+          true + not_for_ship = true (explicit non-scope markers);
+      (b) §1 cites Si-Chip §4.2 promotion rule (v3_strict 2 consecutive passes);
+      (c) §2 articulates exactly 6 promotion gates for v1.0.0 stable;
+      (d) §3 documents schema migration plan v0.x → 1.x (bump $schema_version 0.3.0
+          → 1.0.0; close-out OPTIONAL fields universally adopted; explicit Normative
+          vs Informative decisions for §24.x sub-sections);
+      (e) §4 verbatim re-affirms §11 forever-out (4 items) + adds NEW v1.0.0 forever-
+          out: NO automated cross-repo absorption of external skills;
+      (f) §5 articulates v1.0.0-rc1 → v1.0.0 promotion procedure (final spec_v1.0.0.md
+          authoring + SKILL.md frontmatter bump + tarball generation + git tag v1.0.0
+          FIRST stable tag + README update + v0.x deprecations cross-walk);
+      (g) §6 lists pinned historical references (all v0.1.0 → v0.5.0 spec files NEVER
+          deleted even after v1.0.0 ships);
+      (h) §7 explicit non-scope: does NOT bump version, does NOT enter .rules/ compile,
+          does NOT trigger spec_validator runs, does NOT change any current Si-Chip
+          behavior — design artifact for future maintainers;
+      (i) §8 articulates re-verification cadence (every 90 days; if v3_strict criteria
+          evolve, update accordingly).
+      Reviewer should treat the design paper as RESEARCH MATERIAL (lives under
+      .local/research/), NOT as a shippable spec rc. spec_validator does NOT run
+      against design papers; the 16/16 BLOCKER PASS for v0.5.0 carry-forward is
+      sufficient.
+
+  - action_id: a3_round_28_post_ship_continued_stability
+    priority: P1
+    targets_metric: post_ship_continued_stability_witness
+    description: |
+      Round 28 = either a second measurement_only round (continued stability witness;
+      cache replay against v0.5.0 frozen spec; expected: 28th consecutive v1 + 11th
+      consecutive v2 PASS + 12th consecutive C0 = 1.0) OR a v0.6.x-targeting
+      code_change exploration round (e.g., metadata_tokens shrink experiment 94 → ≤80
+      to start the v3_strict ladder) per the v1.0.0-rc1 design paper §2 GATE 1
+      requirements. Default expectation: measurement_only continued witness — v3_strict
+      ladder work is deferred to a future PR (the v1.0.0-rc1 design paper §5 procedure
+      explicitly defers v3_strict to v0.6.x or later code_change rounds).
+
+  - action_id: a4_chip_usage_helper_round_31_under_v0_5_0
+    priority: P2
+    targets_metric: cross_ability_witness_v0_5_0_post_ship
+    description: |
+      Cross-ability witness: chip-usage-helper Round 31+ under v0.5.0 spec verifies
+      that the post-ship measurement_only round did NOT introduce any subtle drift
+      across ability profiles. chip-usage-helper is NOT a meta ability so it does
+      NOT register external research references — but its BAP must continue to load
+      and validate cleanly under spec_v0.5.0.md. NO migration required.
+
+  - action_id: a5_v1_0_0_rc1_design_paper_re_verification_cadence
+    priority: P3
+    targets_metric: v1_0_0_design_paper_freshness
+    description: |
+      Per spec_v1.0.0-rc1.md §8 re-verification cadence: review the design paper
+      every 90 days (next review due 2026-08-04). If v3_strict criteria evolve (e.g.,
+      §4.1 row updates, §15 round_kind clause refinements, §24.x sub-section
+      promotions to Normative) update the design paper accordingly — this is a
+      maintenance round_kind work item for a future ship_prep / maintenance round,
+      NOT for measurement_only rounds.
+
+provenance:
+  spec_version: v0.5.0
+  target_commit_base: HEAD-of-feat/v0.5.0-post-ship-self-iter-and-v1-rc1 (stacked on feat/v0.5.0-aggregate-ship @ HEAD)
+  basis_iteration_delta: .local/dogfood/2026-05-05/round_27/iteration_delta_report.yaml
+  basis_round_26_next_action_plan: .local/dogfood/2026-05-05/round_26/next_action_plan.yaml
+  basis_round_26_iteration_delta: .local/dogfood/2026-05-05/round_26/iteration_delta_report.yaml
+  arc_complete: true                                # carry-forward Round 26 — v0.5.0 absorption arc COMPLETE
+  arc_patches_landed: [v0.4.2, v0.4.3, v0.4.4, v0.4.5, v0.4.6, v0.4.7, v0.5.0]
+  arc_next_step: round_28_post_ship_continued_stability_or_v0_6_x_exploration
+  v0_5_0_post_ship_round: round_27                  # ★ NEW Round 27 milestone — first explicit measurement_only round under FROZEN v0.5.0
+  v1_0_0_rc1_design_paper_path: .local/research/spec_v1.0.0-rc1.md
+  v1_0_0_rc1_design_paper_status: design_paper      # NOT shipped; archived; NOT for compile

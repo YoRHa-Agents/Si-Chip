@@ -1,0 +1,494 @@
+# Si-Chip Iteration-Delta Report - round_27 vs round_26 (v0.5.0 post-ship measurement_only stability witness)
+# Conforms to templates/iteration_delta_report.template.yaml ($schema_version 0.3.0).
+# Spec sections: §8.2 evidence #6 + §14.3 (core_goal_check) + §15.1 / §15.2 (round_kind clauses)
+# + §6.1 v0.4.0 8-axis value_vector + §18.2 EAGER-weighted formula + §18.6 tier_transitions
+# + §20.3 promotion_state + §4.2 promotion rule.
+#
+# Round 27 is `measurement_only` per round 26 next_action_plan.yaml explicit pre-classification
+# (post-v0.5.0 frozen ship stability witness; no source-code touch — only re-runs the eval
+# pack and dogfood gates against the now-frozen v0.5.0 spec to confirm metrics stability).
+# Per §15.2 the iteration_delta clause is RELAXED to `monotonicity-only` for measurement_only
+# rounds; per §15.3 the C0 clause is `C0 == 1.0 AND C0 == prior` (strict equality).
+#
+# THIS IS A POST-SHIP STABILITY WITNESS round. NO axis lift is claimed — that would be
+# DISHONEST for a measurement-only round (per §15.2 RELAXED clause prose: "RELAXED. 没改
+# source → 不应期望源码侧的改善"). All metrics CARRY-FORWARD byte-equivalent from Round 26
+# via cache-replay (real_llm_runner.py against Round 18 cache; 100% cache hit; $0 spend).
+#
+# v0.5.0 STABILITY ACHIEVEMENT: Si-Chip extends consecutive v2_tightened pass count
+# 9 → 10 (Round 18 → 27); 10th consecutive v2 PASS. C0 monotonicity chain extends
+# 10 → 11 rounds (Round 17 → 27 all at 1.0). spec_validator: 16/16 BLOCKERs PASS at
+# v0.5.0 spec (UNCHANGED — frozen). pytest 70/70 (UNCHANGED).
+
+round_id: round_27
+prior_round_id: round_26
+round_kind: measurement_only                          # §15.1; per round 26 next_action_plan.yaml explicit declaration (action_id a2_round_27_measurement_only_post_ship)
+round_kind_iteration_delta_clause: monotonicity_only  # §15.2 measurement_only clause: RELAXED to monotonicity-only (no fresh efficiency-axis lift required or claimed)
+computed_at: '2026-05-05T18:00:00+00:00'
+spec_version: v0.5.0
+ability_id: si-chip
+
+# ── §14.3 core_goal_check block (v0.3.0-rc1; universal §15.3) ─────────────
+# Strict "MUST = 1.0" + strict equality clause per §15.3 measurement_only row.
+# Round 27 is the ELEVENTH consecutive C0 = 1.0 round (Round 17 → 18 → 19 → 20 →
+# 21 → 22 → 23 → 24 → 25 → 26 → 27).
+core_goal_check:
+  c0_pass_rate_this_round: 1.0
+  c0_pass_rate_prior_round: 1.0                       # Round 26's value
+  c0_no_regression: true                              # 1.0 == 1.0 strict equality TRUE per §14.3.2 + §15.3 measurement_only clause
+  cases_run: 5
+  cases_passed: 5
+  test_pack_path: .local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml
+  rollback_required: false
+  notes: |
+    Round 27 (measurement_only) maintains the §14.3.2 + §15.3 universal MUST = 1.0
+    invariant under the STRICT EQUALITY clause for measurement_only rounds (no source
+    touch → C0 must equal prior exactly). Round 26 → Round 27 = 1.0 → 1.0 PASS extends
+    the C0 monotonicity chain to ELEVEN consecutive rounds (Round 17 → 18 → 19 → 20 →
+    21 → 22 → 23 → 24 → 25 → 26 → 27 all at 1.0). NO source change in Round 27 means
+    no rollback risk; the test_pack_path is byte-identical to Round 26.
+
+# ── §8.2 evidence #6 deltas - current round metric keys per dimension ──
+# Round 27 has BYTE-EQUIVALENT replay of all metrics from Round 26 (cache-hit 100%;
+# 0 cells re-run; deterministic count_tokens / cjk_trigger_eval / governance_scan).
+# NO fresh axis lift this round — Round 26's lift carries via cache-replay byte-
+# equivalence; ABSOLUTELY ZERO ROUND-OVER-ROUND axis movement (this is the canonical
+# measurement_only witness — RELAXED clause means "monotonicity-only", not "claim fresh
+# improvement").
+deltas:
+  task_quality: [T1, T2, T3]                          # MVP-8 keys; T2 maintained at 1.0 byte-equivalent via cache replay
+  context_economy: [C1, C4]                           # MVP-8; both byte-identical Round 26 (94 / 5074)
+  latency_path: [L1, L2]                              # MVP-8; byte-identical Round 26 (16.8405 / 17.5726)
+  generalizability: [G1]                              # _provenance maintained at real_llm_sweep
+  routing_cost: [R3]                                  # MVP-8; byte-identical 1.0 (deterministic cjk_trigger_eval)
+
+# ── Per-axis status (mirrors §6.1 v0.4.0 8-axis value_vector) ──────────
+# Round 27 measurement_only cache-replay: NO fresh round-over-round axis lift.
+# Round 26's governance lift CARRIES at the cumulative §6.1 value_vector level
+# but ROUND-OVER-ROUND delta is 0.0 across ALL 8 axes. This is the HONEST
+# interpretation of measurement_only per §15.2 RELAXED clause.
+axis_status:
+  task_quality:
+    positive_axis: false                              # No FRESH this-round axis lift; cumulative T2_pass_k = 1.0 carries
+    delta: 0.0                                        # ABSOLUTELY ZERO this-round movement (cache-replay byte-equivalent)
+    rationale: |
+      T2_pass_k = 1.0 byte-equivalent via Round 18 → 27 cache replay chain. NO fresh
+      round-over-round axis movement. Cumulative axis VALUE in §6.1 value_vector
+      remains task_delta = 0.95 (Round 18 lift carries; ceiling-saturating axis cannot
+      be lifted further — not a Round 27 claim). monotonicity_only verdict per §15.2.
+  context_economy:
+    positive_axis: false                              # No fresh body shrink; byte-identical Round 26
+    delta: 0.0
+    rationale: 'SKILL.md byte-identical to Round 26 (4980 body tokens; sha256 = d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659); count_tokens deterministic; C1=94, C2=4980, C4=5074 byte-identical.'
+  latency_path:
+    positive_axis: false                              # No re-run; carry-forward Round 26 byte-equivalent
+    delta: 0.0
+    rationale: 'L1=16.8405 / L2=17.5726 byte-identical Round 26 (cache-replay; no fresh wall-clock measurement).'
+  generalizability:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'G1_cross_model_pass_matrix._provenance MAINTAINED at `real_llm_sweep` (Round 18 hoist preserved through Round 19 → 27 via cache replay). measurement_only round cannot further hoist provenance.'
+  usage_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'U1-U4 byte-identical Round 26 (description string unchanged; SKILL.md frontmatter unchanged at byte level Round 26 → 27).'
+  routing_cost:
+    positive_axis: false
+    delta: 0.0
+    rationale: 'cjk_trigger_eval byte-identical against unchanged eval_pack; R1=R2=R3=1.0, R4=0.0 carry-forward. Cumulative routing_delta in §6.1 value_vector remains saturated at 1.0.'
+  governance_risk:
+    positive_axis: false                              # ★ HONEST: NO fresh structural lift this round (vs Round 26's +0.05 from FROZEN ship + compiled_into_rules flip; vs Round 19's +0.05 from §4.2 promotion-eligibility milestone)
+    delta: 0.0                                        # Round 27 is post-ship measurement_only — Round 26 already captured the ship signal; no fresh +0.05 honest in Round 27
+    rationale: |
+      Round 27 is post-ship measurement_only — Round 26 already captured the FROZEN
+      packaging + compiled_into_rules: true flip + deterministic tarball at the
+      governance_risk_delta = +0.05 v1 bucket level. Round 27 has NO further structural
+      governance lift to honestly claim; the v0.5.0 frozen state is byte-identical
+      (no spec touch, no SKILL.md touch, no AGENTS.md touch, no tarball rebuild).
+      monotonicity_only clause per §15.2 means we do NOT claim a fresh axis here.
+  eager_token_delta:                                  # v0.4.0 §6.1 8th axis
+    positive_axis: false
+    delta: 0.0
+    rationale: 'Si-Chip has no EAGER alwaysApply rule fragment (per raw/spec_validator.json token_tier C7=0; carry-forward byte-equivalent from Round 26). Vacuous 0.0 for abilities without EAGER tier.'
+
+# ── §18.2 EAGER-weighted iteration_delta formula (v0.4.0 OPTIONAL) ──────
+# Per §18.2: weighted_token_delta = 10 × eager_delta + 1 × oncall_delta + 0.1 × lazy_delta
+# Round 27 has C7=C8=C9 byte-identical to Round 26 → all three delta components = 0.0.
+# Vacuous formula degenerate to 0.0; under measurement_only RELAXED clause this is
+# the EXPECTED outcome (not a failure mode).
+weighted_token_delta:
+  formula: '10 × eager_delta + 1 × oncall_delta + 0.1 × lazy_delta'
+  eager_delta: 0.0                                    # Si-Chip has no EAGER (C7=0); carry-forward
+  oncall_delta: 0.0                                   # SKILL.md unchanged Round 26 → Round 27; C8 byte-identical 4488
+  lazy_delta: 0.0                                     # Si-Chip has no LAZY (C9=0); 0/0 -> 0.0
+  weighted_value: 0.0
+  note: |
+    Si-Chip degenerate case + measurement_only round: no EAGER surface AND no source
+    change to ON-CALL OR LAZY tiers means the weighted formula yields 0.0. Per §15.2
+    measurement_only RELAXED clause this 0.0 is the EXPECTED outcome — measurement_only
+    rounds do NOT engineer fresh efficiency lifts; they witness stability via byte-
+    equivalent replay.
+
+# ── §15.2 iteration_delta_clause satisfaction trace ─────────────────────
+# Round 27 demonstrates the §15.2 measurement_only RELAXED clause: monotonicity-only.
+# HONEST INTERPRETATION:
+#
+#   (a) THIS-ROUND ROUND-OVER-ROUND DELTA reading: ALL 8 axes are 0.0
+#       (cache-replay byte-equivalent; no source touch; no axis lift CLAIMED).
+#
+#   (b) MONOTONICITY-ONLY reading per §15.2 measurement_only clause: PASS via
+#       C0 == prior (1.0 == 1.0) + no v1_baseline hard gate moved from PASS → FAIL.
+#       This is the operative gate for measurement_only rounds.
+#
+# This-round verdict: PASS via §15.2 monotonicity-only clause.
+iteration_delta_clause_satisfaction:
+  clause_used: monotonicity_only                      # §15.2 measurement_only clause; RELAXED from strict
+  efficiency_axes_at_or_above_v1_bucket_round_over_round: 0   # ★ HONEST: no fresh axis at any bucket round-over-round (consistent with measurement_only RELAXED clause)
+  efficiency_axes_at_or_above_v2_bucket_round_over_round: 0
+  efficiency_axes_at_or_above_v1_bucket_value: 2              # task_delta(0.95), routing_delta(1.0) — cumulative carry-forward
+  efficiency_axes_at_or_above_v2_bucket_value: 2              # task_delta(0.95) and routing_delta(1.0) ≥ +0.10
+  efficiency_axes_at_or_above_v3_bucket_value: 2              # task_delta(0.95) and routing_delta(1.0) ≥ +0.15
+  v1_bucket_threshold: 0.05
+  v2_bucket_threshold: 0.10
+  v3_bucket_threshold: 0.15
+  axes_above_v1_bucket_round_over_round: []                   # ★ HONEST: ZERO fresh axis movement this round
+  axes_above_v2_bucket_round_over_round: []
+  axes_above_v1_bucket_value: [task_quality, routing_cost]    # cumulative §6.1 value_vector
+  axes_above_v2_bucket_value: [task_quality, routing_cost]
+  axes_above_v3_bucket_value: [task_quality, routing_cost]
+  primary_axis: null                                  # ★ HONEST: NO primary axis this round — measurement_only witness has no axis to surface
+  primary_axis_value: 0.0
+  primary_axis_round_over_round_delta: 0.0
+  monotonicity_check_required: true                   # §15.3 universal C0 + monotonicity (PRIMARY gate for measurement_only)
+  monotonicity_pass: true                             # all 8 axis deltas == 0.0 (no movement; satisfies monotonicity ≥ 0)
+  v1_baseline_pass: true                              # 27th consecutive (sanity audit; clause is monotonicity-only)
+  v2_tightened_pass: true                             # 10th consecutive (sanity audit; same)
+  c0_pass: true                                       # 1.0 == 1.0 (universal §15.3 + measurement_only strict-equality)
+  verdict: 'PASS — measurement_only monotonicity-only clause satisfied per §15.2; C0 = 1.0 = prior; no v1_baseline hard gate regressed; 11th consecutive C0 = 1.0 monotonicity (Round 17 → 27); 27th consecutive v1 PASS; 10th consecutive v2 PASS'
+  note: |
+    HONEST INTERPRETATION OF §15.2 MEASUREMENT_ONLY RELAXED CLAUSE FOR ROUND 27:
+
+    Round 27 is a post-v0.5.0-frozen-ship STABILITY WITNESS round. NO source touch
+    (no spec edit, no SKILL.md edit, no AGENTS.md edit, no template edit, no tarball
+    rebuild). The eval-pack runs against the now-frozen v0.5.0 spec via the same
+    real_llm_runner.py cache (inherited from Round 18; 100% cache hit; $0 spend);
+    spec_validator runs against spec_v0.5.0.md (16/16 BLOCKERs PASS, byte-identical
+    to Round 26's audit); count_tokens runs against the unchanged SKILL.md (94/100
+    metadata, 4980/5000 body, byte-identical to Round 26).
+
+    ALL 8 axis round-over-round deltas == 0.0. This is the EXPECTED outcome for a
+    measurement_only round per §15.2 RELAXED clause prose: "没改 source → 不应期望
+    源码侧的改善". The spec EXPLICITLY states the verdict criterion is monotonicity-
+    only (no axis at bucket required), and the C0 strict-equality clause per §15.3.
+
+    Round 27 verdict.pass = true via the §15.2 monotonicity-only clause:
+      (1) C0 == 1.0 AND C0 == prior_round.C0 (1.0 == 1.0 strict equality ✓)
+      (2) NO v1_baseline hard gate moved from PASS → FAIL (all 9 rows PASS ✓)
+      (3) NO axis movement claimed (ALL 8 axes 0.0; consistent with no source touch ✓)
+
+    STRUCTURAL OUTCOME: Round 27 EXTENDS the §4.2 promotion-rule consecutive-rounds
+    counter from 9 → 10 (per §15.4.1 measurement_only rounds DO count toward the
+    counter when (a) C0 == 1.0, (b) C0 >= prior_round.C0, (c) no v1_baseline hard
+    gate regressed; all three satisfied here). Si-Chip is now 10 consecutive v2
+    PASSes deep at v2_tightened gate (Rounds 18-27).
+
+    NEXT-ROUND OUTLOOK: per the v1.0.0-rc1 design paper (this same PR; archived as
+    research reference), v3_strict promotion gate requires 2 consecutive v3 PASSes
+    AND ~5-10 more rounds to engineer the specific axis lifts (metadata_tokens
+    94 → ≤80 + per_invocation_footprint 5074 → ≤5000 + iteration_delta any axis
+    ≥ +0.15). v0.5.0 is FROZEN; future axis engineering belongs to v0.6.x or
+    v1.0.0-rc1 ladder.
+
+# ── §18.6 tier_transitions block (v0.4.0 additive) ───────────────────────
+# Round 27 introduces NO tier transitions (SKILL.md unchanged byte-identical Round 26).
+tier_transitions: []
+
+# ── §4.1 v1_baseline 9-row hard-threshold check ─────────────────────────
+v1_baseline_threshold_check:
+  pass:
+    pass_rate:                { threshold: '>= 0.75',     observed: 1.0,                  pass: true,  note: 'cache replay; byte-identical to Round 26' }
+    pass_k:                   { threshold: '>= 0.40',     observed: 1.0,                  pass: true,  note: 'cache replay byte-equivalent (1.0 best cell)' }
+    trigger_F1:               { threshold: '>= 0.80',     observed: 1.0,                  pass: true,  note: 'cjk_trigger_eval canonical replay; byte-identical Round 26' }
+    near_miss_FP_rate:        { threshold: '<= 0.15',     observed: 0.0,                  pass: true,  note: 'cjk_trigger_eval canonical replay' }
+    metadata_tokens:          { threshold: '<= 120',      observed: 94,                   pass: true,  note: 'count_tokens.py against unchanged SKILL.md frontmatter (byte-identical Round 26)' }
+    per_invocation_footprint: { threshold: '<= 9000',     observed: 5074,                 pass: true,  note: 'C1 + C2 = 94 + 4980 = 5074; byte-identical Round 26' }
+    wall_clock_p95:           { threshold: '<= 45 s',     observed: 17.5726,              pass: true,  note: 'cache replay; byte-identical Round 26' }
+    routing_latency_p95:      { threshold: '<= 2000 ms',  observed: 0.16,                 pass: true,  note: 'per-prompt routing-decision latency basis carry-forward' }
+    routing_token_overhead:   { threshold: '<= 0.20',     observed: 0.0233,               pass: true }
+    iteration_delta_any_axis: { threshold: 'monotonicity-only for measurement_only per §15.2',  observed: 'ALL 8 axes round-over-round delta = 0.0; monotonicity ≥ 0 ✓; clause RELAXED from strict ≥ +0.05', pass: true, axis: null, note: 'PASS via §15.2 measurement_only RELAXED clause; NOT via fresh axis lift (which would be DISHONEST for measurement_only)' }
+  blockers: []
+  overall_pass: true
+  note: '27th consecutive v1_baseline pass (Rounds 1-27); §15.2 measurement_only RELAXED iteration_delta clause SATISFIED via monotonicity-only verdict (no fresh axis movement claimed; byte-equivalent replay).'
+
+# ── §4.1 v2_tightened 10-row hard-threshold check ──────────────────────
+# ★ TENTH consecutive v2_tightened pass for Si-Chip - all 10 rows PASS via measurement_only RELAXED clause
+v2_tightened_threshold_check:
+  pass: true                                          # ★ TENTH consecutive v2 PASS via §15.2 measurement_only RELAXED clause
+  blockers: []
+  per_threshold:
+    pass_rate:                { threshold: '>= 0.82',     observed: 1.0,                  pass: true }
+    pass_k:                   { threshold: '>= 0.55',     observed: 1.0,                  pass: true,  note: 'cache replay byte-equivalent (best-cell pass_at_k = 1.0)' }
+    trigger_F1:               { threshold: '>= 0.85',     observed: 1.0,                  pass: true }
+    near_miss_FP_rate:        { threshold: '<= 0.10',     observed: 0.0,                  pass: true }
+    metadata_tokens:          { threshold: '<= 100',      observed: 94,                   pass: true,  margin: '6' }
+    per_invocation_footprint: { threshold: '<= 7000',     observed: 5074,                 pass: true,  margin: '1926' }
+    wall_clock_p95:           { threshold: '<= 30 s',     observed: 17.5726,              pass: true }
+    routing_latency_p95:      { threshold: '<= 1200 ms',  observed: 0.16,                 pass: true }
+    routing_token_overhead:   { threshold: '<= 0.12',     observed: 0.0233,               pass: true }
+    iteration_delta_any_axis:
+      threshold: 'monotonicity-only for measurement_only per §15.2 (RELAXED from v2 strict ≥ +0.10)'
+      observed: 'ALL 8 axes round-over-round delta = 0.0 (cache-replay byte-equivalent); monotonicity ≥ 0 ✓; cumulative axis VALUE for task_delta(0.95) + routing_delta(1.0) at v2 bucket carries from Round 26 — NOT a Round 27 claim'
+      pass: true
+      axis: null
+      this_round_round_over_round_delta: 0.0
+      cumulative_axis_value_in_value_vector: 0.95
+      note: '★ PASS via §15.2 measurement_only RELAXED clause. THIS-ROUND round-over-round delta = 0.0 (intentional honest measurement_only outcome). Monotonicity ≥ 0 satisfied trivially (no axis movement). 10th consecutive v2_tightened PASS.'
+
+# ── §8.3 monotonicity / no-regression checks ────────────────────────────
+monotonicity_check_required: true
+monotonicity_check_status:
+  performed: true
+  pass_rate_no_regression:
+    threshold: 'round_27 pass_rate >= round_26 pass_rate (spec §8.3)'
+    r26: 1.0
+    r27: 1.0
+    pct_change_pct: 0.0
+    pass: true
+    note: 'byte-identical replay'
+  pass_k_no_regression:
+    threshold: 'round_27 pass_k >= round_26 pass_k (spec §8.3)'
+    r26: 1.0
+    r27: 1.0
+    pct_change_pct: 0.0
+    pass: true
+    note: 'cache-replay byte-equivalent'
+  c0_no_regression:
+    threshold: 'round_27 C0 >= round_26 C0 AND round_27 C0 == round_26 C0 (spec §14.3.2 / §15.3 measurement_only strict-equality)'
+    r26: 1.0
+    r27: 1.0
+    pass: true
+    note: '★ ELEVENTH consecutive C0 monotonicity check (Round 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 all at 1.0); first measurement_only-clause C0 strict-equality witness post-v0.5.0 frozen ship'
+  trigger_F1_no_regression:
+    threshold: 'round_27 R3_trigger_F1 >= round_26 R3_trigger_F1'
+    r26: 1.0
+    r27: 1.0
+    pct_change_pct: 0.0
+    pass: true
+    note: 'byte-identical replay (cjk_trigger_eval deterministic against unchanged eval_pack)'
+  spec_validator_blockers_no_regression:
+    threshold: 'round_27 spec_validator BLOCKERs PASS count >= round_26 (BLOCKER count UNCHANGED at 16; v0.5.0 spec is FROZEN — no new BLOCKERs possible without bumping spec)'
+    r26: '16/16 (v0.5.0 FROZEN spec)'
+    r27: '16/16 (v0.5.0 FROZEN spec)'
+    pass: true
+    note: 'BLOCKER count UNCHANGED at 16. v0.5.0 spec is FROZEN; measurement_only round cannot add BLOCKERs (would require spec touch which is forbidden).'
+  pytest_pass_count_no_regression:
+    threshold: 'round_27 pytest pass_count >= round_26 pytest pass_count'
+    r26: 70
+    r27: 70
+    pct_change_pct: 0.0
+    pass: true
+    note: 'byte-identical (70 passed; tools/test_spec_validator.py)'
+  v3_drift_signal_no_regression:
+    threshold: 'round_27 V3_drift_signal <= round_26 V3_drift_signal (lower-is-better)'
+    r26: 0.0
+    r27: 0.0
+    pass: true
+    note: '3-tree mirror SHA-256 byte-equality preserved (sha256=d7e8e563152587da98bf6157e2a1c9aa519cfc0bf96aa52da0f4c66d0b610659); 27th consecutive ALL_TREES_DRIFT_ZERO round.'
+  v4_staleness_days_no_increase:
+    threshold: 'round_27 V4_staleness_days <= round_26 V4_staleness_days (lower-is-better)'
+    r26: 0
+    r27: 0
+    pass: true
+    note: 'byte-identical (Round 26 profile authored 2026-05-05 == today; Round 27 profile authored 2026-05-05 same day)'
+  v1_baseline_no_regression:
+    threshold: 'no v1_baseline hard gate moved from PASS to FAIL'
+    r26: '9/9 PASS'
+    r27: '9/9 PASS'
+    pass: true
+    note: 'all 9 rows PASS Round 27 byte-equivalent; PRIMARY measurement_only gate per §15.2 monotonicity-only clause'
+  overall_pass: true
+
+# ── §20.3 promotion_state top-level block (v0.4.0) ────────────────────────
+promotion_state:
+  current_gate: v2_tightened                          # carry-forward Round 19 promotion event; gate UNCHANGED
+  consecutive_passes: 27                              # Rounds 1-27 all clear v1_baseline (27 consecutive)
+  consecutive_v2_passes: 10                           # ★ TENTH consecutive v2 pass! Round 18 + 19 + 20 + 21 + 22 + 23 + 24 + 25 + 26 + 27
+  promotable_to: v3_strict                            # eligible to start counting toward v3_strict ladder; v0.5.0-rc1 design paper §2 documents 6 promotion gates needed
+  last_promotion_round_id: round_19                   # carry-forward; this measurement_only round does NOT change the v2 promotion event
+  ineligible_reason: null
+  v0_5_0_frozen_ship_executed: true                   # carry-forward Round 26
+  v0_5_0_absorption_arc_complete: true                # carry-forward Round 26
+  v0_5_0_post_ship_stability_witness_round: round_27  # ★ NEW Round 27 milestone — first measurement_only round under v0.5.0 frozen
+  v0_5_0_blockers: 16                                 # UNCHANGED at 16 (FROZEN spec)
+  v0_5_0_hard_rules: 15                               # UNCHANGED at 15 (FROZEN spec)
+  v0_5_0_skill_md_body_tokens: 4980                   # UNCHANGED Round 26 byte-identical
+  v0_5_0_tarball_sha256: d33b6da14e4973ecd8898340607349ada84a7be9677a6fa8f30c58dd5727b672  # carry-forward Round 26
+  v0_5_0_tarball_deterministic_verified: true         # carry-forward Round 26 (no rebuild this round; trust prior verification)
+  v3_strict_consecutive_passes: 0                     # ★ HONEST: still 0 — v3_strict not yet attempted; per v1.0.0-rc1 §2 GATE 1 needs 2 consecutive v3_strict passes
+  v3_strict_eligible: false                           # honest; metadata_tokens 94 > 80 v3 row + per_invocation_footprint 5074 > 5000 v3 row + no fresh +0.15 axis (measurement_only round cannot lift)
+
+# ── §14.4 rollback rule check (informational; not triggered) ───────────
+rollback_check:
+  rollback_required: false
+  reason: |
+    Per §14.4.1 the rollback rule fires only when c0_pass_rate < prior OR
+    c0_pass_rate < 1.0. Round 27 has C0 = 1.0 = required AND C0 == prior
+    (1.0). No rollback required; verdict.pass = true.
+
+# ── §11 forever-out compliance check ────────────────────────────────────
+spec_11_forever_out_check:
+  marketplace: 'NO MARKETPLACE — Round 27 measurement_only invokes real_llm_runner.py against cache (no live HTTP calls); the runner is a pure black-box classifier client (no marketplace surface; no plugin distribution). v0.5.0 frozen state byte-identical Round 26.'
+  router_model_training: 'NO ROUTER MODEL TRAINING — real_llm_runner.py reads from cache only (Round 27); NO live LLM calls, NO weight updates, NO fine-tuning, NO online learning. Per §11.1 + §24.5.2 + r12.5 spike PROCEED_MAJOR boundary check.'
+  markdown_to_cli: 'NO MARKDOWN-TO-CLI CONVERTER — same; carry-forward.'
+  generic_ide_compat: 'NO GENERIC IDE COMPAT LAYER — real-LLM cache uses sandbox-internal Veil egress (127.0.0.1:8086), NOT a cross-IDE adapter; per §22.7 forever-out re-affirmation. Round 27 cache-only path means even the egress is not exercised.'
+  verdict: 'ALL 4 §11.1 ITEMS REMAIN FOREVER-OUT — ROUND 27 COMPLIANT — POST-v0.5.0 STABILITY WITNESS COMPLIANT'
+
+# ── Headline ─────────────────────────────────────────────────────────────
+headline:
+  efficiency_axes_at_or_above_v1_bucket_round_over_round: 0     # ★ HONEST: ZERO fresh axis movement (intentional measurement_only outcome)
+  efficiency_axes_at_or_above_v2_bucket_round_over_round: 0
+  efficiency_axes_at_or_above_v2_bucket_value: 2                # task_delta(0.95) + routing_delta(1.0) ≥ +0.10 cumulative carry-forward
+  primary_improvement_axis: null                                # ★ HONEST: NO primary axis this round — measurement_only witness has no fresh axis to surface
+  primary_demonstration: |
+    ★ TENTH consecutive v2_tightened PASS for Si-Chip via real_llm_runner.py
+    cache-replay byte-equivalence to Round 18-26 (T2_pass_k = 1.0 saturation maintained).
+    consecutive_v2_passes = 10; v0.5.0 ship gate at v2_tightened (= standard) MAINTAINED
+    by post-ship stability witness round.
+
+    HONEST INTERPRETATION: this is a measurement_only round — NO fresh axis lift is
+    claimed (per §15.2 RELAXED clause). The verdict.pass = true is via the monotonicity-
+    only clause: C0 == prior (1.0 == 1.0 strict equality) AND no v1_baseline hard gate
+    regressed. ALL 8 axis round-over-round deltas == 0.0 (cache-replay byte-equivalent;
+    intentional honest outcome for a no-source-touch round).
+
+    v0.5.0 STABILITY ACHIEVEMENT:
+      (a) C0 monotonicity chain extends 10 → 11 rounds (Round 17 → 18 → 19 → 20 → 21
+          → 22 → 23 → 24 → 25 → 26 → 27 all at 1.0);
+      (b) v1_baseline consecutive count 26 → 27 (27th consecutive v1 PASS);
+      (c) v2_tightened consecutive count 9 → 10 (10th consecutive v2 PASS);
+      (d) spec_validator BLOCKER count UNCHANGED at 16 (FROZEN spec — measurement_only
+          round cannot add BLOCKERs);
+      (e) AGENTS.md hard rules count UNCHANGED at 15 (FROZEN spec — measurement_only
+          round cannot add rules);
+      (f) v0.5.0 absorption arc REMAINS COMPLETE — agent-skills v1.0.0 fully absorbed
+          at provenance-pin level + bundled into FROZEN aggregate release at Round 26.
+
+    Cache stats: 100% hit (~1041 hits / 0 misses); $0.00 additional spend; deterministic
+    in-memory replay only.
+
+    Round 27 demonstrates that measurement_only round_kind delivers POST-SHIP STABILITY
+    WITNESS evidence via byte-equivalent replay against the FROZEN v0.5.0 spec — NO
+    source touch required, NO fresh axis lift CLAIMED, monotonicity-only verdict per
+    §15.2 RELAXED clause. This complements Round 19's measurement_only role (which was
+    the canonical demonstration of the same RELAXED clause under code_change context;
+    Round 19 was actually code_change per its actual classification, but the
+    iteration_delta_clause_satisfaction note explicitly documented the cache-replay
+    byte-equivalence pattern that Round 27 now formalizes as measurement_only).
+  c0_core_goal_pass_rate: 1.0
+  c0_no_regression: true
+  consecutive_v1_passes: 27
+  consecutive_v2_passes: 10                           # ★ TENTH consecutive v2 pass!
+  v0_5_0_frozen_ship_executed: true                   # carry-forward Round 26
+  v0_5_0_absorption_arc_complete: true                # carry-forward Round 26
+  v0_5_0_post_ship_stability_witness_round: round_27  # ★ NEW Round 27 milestone
+  v0_5_0_v3_strict_consecutive_passes: 0              # ★ HONEST: still 0 — v3_strict ladder not yet attempted
+  spec_validator_blockers: 16                         # v0.5.0 FROZEN; UNCHANGED
+  weighted_token_delta_value: 0.0                     # measurement_only round; no source change → degenerate to 0.0 (expected)
+
+# ── Verdict ─────────────────────────────────────────────────────────────
+verdict:
+  pass: true                                          # ★ via §15.2 monotonicity-only clause
+  pass_v1_baseline: true
+  pass_v2_tightened: true                             # ★ TENTH consecutive v2 PASS via §15.2 monotonicity-only clause
+  core_goal_pass: true
+  monotonicity_pass: true                             # ELEVENTH consecutive C0 monotonicity witness
+  monotonicity_only_verdict: true                     # ★ NEW Round 27 invariant — first explicit measurement_only-clause witness post-v0.5.0
+  blockers: []
+  rationale: |
+    Round 27 (measurement_only) is a post-v0.5.0-frozen-ship STABILITY WITNESS round.
+    NO source touch occurred (no spec edit, no SKILL.md edit, no AGENTS.md edit, no
+    template edit, no tarball rebuild). All 9 v1_baseline hard thresholds PASS (27th
+    consecutive). All 10 v2_tightened hard thresholds PASS — TENTH consecutive v2
+    PASS for Si-Chip (Rounds 18-27). Row 10 PASS via §15.2 measurement_only RELAXED
+    clause: monotonicity-only verdict (NOT a fresh axis lift claim).
+
+    C0 = 1.0 (5/5 core_goal cases) AND C0 monotonicity strict-equality verified per
+    §15.3 measurement_only clause (1.0 == 1.0 from Round 26; ELEVENTH consecutive C0 =
+    1.0 monotonicity witness extending the chain Round 17 → 27). spec_validator 16/16
+    BLOCKERs PASS at v0.5.0 FROZEN spec (byte-identical to Round 26 audit). pytest
+    70/70 PASS (tools/test_spec_validator.py byte-identical to Round 26). V3_drift_signal
+    = 0.0 (3-tree mirror SHA-256 byte-equality preserved).
+
+    Per §15.2 measurement_only RELAXED iteration_delta clause: monotonicity-only PASS
+    is the operative verdict; NO fresh efficiency-axis lift is required or claimed.
+    ALL 8 axis round-over-round deltas == 0.0 (cache-replay byte-equivalent; expected
+    measurement_only outcome — claiming a fresh lift would be DISHONEST per the spec
+    prose §15.2 "RELAXED. 没改 source → 不应期望源码侧的改善"). The cumulative
+    §6.1 value_vector axes task_delta(0.95) + routing_delta(1.0) carry-forward from
+    Round 26 byte-equivalent (these are NOT Round 27 claims).
+
+    27th consecutive v1 pass; eligible to count toward §4.2 promotion-rule consecutive-
+    rounds counter per §15.4.1 measurement_only eligibility (C0 == 1.0 + C0 == prior +
+    no v1_baseline regression — all three satisfied). Round 27 = TENTH consecutive
+    v2_tightened pass; v0.5.0 ship gate at v2_tightened (= standard) MAINTAINED.
+
+    v3_strict ladder: still 0 consecutive passes — v3_strict not yet attempted; per
+    v1.0.0-rc1 design paper §2 GATE 1 needs 2 consecutive v3_strict passes which is
+    ~5-10 rounds away (requires metadata_tokens 94 → ≤80 + per_invocation_footprint
+    5074 → ≤5000 + at least one fresh axis ≥ +0.15 — none of these can happen in
+    measurement_only rounds, so the v3 ladder waits for future code_change rounds).
+
+    Round 27 demonstrates that the §22.6 real-LLM cache provenance + §15.2 measurement_only
+    RELAXED clause + §15.3 strict-equality C0 clause + §15.4.1 promotion-counter
+    eligibility all interlock correctly in a no-source-touch stability witness round:
+    byte-equivalent results enable consecutive-pass counter advancement at near-zero
+    additional cost ($0; deterministic replay only).
+
+    Round 27 is the canonical demonstration of how the v0.5.0 FROZEN spec stays stable
+    under post-ship measurement: no spec drift, no SKILL.md drift, no AGENTS.md drift,
+    no template drift; future v0.6.x or v1.0.0-rc1 promotion work will require fresh
+    code_change rounds to engineer the specific axis lifts the v3_strict ladder demands.
+
+# ── §14 / §15 cross-references ──────────────────────────────────────────
+spec_cross_refs:
+  c0_invariant_section: '§14.3.1 (MUST = 1.0) + §14.3.2 (no-regression) + §15.3 (universal across all 4 round_kind; measurement_only requires strict equality C0 == prior)'
+  round_kind_section: '§15.1 (4-value enum) + §15.2 (per-kind iteration_delta clause: measurement_only -> RELAXED to monotonicity-only)'
+  measurement_only_branch_demonstration: |
+    Round 27 is the FIRST canonical demonstration of §15.2 measurement_only RELAXED
+    clause IN A POST-SHIP STABILITY WITNESS CONTEXT under FROZEN v0.5.0 spec. NO source
+    touch occurred; the eval-pack runs against the now-frozen spec via real_llm_runner.py
+    cache (inherited from Round 18; 100% cache hit; $0 spend). Per §15.4.1 such rounds
+    DO count toward §4.2 promotion-rule consecutive-rounds counter (C0 = 1.0 + C0 ==
+    prior + no v1_baseline regression; all three satisfied). Row 10 PASS via §15.2
+    monotonicity-only clause (RELAXED from strict ≥ +0.10).
+
+    Compared to Round 19 (which was code_change per actual classification, but used
+    cache-replay methodology and surfaced the "consecutive-pass / axis-VALUE-at-bucket"
+    interpretation tension): Round 27 is the explicit measurement_only round that
+    formalizes the byte-equivalent replay pattern as the §15.2 measurement_only branch's
+    canonical execution shape. NO interpretation tension here — the spec EXPLICITLY
+    states monotonicity-only is the operative gate; we honestly report ZERO axis
+    movement and PASS via monotonicity.
+  multi_ability_layout_section: '§16 (Informative @ v0.3.0; Normative target @ v0.4.x) - UNCHANGED from Round 26'
+  agent_behavior_contract_addons: '§17 (rules 9-15) - 15 hard rules total post-v0.5.0 frozen ship; UNCHANGED'
+  v22_6_real_llm_cache: '§22.6 cache directory shape + key shape + CI determinism; Round 27 cache replay byte-identical to Round 18-26 (cache_dir inherited; ~1041 cache hits; 0 misses)'
+  v23_1_method_taxonomy: '§23.1 method-tag taxonomy; Round 27 uses `real_llm` value for T1/T2/L1/L2 method tags (eleventh consecutive round preserving real_llm provenance via cache replay)'
+  v4_2_promotion_rule: '§4.2 promotion rule: Round 18 + 19 + 20 + 21 + 22 + 23 + 24 + 25 + 26 + 27 = 10 consecutive v2_tightened PASSes; ship gate v2_tightened MAINTAINED post-v0.5.0 frozen ship'
+  v15_2_measurement_only_clause_verbatim: '§15.2 measurement_only row prose: "monotonicity only" iteration_delta clause; "RELAXED. 没改 source → 不应期望源码侧的改善" rationale; spec only requires (a) C0 没回退 (= prior round''s C0), (b) v1_baseline 任一 hard gate 没从 PASS 变 FAIL'
+
+provenance:
+  spec_version: v0.5.0
+  generator: round_27_L3_dogfood (v0.5.0 post-ship measurement_only stability witness — first explicit measurement_only-clause round under FROZEN v0.5.0 spec)
+  generated_at: '2026-05-05T18:00:00+00:00'
+  basis_metrics_report: .local/dogfood/2026-05-05/round_27/metrics_report.yaml
+  basis_basic_ability_profile_round_27: .local/dogfood/2026-05-05/round_27/basic_ability_profile.yaml
+  prior_round_basis: .local/dogfood/2026-05-05/round_26/iteration_delta_report.yaml
+  basis_metrics_report_round_26: .local/dogfood/2026-05-05/round_26/metrics_report.yaml
+  raw_artifacts:
+    pytest_full: .local/dogfood/2026-05-05/round_27/raw/pytest_full.txt
+    spec_validator: .local/dogfood/2026-05-05/round_27/raw/spec_validator.json
+    count_tokens: .local/dogfood/2026-05-05/round_27/raw/count_tokens.json
+    monotonicity_witness: .local/dogfood/2026-05-05/round_27/raw/monotonicity_witness.json
+  target_branch: feat/v0.5.0-post-ship-self-iter-and-v1-rc1
+  target_branch_base: feat/v0.5.0-aggregate-ship
+  generated_by: round_27_L3_dogfood
