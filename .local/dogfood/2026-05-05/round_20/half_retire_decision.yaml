@@ -1,0 +1,88 @@
+# Si-Chip Half-Retire Decision - round_20 (v0.4.2-rc1 code_change; A1 description-cap absorption)
+# Spec §6 + §14.7 (core_goal_invariant block) + §15 round_kind + §17.1 hard rule 9.
+# Structurally byte-identical to round_19's decision (action: keep) plus:
+#   * round_id / prior_round_id / spec_version / decided_at bumped
+#   * v0.4.2 description-cap absorption note in rationale
+#   * monotonicity_check chain extended to round_20
+
+round_id: round_20
+prior_round_id: round_19
+ability_id: si-chip
+ability_version: v0.4.2-rc1
+spec_version: v0.4.2-rc1
+decided_at: '2026-05-05T00:06:00+00:00'
+
+action: keep
+rationale: |
+  Round 20 absorbs §24.1 description discipline from addyosmani/agent-skills v1.0.0
+  into Si-Chip Normative spec — Si-Chip's own description (162 chars) is well under
+  the new 1024 cap. 20th consecutive v1_baseline pass; 3rd consecutive v2_tightened
+  pass (Round 18 + Round 19 + Round 20). C0 = 1.0 (5/5); monotonicity 1.0 → 1.0
+  → 1.0 → 1.0 chain extended (Round 17 → 18 → 19 → 20). governance_risk axis
+  +0.05 this round from BLOCKER 15 hardening §24.1 description-discipline scope
+  (additive structural improvement; v1 bucket).
+
+  v0.4.2 description-cap absorption — Si-Chip's own description is well-compliant
+  (162 chars; binding measurement = min(chars,bytes); pass axis = chars). All 44
+  BasicAbilityProfile.description fields across the dogfood history also pass (max
+  binding length = 283; well under 1024). No half-retire indicated; ability is
+  healthy and being actively promoted.
+
+risk_flags: []
+
+value_vector:                                       # 8 axes (v0.4.0 §6.1 7→8 break preserved)
+  task_delta: 0.0                                   # carry-forward Round 18's +0.4522 lift via byte-equivalent cache replay
+  token_delta: 0.0                                  # SKILL.md body grew 4646 → 4872 (within budget); consider this measurement-stable
+  latency_delta: 0.0                                # cache replay; same wall-clock
+  context_delta: 0.0
+  path_efficiency_delta: 0.0
+  routing_delta: 0.0                                # router_floor unchanged (composer_2/default carry-forward)
+  governance_risk_delta: 0.05                       # ★ NEW BLOCKER 15 hardens §24.1 description-discipline scope; structural addition at v1 bucket
+  eager_token_delta: 0.0                            # Si-Chip has no EAGER alwaysApply rule
+
+core_goal_invariant:                                # §14.7 (mandatory under §17.1 hard rule 9)
+  c0_pass_rate: 1.0
+  no_regression: true
+  monotonicity_check:
+    round_17: 1.0
+    round_18: 1.0
+    round_19: 1.0
+    round_20: 1.0
+    pass: true
+  test_pack_path: ".local/dogfood/2026-04-29/abilities/si-chip/core_goal_test_pack.yaml"
+  test_pack_version: "1.0.0"
+  cases_passed: 5
+  cases_total: 5
+
+reactivation_triggers_check:                        # §6.4 (none triggered; ability is keep)
+  trigger_1_new_model_no_ability_baseline_gap: not_evaluated
+  trigger_2_new_scenario_or_domain_match: not_evaluated
+  trigger_3_router_test_requires_ability_for_cheap_model: not_evaluated
+  trigger_4_efficiency_axis_becomes_significant: not_evaluated
+  trigger_5_upstream_api_change_wrapper_stabilizes: not_evaluated
+  trigger_6_manual_invocation_rebound: not_evaluated
+  status_overall: not_applicable_action_is_keep
+
+description_cap_audit:                              # v0.4.2 §24.1 self-audit (informational; canonical artefact at raw/description_length_audit.json)
+  cap_chars: 1024
+  binding_measurement: 'min(len(s), len(s.encode(\"utf-8\")))'
+  skill_md_self_chars: 162
+  skill_md_self_bytes: 162
+  skill_md_self_binding: 162
+  skill_md_self_axis: chars
+  skill_md_self_pass: true
+  bap_max_binding_across_history: 283
+  bap_max_pass: true
+
+provenance:
+  generator: 'Round 20 dogfood - L3 Task Agent (v0.4.2-rc1 code_change Patch 1 of v0.5.0 absorption plan; A1 description-cap)'
+  spec_version: v0.4.2-rc1
+  basis_round_19_half_retire_decision: .local/dogfood/2026-04-30/round_19/half_retire_decision.yaml
+  basis_metrics_report: .local/dogfood/2026-05-05/round_20/metrics_report.yaml
+  absorbed_external_source:
+    repo: addyosmani/agent-skills
+    version: v1.0.0
+    upstream_pushed_at: '2026-05-03'
+    upstream_doc: docs/skill-anatomy.md
+    absorbed_into: Si-Chip spec §24.1 + spec_validator BLOCKER 15 DESCRIPTION_CAP_1024
+  target_branch: feat/v0.4.2-description-cap

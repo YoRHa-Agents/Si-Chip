@@ -7,7 +7,156 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- (empty; post-v0.4.1 items land here)
+- (empty; post-v0.4.2 items land here)
+
+## [0.4.2] - 2026-05-05
+
+### Summary
+Si-Chip v0.4.2 — "Description Discipline (Patch 1 of v0.5.0 absorption
+plan)". Absorbs from `addyosmani/agent-skills` v1.0.0 (push @
+2026-05-03) `docs/skill-anatomy.md`'s 1024-character description cap
+convention as the FIRST external-source absorption since the project
+began. Adds Normative §24 Skill Hygiene Discipline + §17.7 hard rule
+14 + spec_validator BLOCKER 15 `DESCRIPTION_CAP_1024`. AGENTS.md §13
+grows 13 → 14 hard rules. spec_validator widens 14 → 15 BLOCKERs.
+Si-Chip's own description (165 chars; well under the new 1024 cap) is
+audit-passing on the first run. **Backward-compat preserved**:
+BLOCKER 15 SKIP-as-PASSes against the legacy v0.4.0 / v0.3.0 / v0.2.0
+specs (per §13.6.4 grace period; the SKIP path keys on the §24
+marker), so the existing 14 historical BLOCKERs continue to PASS
+against every prior spec.
+
+### Added (Normative)
+
+- **Spec §24 Skill Hygiene Discipline** (NEW): 1 sub-section §24.1
+  Description Discipline; absorbed from addyosmani/agent-skills v1.0.0
+  `docs/skill-anatomy.md` 1024-char cap convention. Three atomic
+  invariants — (1) length cap binding measurement = `min(len(s),
+  len(s.encode('utf-8')))` ≤ 1024 (CJK fairness via the smaller axis),
+  (2) "what + when" semantic shape (no embedded SKILL workflow body),
+  (3) cross-tree mirror byte-identical invariant.
+- **Spec §17.7 Hard Rule 14** (NEW): "**MUST** cap each
+  `BasicAbility.description` (and any `SKILL.md` frontmatter
+  `description`) at ≤ 1024 characters per spec §24.1; spec_validator
+  BLOCKER 15 `DESCRIPTION_CAP_1024` enforces. Measurement convention:
+  `min(len(s), len(s.encode('utf-8')))` (CJK fairness). Description
+  must be 'what + when' — must NOT embed the full SKILL body /
+  step-by-step workflow."
+- **Spec §1–§23 byte-identical to v0.4.0**: no other Normative content
+  changed; §17.1–§17.6 byte-identical; forever-out (§11.1) byte-level
+  preserved. v0.4.2 is purely additive.
+
+### Added (Tooling)
+
+- `tools/spec_validator.py` `SCRIPT_VERSION` 0.3.0 → 0.4.0; **14 → 15
+  BLOCKERs** (adds `DESCRIPTION_CAP_1024`); `SUPPORTED_SPEC_VERSIONS`
+  adds `v0.4.2-rc1`; new helpers `_iter_skill_md_files`,
+  `_extract_skill_description`, `_binding_description_length`,
+  `_spec_text_has_section_24`. SKIP-as-PASS path 1 keys on absent §24
+  marker (pre-v0.4.2 backward compat per §13.6.4 grace period); SKIP
+  path 2 keys on zero SKILL.md AND zero BAP files (pre-bootstrap
+  repo).
+- New function `check_description_cap_1024(repo_root, spec_text=...)`:
+  scans 3 SKILL.md trees (`.agents/skills/`, `.cursor/skills/`,
+  `.claude/skills/`) plus `.local/dogfood/**/round_*/basic_ability_profile.yaml`;
+  per-artifact evidence reports chars / bytes / binding length and
+  which axis (chars or bytes) hit the cap on FAIL.
+
+### Added (Documentation)
+
+- `.local/research/spec_v0.4.2-rc1.md` (rc; 2398 lines; pinned
+  candidate). §1–§23 byte-identical to `spec_v0.4.0.md` per
+  `additive_only: true` frontmatter assertion.
+- `.agents/skills/si-chip/references/description-discipline-r13-summary.md`
+  (~9 KB; mirrored across `.cursor/` + `.claude/` trees). Reader
+  walkthrough covering the 3 atomic invariants, the CJK-fairness
+  worked example, BLOCKER 15 mechanics, what does NOT trigger, and
+  the §11 forever-out re-affirmation.
+
+### Changed (Skill / Rule layer)
+
+- `.agents/skills/si-chip/SKILL.md` (mirrored) frontmatter `version:
+  0.4.0` → `version: 0.4.2`. New `### Skill Hygiene Discipline —
+  v0.4.2 Add-on (§24)` body section + 1 new "When To Trigger" bullet
+  + 1 line v0.4.2 packaging note + 1 new entry in the References
+  Index table for `description-discipline-r13-summary.md` + 1 new
+  forever-out reaffirmation paragraph + provenance bumped to
+  `spec_v0.4.2-rc1.md`. count_tokens budget: `metadata=94/100`,
+  `body=4829/5000` (PASS at v2_tightened body budget). All 3 mirrors
+  (`.agents/`, `.cursor/`, `.claude/`) byte-identical:
+  sha256=`779f821abc9a5e6b...`.
+- `.rules/si-chip-spec.mdc` `version: v0.4.0 → v0.4.2-rc1` /
+  `status: frozen → rc` / `effective_date: 2026-04-30 → 2026-05-05` /
+  `additive_only: false → true` / `supersedes: v0.3.0 → v0.4.0`. New
+  hard rule 14 appended to §13 hard-rules numbered list. Updated
+  preamble lineage paragraph notes the v0.4.2 add-on.
+- `AGENTS.md` (recompiled from `.rules/si-chip-spec.mdc`) bumps from
+  v0.4.0 frozen header to v0.4.2-rc1 rc header; §13 hard-rules
+  numbered list grows 13 → 14 entries. New trailing v0.4.2 add-on
+  paragraph documents the additive nature of rule 14 + BLOCKER 15.
+- `.rules/.compile-hashes.json` `agents_md` SHA256 prefix bumped from
+  `4f33afbec5d251aa` → `73df884e4570d5d5` to track the new AGENTS.md.
+
+### Added (Tests)
+
+- 5 new tests in `tools/test_spec_validator.py` `DescriptionCap1024Tests`
+  class: `test_description_cap_1024_passes_when_within_bound` (1023-char
+  ASCII desc across all 3 trees → PASS); `test_description_cap_1024_fails_at_1025_chars`
+  (1025-char ASCII → FAIL with `binding-axis=chars` finding);
+  `test_description_cap_1024_handles_cjk_correctly` (600 CJK chars,
+  1800 bytes → PASS via min(chars,bytes)=600 ≤ 1024);
+  `test_description_cap_1024_skips_when_no_artefacts` (empty repo →
+  SKIP-as-PASS; pre-v0.4.2 spec text → SKIP-as-PASS via
+  `spec_lacks_section_24_marker`);
+  `test_description_cap_1024_wired_into_run_all_total_15`
+  (subprocess against the real v0.4.2-rc1 spec verifies 15/15
+  BLOCKERs PASS with `DESCRIPTION_CAP_1024` last in the order).
+- Existing `V040Rc1AcceptanceTests.test_v0_4_0_rc1_spec_loads_15_of_15_pass`
+  + `test_default_v0_2_0_mode_still_11_of_11_pass` extended from
+  14/14 to 15/15: each pre-v0.4.2 spec sees BLOCKER 15 SKIP-as-PASS
+  with `evidence.skipped_reason == "spec_lacks_section_24_marker"`.
+
+### Verified (Dogfood)
+
+- **Round 20** (`code_change`, 2026-05-05): SKILL.md frontmatter
+  description audit-passes the new BLOCKER 15 (165 chars; well under
+  the 1024 cap). spec_validator runs 15/15 PASS against v0.4.2-rc1
+  spec; 15/15 PASS against legacy default v0.2.0 spec
+  (backward-compat verified). pytest 63 passed / 0 failed (5 new
+  BLOCKER 15 tests + 2 updated acceptance tests; total assertion
+  surface unchanged in count). Six evidence files emitted under
+  `.local/dogfood/2026-05-05/round_20/` per §8.2; iteration_delta
+  verdict.pass = true via `governance_risk_delta` ≥ +0.05 (BLOCKER
+  15 hardens governance scope at the v1 bucket).
+
+### Unchanged (Forever-Out — §11.1)
+
+- No marketplace; no router-model training; no generic IDE compat
+  layer; no Markdown-to-CLI converter.
+- §24.1.3 verbatim re-affirms §11.1's 4 forever-out items. The
+  absorption from `addyosmani/agent-skills` v1.0.0 is **lexical
+  only** — Si-Chip absorbs the 1024-char cap convention and the
+  "what + when" semantic shape, and **explicitly does NOT absorb**
+  agent-skills' marketplace direction or plugin distribution surface.
+
+### Files
+
+- 1 new file: `.local/research/spec_v0.4.2-rc1.md` (rc spec; 2398
+  lines; §1–§23 byte-identical to v0.4.0).
+- 1 new reference doc × 3 mirrors:
+  `.agents/skills/si-chip/references/description-discipline-r13-summary.md`
+  + `.cursor/skills/si-chip/references/description-discipline-r13-summary.md`
+  +   `.claude/skills/si-chip/references/description-discipline-r13-summary.md`
+  (sha256=`c06743ce7b8d61de...`).
+- 7 modified: `tools/spec_validator.py` (~375 LoC added; 1 new
+  function, 4 new helpers, run_all wired); `tools/test_spec_validator.py`
+  (+1 new test class with 5 tests + 2 acceptance tests bumped 14→15);
+  `.agents/skills/si-chip/SKILL.md` × 3 mirrors;
+  `.rules/si-chip-spec.mdc`; `AGENTS.md`; `.rules/.compile-hashes.json`.
+- Provenance pin: `addyosmani/agent-skills` v1.0.0 (push @
+  2026-05-03) `docs/skill-anatomy.md` "description: a string up to
+  1024 characters" — this is the absorbed convention; the absorption
+  does NOT extend to any other content from that repo.
 
 ## [0.4.1] - 2026-04-30
 
