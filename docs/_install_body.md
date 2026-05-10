@@ -20,16 +20,26 @@ curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
 # Install for both Cursor and Claude Code, globally
 curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
   --target both --scope global --yes
+
+# Install for all three platforms (Cursor + Claude Code + Codex bridge), globally
+curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
+  --target all --scope global --yes
+
+# Install just the Codex BRIDGE files (.codex/profiles/si-chip.md +
+# .codex/instructions/si-chip-bridge.md; per spec §7.2 + §11.2, native
+# SKILL.md runtime is deferred for Codex)
+curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
+  --target codex --scope repo --repo-root ~/code/myrepo --yes
 ```
 
 ### Installer flags
 
 | Flag | Values | Default | Required |
 |---|---|---|---|
-| `--target` | `cursor` / `claude` / `both` | (interactive prompt) | when `--yes` |
+| `--target` | `cursor` / `claude` / `codex` / `both` / `all` | (interactive prompt) | when `--yes` |
 | `--scope` | `global` / `repo` | (interactive prompt) | when `--yes` |
 | `--repo-root` | path | `$PWD` | when `--scope repo --yes` |
-| `--version` | tag | `v0.4.0` | no |
+| `--version` | tag | `v0.5.2` | no |
 | `--source-url` | URL | `https://yorha-agents.github.io/Si-Chip` | no (mostly for testing) |
 | `--yes` / `-y` | flag | `false` | no |
 | `--dry-run` | flag | `false` | no |
@@ -37,9 +47,13 @@ curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash -s -- \
 | `--uninstall` | flag | `false` | no |
 | `--help` | flag | `false` | no |
 
-### What gets installed (21 files via tarball, ~115 KB)
+`--target` semantics: `cursor` / `claude` install the full SKILL tree (26 files) under `~/.cursor/skills/si-chip/` or `~/.claude/skills/si-chip/`. `codex` installs **only** 2 BRIDGE files under `~/.codex/{profiles,instructions}/` (per spec §7.2 priority 3 + §11.2 deferred — Codex native SKILL.md runtime is **not yet** supported). `both` = `cursor + claude` (back-compat alias preserved across v0.4.x). `all` = `cursor + claude + codex bridge`.
 
-The HTTPS installer downloads `docs/skills/si-chip-0.4.0.tar.gz` (SHA-256 `2cfcce00f989faf2467014e638b0ea1fa67870b5a1ee6b0531942be5a4be21ab`; 83060 bytes; deterministic and reproducible) and extracts 21 files (1 SKILL.md + 1 DESIGN.md + 14 references + 5 scripts):
+Out-of-scope `--target` values (`copilot`, `opencode`, `gemini`, `gemini-cli`, `windsurf`) are explicitly rejected by the installer with a pointer to spec §11.1 (forever-out: generic IDE compat layer) and §11.2 (deferred until v3_strict 2-round pass).
+
+### What gets installed (26 files via tarball, ~98 KB)
+
+The HTTPS installer downloads `docs/skills/si-chip-0.5.2.tar.gz` (SHA-256 `403d4618bf854b4b2d358062fba1248e909c40165a7233d631bc19f665c48b3d`; deterministic and reproducible across rebuilds) and extracts 26 files (1 SKILL.md + 1 DESIGN.md + 19 references + 5 scripts) into the chosen install directory. The Codex bridge target ships only 2 markdown files (no tarball; fetched individually). For older versions, all per-version tarballs and `.sha256` sidecars are pinned under `docs/skills/`:
 
 ```
 <install-dir>/
@@ -59,6 +73,11 @@ The HTTPS installer downloads `docs/skills/si-chip-0.4.0.tar.gz` (SHA-256 `2cfcc
   references/health-smoke-check-r12-summary.md          (§21 — 4-axis probes; v0.4.0)
   references/eval-pack-curation-r12-summary.md          (§22 — 40-prompt v2 minimum; v0.4.0)
   references/method-tagged-metrics-r12-summary.md       (§23 — _method companions; v0.4.0)
+  references/description-discipline-r13-summary.md      (§24.1 — description cap 1024; v0.4.2)
+  references/standardized-sections-r13-summary.md       (§24.2 — Common Rationalizations / Red Flags / Verification trio; v0.4.3)
+  references/progressive-disclosure-r13-summary.md      (§24.3 — body-budget ≤ 5000; v0.4.4)
+  references/lifecycle-category-r13-summary.md          (§24.4 — lifecycle.category enum; v0.4.5)
+  references/meta-routing-pattern-r13-summary.md        (§24.5 — description-driven router; v0.4.6)
   scripts/profile_static.py                             (§8 step 1)
   scripts/count_tokens.py                               (packaging gate)
   scripts/aggregate_eval.py                             (§8 step 2)
@@ -66,24 +85,36 @@ The HTTPS installer downloads `docs/skills/si-chip-0.4.0.tar.gz` (SHA-256 `2cfcc
   scripts/real_llm_runner_quickstart.md                 (CLI cheat-sheet; v0.4.0)
 ```
 
-`DESIGN.md` carries internal architecture notes and is included in the tarball / file:// install but is not mirrored into `.cursor/skills/si-chip/` or `.claude/skills/si-chip/` (those mirror the 20-file `SKILL.md + references + scripts` set per the cross-tree drift contract — see `CONTRIBUTING.md` §9).
+`DESIGN.md` carries internal architecture notes and is included in the tarball / file:// install but is not mirrored into `.cursor/skills/si-chip/` or `.claude/skills/si-chip/` (those mirror the 25-file `SKILL.md + references + scripts` set per the cross-tree drift contract — see `CONTRIBUTING.md` §9).
+
+The **Codex BRIDGE** install (only 2 files; per spec §7.2 priority 3 + §11.2 deferred) writes to a different layout:
+
+```
+<scope>/.codex/
+  profiles/si-chip.md                                   (Codex profile pointing at AGENTS.md)
+  instructions/si-chip-bridge.md                        (Codex instructions pointing at AGENTS.md)
+```
 
 Where `<install-dir>` is one of:
 
-| target  | scope  | install dir                              |
+| target  | scope  | install dir                                                    |
 |---|---|---|
-| cursor  | global | `~/.cursor/skills/si-chip/`              |
-| cursor  | repo   | `<repo-root>/.cursor/skills/si-chip/`    |
-| claude  | global | `~/.claude/skills/si-chip/`              |
-| claude  | repo   | `<repo-root>/.claude/skills/si-chip/`    |
+| cursor  | global | `~/.cursor/skills/si-chip/`                                    |
+| cursor  | repo   | `<repo-root>/.cursor/skills/si-chip/`                          |
+| claude  | global | `~/.claude/skills/si-chip/`                                    |
+| claude  | repo   | `<repo-root>/.claude/skills/si-chip/`                          |
+| codex   | global | `~/.codex/{profiles,instructions}/si-chip*.md` (BRIDGE; 2 files) |
+| codex   | repo   | `<repo-root>/.codex/{profiles,instructions}/si-chip*.md`        |
+| both    | either | cursor + claude (back-compat; no codex)                         |
+| all     | either | cursor + claude + codex bridge (3 destinations)                 |
 
 ### Verify the install
 
 ```bash
 # Replace <install-dir> with the path the installer printed.
 python3 <install-dir>/scripts/count_tokens.py --file <install-dir>/SKILL.md --both
-# Expected: metadata_tokens=94, body_tokens=4646, pass=true
-#           (against the v0.4.0 v2_tightened budget: meta <= 100, body <= 5000)
+# Expected for v0.5.2: metadata_tokens=94, body_tokens=4980, pass=true
+#                     (against the v0.5.0 v2_tightened budget: meta <= 100, body <= 5000)
 ```
 
 ### Uninstall

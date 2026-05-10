@@ -10,6 +10,55 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Stage S3: post-v0.5.0 self-iteration round 27 (measurement_only) — demonstrates §15.2 monotonicity-only verdict; C0 = 1.0 maintained 11 rounds.
 - Stage S4: v1.0.0-rc1 design paper at `.local/research/spec_v1.0.0-rc1.md` — articulates 6 promotion gates for v1.0.0 stable; archived as design reference; NOT shipped.
 
+## [0.5.2] - 2026-05-10
+
+### Summary
+Si-Chip v0.5.2 — **install hotfix release**. The v0.5.1 ship (PR #24) bumped `SI_CHIP_VERSION_DEFAULT` to `v0.5.1` but never built or published the matching `docs/skills/si-chip-0.5.1.tar.gz` artifact, so every public `curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash` flow returned **HTTP 404** on the tarball download step. Investigation also uncovered a long-standing second bug in `stage_payload_http`: `tar -xzf` was extracting the canonical `si-chip/`-rooted tarball without `--strip-components=1`, so SKILL.md ended up at `<install_dir>/si-chip/SKILL.md` and `verify_install` died with `post-install: SKILL.md missing` — a regression that has been latent across the entire v0.x HTTP install lineage and was never caught because the existing test suite only exercised `file://` sources (which go through `stage_payload_file` per-file copies and skip the tar-extract path entirely). v0.5.2 fixes both: (1) backfills the missing v0.5.1 tarball + sha256 sidecar so `--version v0.5.1` flows still work end-to-end; (2) adds `--strip-components=1` to `stage_payload_http`; (3) bumps default to v0.5.2 and ships the matching v0.5.2 tarball so the headline `curl ... | bash` flow works again; (4) adds two regression tests that would have caught this v0.5.1 ship gap (`test_default_version_tarball_published` asserts the publish artifact exists; `test_http_install_extracts_skill_md_at_install_root` spins up an ephemeral `python3 -m http.server` against `docs/` and exercises the real HTTP → tar-extract → verify path that the existing 21-test suite never hit). Spec / Normative segments / .rules / AGENTS.md remain **byte-identical to v0.5.1** — this is an installer-layer hotfix only, the BasicAbility schema and 16 BLOCKERs are unchanged.
+
+### Fixed (Critical)
+- **`install.sh stage_payload_http` extraction bug** (latent across v0.1.0..v0.5.1 HTTP installs): the `tar -xzf "${tarball_path}" -C "${staging}"` call was missing `--strip-components=1`, causing every published tarball (whose canonical layout is `si-chip/<contents>` per the per-release CHANGELOG `tar --sort=name ... -czf docs/skills/si-chip-X.Y.Z.tar.gz si-chip/` recipe) to extract one level too deep. Fix: append `--strip-components=1`. The file:// install path (`stage_payload_file` → `fetch_one`) was unaffected because it copies individual manifest entries directly to staging and never touches the tar-extract code; this is why the 21-test suite at v0.5.1 ship didn't catch the bug.
+- **Missing `docs/skills/si-chip-0.5.1.tar.gz`** (v0.5.1 ship gap): `SI_CHIP_VERSION_DEFAULT="v0.5.1"` shipped without the matching tarball, breaking every default-flag `curl ... | bash` invocation. Backfilled deterministically (sha256 `6c364b27cb290475b0fbf0cfb0f07aeb6c13aae380772a1539a72dab863d0323`) so users still pinned to `--version v0.5.1` get a working install (after pulling new install.sh with the strip-components fix, since the v0.5.1 installer has the extraction bug too).
+
+### Added (Regression Tests)
+- `tools/test_install_targets.py::ManifestConsistencyTests::test_default_version_tarball_published` — parses `SI_CHIP_VERSION_DEFAULT` from install.sh and asserts both `docs/skills/si-chip-<ver>.tar.gz` AND its `.sha256` sidecar exist on disk; this assertion would have caught the v0.5.1 ship gap before merge.
+- `tools/test_install_targets.py::HttpInstallExtractionTests::test_http_install_extracts_skill_md_at_install_root` — spins up an ephemeral `python3 -m http.server` rooted at `docs/`, runs `install.sh --target cursor --scope repo --source-url http://...`, and asserts SKILL.md lands at `<install_dir>/SKILL.md` (NOT `<install_dir>/si-chip/SKILL.md`); this assertion would have caught the latent strip-components bug across every prior version.
+
+### Added (Artifacts)
+- `docs/skills/si-chip-0.5.1.tar.gz` — backfill (sha256 `6c364b27cb290475b0fbf0cfb0f07aeb6c13aae380772a1539a72dab863d0323`; 100298 bytes; deterministic via `tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='2026-05-07 00:00:00 UTC' --exclude='*/__pycache__' --exclude='si-chip/scripts/test_*.py'`; same canonical layout as v0.5.0: 1 SKILL.md + 1 DESIGN.md + 19 references + 5 scripts = 26 files).
+- `docs/skills/si-chip-0.5.1.tar.gz.sha256` — sha256 sidecar.
+- `docs/skills/si-chip-0.5.2.tar.gz` — v0.5.2 release tarball (sha256 `403d4618bf854b4b2d358062fba1248e909c40165a7233d631bc19f665c48b3d`; deterministic via the same recipe with `--mtime='2026-05-10 00:00:00 UTC'`; same canonical layout as v0.5.1; only SKILL.md frontmatter differs from v0.5.1: `version: 0.5.1 → 0.5.2`, description bumped from "per Si-Chip v0.5.1" to "per Si-Chip v0.5.2", footer Provenance line appends "v0.5.2 install hotfix").
+- `docs/skills/si-chip-0.5.2.tar.gz.sha256` — sha256 sidecar.
+
+### Changed
+- `install.sh` + `docs/install.sh` (kept byte-identical, both updated): `SI_CHIP_VERSION_DEFAULT="v0.5.1" → "v0.5.2"`; banner / help / version-info reflect v0.5.2; `stage_payload_http` extraction now passes `--strip-components=1` with an inline rationale comment citing this CHANGELOG entry.
+- `.agents/skills/si-chip/SKILL.md` (+ 3-tree mirror to `.cursor/skills/si-chip/SKILL.md` + `.claude/skills/si-chip/SKILL.md`): frontmatter `version: 0.5.1 → 0.5.2`; description text `per Si-Chip v0.5.1 → per Si-Chip v0.5.2`; Provenance footer line appends `; v0.5.2 install hotfix`. 3-tree mirror byte-identical (sha256 = `9754b3dac2ec92eca9277897116fce134a8119517f0d6ff60cb006565d350186`).
+- `tools/test_install_targets.py`: header docstring expanded with v0.5.2 hotfix narrative; existing tests refactored to track `SI_CHIP_VERSION_DEFAULT` via `_read_default_version()` rather than hard-coded literals (so future bumps don't require sweeping the test file); 21 → 23 tests.
+
+### Unchanged
+- **Spec** (`.local/research/spec_v0.5.0.md`): byte-identical to v0.5.0 ship; this is an installer-layer hotfix only.
+- **`.rules/si-chip-spec.mdc` / `AGENTS.md`**: byte-identical to v0.5.1 (compiled hashes unchanged).
+- **`spec_validator`**: 16/16 BLOCKERs PASS at v0.5.2 spec; backward-compat 16/16 PASS preserved.
+- **Forever-out (§11.1)**: marketplace / router-model training / generic IDE compat / Markdown-to-CLI all re-affirmed verbatim. The strip-components fix and tarball backfill DO NOT relax §11.1; the installer's `--target copilot|opencode|gemini|gemini-cli|windsurf` rejection path remains intact (covered by `RejectionTests` 5 tests + `test_unknown_target_dies_with_allow_list`).
+
+### Verified
+- `python3 tools/test_install_targets.py` — **23/23 PASS** (was 21/21 at v0.5.1; +2 regression tests).
+- `python3 -m pytest tools/` — **312 passed, 1 skipped, 68 subtests passed** (no other test regressions).
+- `python3 tools/spec_validator.py` — verdict `PASS` (16/16 BLOCKERs).
+- Reproducibility: both new tarballs rebuild byte-identical (verified via twice-build sha256 match).
+- End-to-end HTTP smoke: `bash install.sh --target all --scope repo --repo-root /tmp/... --source-url http://127.0.0.1:<port> --yes` against an ephemeral `python3 -m http.server docs/` produces correctly-laid-out cursor + claude SKILL trees + codex bridge files.
+
+### Files
+- New: `docs/skills/si-chip-0.5.1.tar.gz` + `.sha256` (backfill); `docs/skills/si-chip-0.5.2.tar.gz` + `.sha256`.
+- Modified: `install.sh` + `docs/install.sh` (mirror) ; `.agents/skills/si-chip/SKILL.md` + `.cursor/skills/si-chip/SKILL.md` + `.claude/skills/si-chip/SKILL.md` (3-tree mirror; v0.5.1 → v0.5.2 frontmatter + footer) ; `tools/test_install_targets.py` (header docstring + 2 new tests + literal-bumping refactor) ; `CHANGELOG.md` ([0.5.2] section above [0.5.0]).
+
+### Stack Position
+```text
+main
+ └─ #25 feat/v0.5.2-install-fix  (this PR; install hotfix; SoT bump v0.5.1 → v0.5.2)
+     └─ #24 feat/v0.5.1-install-codex-bridge  (op patch; missed the tarball)
+         └─ v0.5.0 ship (PR #21)
+```
+
 ## [0.5.0] - 2026-05-05
 
 ### Summary
