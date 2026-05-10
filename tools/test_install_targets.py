@@ -1,12 +1,24 @@
 #!/usr/bin/env python3
-"""Integration tests for ``install.sh`` target dispatch (v0.5.1+).
+"""Integration tests for ``install.sh`` target dispatch (v0.5.1+, v0.5.2 fixes).
 
 Workspace rule "Mandatory Verification": the v0.5.1 install.sh patch
-adds two new ``--target`` values (``codex`` and ``all``) and a hard
-rejection path for spec-§11.x out-of-scope targets (Copilot CLI,
-OpenCode, Gemini CLI, Windsurf). These tests exercise:
+added two new ``--target`` values (``codex`` and ``all``) and a hard
+rejection path for spec-§11.x out-of-scope targets. The **v0.5.2
+install hotfix** then (a) backfilled the missing ``si-chip-0.5.1.tar.gz``
+artifact (the v0.5.1 release shipped install.sh defaulting to v0.5.1
+but never published the matching tarball — every public ``curl ... |
+bash`` flow returned 404 on download) and (b) added
+``--strip-components=1`` to the HTTP-path tar extraction (the
+canonical ``si-chip/`` top-level directory in every v0.1.0..v0.5.x
+tarball was being preserved on extract, so SKILL.md ended up at
+``<install_dir>/si-chip/SKILL.md`` and ``verify_install`` died with
+``post-install: SKILL.md missing`` — a long-standing bug across the
+entire HTTP install path that the test suite never caught because
+prior tests only exercised file:// sources).
 
-* Help banner / version banner mention v0.5.1.
+These tests exercise:
+
+* Help banner / version banner mention the current ``SI_CHIP_VERSION_DEFAULT``.
 * Allowed targets (cursor / claude / codex / both / all) reach the
   install dispatch (verified via dry-run output for cursor + claude;
   real install for codex bridge since it has no network dependency).
@@ -20,24 +32,30 @@ OpenCode, Gemini CLI, Windsurf). These tests exercise:
   + 26 claude + 2 codex bridge = 54 files total.
 * The dual-layout file:// fallback (extracted-tarball ``skills/si-chip/``
   vs repo-SoT ``.agents/skills/si-chip/``) works for both layouts.
+* **v0.5.2 regression: HTTP install via tarball lands SKILL.md at
+  ``<install_dir>/SKILL.md``, NOT ``<install_dir>/si-chip/SKILL.md``.**
+* **v0.5.2 regression: the tarball matching ``SI_CHIP_VERSION_DEFAULT``
+  is published under ``docs/skills/`` with a matching ``.sha256`` sidecar.**
 
 Running the tests::
 
     python3 tools/test_install_targets.py
 
-These tests **do not** require network access; the only fetch path
-exercised is ``file://`` against the repo root and (optionally) against
-an extracted v0.5.0 tarball.
+The HTTP regression test spins up an ephemeral ``python3 -m http.server``
+serving the in-tree ``docs/`` directory; no network access required.
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -50,6 +68,25 @@ if not _INSTALL_SH.is_file():
         f"install.sh not found at {_INSTALL_SH}; tests must be run "
         "from inside the Si-Chip repository."
     )
+
+
+def _read_default_version() -> str:
+    """Parse ``SI_CHIP_VERSION_DEFAULT`` from install.sh.
+
+    Centralizes the version assertion so the helper + version-banner +
+    install-output tests track the constant rather than hard-coding it
+    at multiple sites (which is what got the v0.5.1 release into trouble:
+    the constant was bumped without a matching tarball ship).
+    """
+    text = _INSTALL_SH.read_text(encoding="utf-8")
+    m = re.search(r'^SI_CHIP_VERSION_DEFAULT="(v[0-9]+\.[0-9]+\.[0-9]+)"\s*$',
+                  text, re.MULTILINE)
+    if m is None:
+        raise SystemExit("SI_CHIP_VERSION_DEFAULT missing from install.sh")
+    return m.group(1)
+
+
+_DEFAULT_VERSION = _read_default_version()
 
 
 def _run(args: list[str], *, expect_exit: int = 0,
@@ -78,19 +115,20 @@ def _run(args: list[str], *, expect_exit: int = 0,
 
 
 class HelpAndVersionTests(unittest.TestCase):
-    """`--help` and `--version-info` reflect the v0.5.1 patch."""
+    """`--help` and `--version-info` reflect the current default version."""
 
-    def test_help_mentions_v051_and_codex_target(self) -> None:
+    def test_help_mentions_default_version_and_codex_target(self) -> None:
         proc = _run(["--help"])
-        self.assertIn("v0.5.1", proc.stdout, "help should advertise v0.5.1")
+        self.assertIn(_DEFAULT_VERSION, proc.stdout,
+                      f"help should advertise {_DEFAULT_VERSION}")
         self.assertIn("--target cursor|claude|codex|both|all", proc.stdout,
                       "help should enumerate the new target enum")
         self.assertIn("BRIDGE", proc.stdout,
                       "help must explain that codex is bridge-only")
 
-    def test_version_info_reports_default_v051(self) -> None:
+    def test_version_info_reports_default_version(self) -> None:
         proc = _run(["--version-info"])
-        self.assertIn("v0.5.1", proc.stdout)
+        self.assertIn(_DEFAULT_VERSION, proc.stdout)
 
 
 class RejectionTests(unittest.TestCase):
@@ -232,7 +270,7 @@ class AllTargetsTests(unittest.TestCase):
             ],
             timeout=60.0,
         )
-        self.assertIn("Installed Si-Chip v0.5.1 to", proc.stdout)
+        self.assertIn(f"Installed Si-Chip {_DEFAULT_VERSION} to", proc.stdout)
         self.assertIn("Installed Si-Chip Codex bridge", proc.stdout)
 
         cursor_dir = self._tmp / ".cursor" / "skills" / "si-chip"
@@ -244,7 +282,7 @@ class AllTargetsTests(unittest.TestCase):
         self.assertTrue((codex_dir / "profiles" / "si-chip.md").is_file())
         self.assertTrue((codex_dir / "instructions" / "si-chip-bridge.md").is_file())
 
-        # Reference + script counts (per v0.5.1 manifest: 19 + 5).
+        # Reference + script counts (per v0.5.x manifest: 19 + 5).
         cursor_refs = list((cursor_dir / "references").iterdir())
         cursor_scripts = list((cursor_dir / "scripts").iterdir())
         self.assertEqual(len(cursor_refs), 19,
@@ -390,6 +428,32 @@ class FileUrlDualLayoutTests(unittest.TestCase):
 class ManifestConsistencyTests(unittest.TestCase):
     """The MANIFEST inside install.sh matches the repo source-of-truth."""
 
+    def test_default_version_tarball_published(self) -> None:
+        """Regression for the v0.5.1 ship: ``SI_CHIP_VERSION_DEFAULT`` was
+        bumped to v0.5.1 but the matching ``docs/skills/si-chip-0.5.1.tar.gz``
+        was never built/published, so every public ``curl ... | bash``
+        flow returned 404 on tarball download. v0.5.2 backfills both
+        tarballs and adds this assertion to keep future bumps honest.
+        """
+        version_no_v = _DEFAULT_VERSION.lstrip("v")
+        tarball = (_REPO_ROOT / "docs" / "skills"
+                   / f"si-chip-{version_no_v}.tar.gz")
+        sha256_sidecar = tarball.with_suffix(tarball.suffix + ".sha256")
+        self.assertTrue(
+            tarball.is_file(),
+            f"docs/skills/si-chip-{version_no_v}.tar.gz missing — the "
+            f"public `curl ... | bash` flow will 404 on download. "
+            f"Rebuild deterministically per the per-release CHANGELOG "
+            f"recipe (`tar --sort=name --owner=0 --group=0 "
+            f"--numeric-owner --mtime=... --exclude='*/__pycache__' "
+            f"--exclude='si-chip/scripts/test_*.py' -czf ... si-chip/`)."
+        )
+        self.assertTrue(
+            sha256_sidecar.is_file(),
+            f"sha256 sidecar missing for {tarball.name}; downstream "
+            f"verification scripts depend on it."
+        )
+
     def test_expected_refs_matches_actual(self) -> None:
         text = _INSTALL_SH.read_text(encoding="utf-8")
         m = re.search(r"^EXPECTED_REFS=(\d+)\s*$", text, re.MULTILINE)
@@ -428,6 +492,96 @@ class ManifestConsistencyTests(unittest.TestCase):
         self.assertTrue((_REPO_ROOT / "docs" / "codex" / "profiles" / "si-chip.md").is_file())
         self.assertTrue((_REPO_ROOT / "docs" / "codex" / "instructions"
                          / "si-chip-bridge.md").is_file())
+
+
+class HttpInstallExtractionTests(unittest.TestCase):
+    """End-to-end HTTP install path via an ephemeral local web server.
+
+    Regression for the v0.5.2 install hotfix: ``stage_payload_http``
+    extracts the tarball with ``tar -xzf`` and historically did not
+    pass ``--strip-components=1``, while every published tarball wraps
+    its payload in a single ``si-chip/`` top-level directory. The net
+    effect was that SKILL.md landed at ``<install_dir>/si-chip/SKILL.md``
+    instead of ``<install_dir>/SKILL.md`` and ``verify_install`` died
+    with ``post-install: SKILL.md missing`` — bug present across the
+    entire HTTP install lineage but never caught because the prior test
+    suite only exercised file:// sources (which use per-file copies via
+    ``stage_payload_file`` and do not hit the tar-extract code path).
+    """
+
+    @staticmethod
+    def _free_port() -> int:
+        with contextlib.closing(socket.socket(socket.AF_INET,
+                                              socket.SOCK_STREAM)) as s:
+            s.bind(("127.0.0.1", 0))
+            return s.getsockname()[1]
+
+    def setUp(self) -> None:
+        self._tmp = Path(tempfile.mkdtemp(prefix="sichip_http_"))
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+
+        self._port = self._free_port()
+        self._proc = subprocess.Popen(
+            ["python3", "-m", "http.server", str(self._port),
+             "--bind", "127.0.0.1"],
+            cwd=str(_REPO_ROOT / "docs"),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.addCleanup(self._terminate_server)
+
+        # Wait up to 5s for the server to accept connections so the test
+        # is robust against slow CI starts; bail cleanly if it never
+        # comes up rather than hanging in subprocess.run.
+        deadline = time.monotonic() + 5.0
+        while time.monotonic() < deadline:
+            try:
+                with contextlib.closing(socket.create_connection(
+                        ("127.0.0.1", self._port), timeout=0.2)):
+                    return
+            except OSError:
+                time.sleep(0.05)
+        self.fail(f"local http.server never came up on port {self._port}")
+
+    def _terminate_server(self) -> None:
+        try:
+            self._proc.terminate()
+            self._proc.wait(timeout=2)
+        except Exception:
+            with contextlib.suppress(Exception):
+                self._proc.kill()
+                self._proc.wait(timeout=1)
+
+    def test_http_install_extracts_skill_md_at_install_root(self) -> None:
+        proc = _run(
+            [
+                "--target", "cursor",
+                "--scope", "repo",
+                "--repo-root", str(self._tmp),
+                "--source-url", f"http://127.0.0.1:{self._port}",
+                "--yes",
+            ],
+            timeout=60.0,
+        )
+        self.assertEqual(proc.returncode, 0,
+                         f"HTTP install should succeed; stderr: {proc.stderr}")
+
+        install_dir = self._tmp / ".cursor" / "skills" / "si-chip"
+        skill_md = install_dir / "SKILL.md"
+        self.assertTrue(skill_md.is_file(),
+                        f"SKILL.md must land at {skill_md} (NOT under "
+                        f"{install_dir / 'si-chip' / 'SKILL.md'}); the "
+                        f"v0.5.2 --strip-components=1 fix prevents the "
+                        f"historical nesting bug.")
+        self.assertFalse((install_dir / "si-chip").exists(),
+                         f"{install_dir / 'si-chip'} must NOT exist; if "
+                         f"it does, --strip-components=1 was dropped from "
+                         f"stage_payload_http.")
+
+        refs_dir = install_dir / "references"
+        scripts_dir = install_dir / "scripts"
+        self.assertEqual(len(list(refs_dir.iterdir())), 19)
+        self.assertEqual(len(list(scripts_dir.iterdir())), 5)
 
 
 if __name__ == "__main__":

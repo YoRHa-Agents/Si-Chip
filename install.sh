@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Si-Chip installer
 #   Installs the Si-Chip Skill payload (SKILL.md + DESIGN.md + 19 references
-#   + 5 scripts = 26 files at v0.5.1) into a Cursor and/or Claude Code
+#   + 5 scripts = 26 files at v0.5.2) into a Cursor and/or Claude Code
 #   skills directory (global or repo scope), and/or the Codex BRIDGE
 #   profile (2 files: .codex/profiles/si-chip.md +
 #   .codex/instructions/si-chip-bridge.md).
 #
 #   Source of truth: https://github.com/YoRHa-Agents/Si-Chip
 #   Spec:            .local/research/spec_v0.5.0.md (FROZEN; v0.5.1 patch
-#                    operationalizes Codex bridge install per §7.2;
+#                    operationalizes Codex bridge install per §7.2; v0.5.2
+#                    install hotfix backfills v0.5.1 tarball + adds
+#                    --strip-components=1 to fix HTTP-extract nesting bug;
 #                    v0.1.0..v0.4.7 retained as pinned historical snapshots)
 #
-#   Per spec §7.2 + §11.2, supported install targets at v0.5.1 are:
+#   Per spec §7.2 + §11.2, supported install targets at v0.5.2 are:
 #     * Cursor       — full SKILL tree at `.cursor/skills/si-chip/`
 #     * Claude Code  — full SKILL tree at `.claude/skills/si-chip/`
 #     * Codex        — BRIDGE ONLY: two files under `.codex/{profiles,instructions}/`
@@ -39,10 +41,10 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-SI_CHIP_VERSION_DEFAULT="v0.5.1"
+SI_CHIP_VERSION_DEFAULT="v0.5.2"
 SOURCE_URL_DEFAULT="https://yorha-agents.github.io/Si-Chip"
 
-# Cursor / Claude SKILL-tree manifest (v0.5.1: 19 references + 5 scripts).
+# Cursor / Claude SKILL-tree manifest (v0.5.2: 19 references + 5 scripts).
 # Order is alphabetic within each subgroup so the file:// loop is stable.
 MANIFEST=(
   "SKILL.md"
@@ -76,7 +78,7 @@ MANIFEST=(
 EXPECTED_REFS=19
 EXPECTED_SCRIPTS=5
 
-# Codex bridge manifest (v0.5.1 bridge-only; per spec §7.2 priority 3).
+# Codex bridge manifest (v0.5.2 bridge-only; per spec §7.2 priority 3).
 # Layout is intentionally NOT `.codex/skills/si-chip/SKILL.md` because that
 # would imply native SKILL.md runtime (§11.2 deferred). Instead, two
 # bridge files live alongside (not inside) any skills/ directory.
@@ -164,7 +166,7 @@ print_version_info() {
 
 print_help() {
   cat <<'EOF'
-Si-Chip installer v0.5.1
+Si-Chip installer v0.5.2
 
 Usage:
   curl -fsSL https://yorha-agents.github.io/Si-Chip/install.sh | bash
@@ -185,7 +187,7 @@ Flags:
                                    all              = cursor + claude + codex.
   --scope global|repo            Where to install
   --repo-root <path>             Repo root (required for --scope repo)
-  --version <tag>                Si-Chip version to install (default: v0.5.1)
+  --version <tag>                Si-Chip version to install (default: v0.5.2)
   --source-url <url>             Override download base (default: pages URL)
   --yes, -y                      Non-interactive
   --dry-run                      Print actions without writing
@@ -660,7 +662,15 @@ stage_payload_http() {
     die "downloaded payload is not a valid gzip file (got: ${diag}) from ${tarball_url}"
   fi
   mkdir -p "${staging}"
-  if ! tar -xzf "${tarball_path}" -C "${staging}"; then
+  # `--strip-components=1` peels the canonical `si-chip/` top-level dir
+  # off the tarball entries (every v0.1.0..v0.5.x tarball wraps the
+  # payload in a single `si-chip/` dir; see CHANGELOG entry per-release
+  # `tar --sort=name ... -czf docs/skills/si-chip-X.Y.Z.tar.gz si-chip/`).
+  # Without --strip-components the verifier finds SKILL.md at
+  # `<install_dir>/si-chip/SKILL.md` instead of `<install_dir>/SKILL.md`
+  # and dies with "post-install: SKILL.md missing" — the historical HTTP
+  # install bug fixed in v0.5.2.
+  if ! tar -xzf "${tarball_path}" -C "${staging}" --strip-components=1; then
     die "failed to extract ${tarball_name}"
   fi
 }
